@@ -19,6 +19,28 @@ npm run build
 npm run preview
 ```
 
+### Amp orbs
+
+`.agents/setup` uses the orb's preinstalled Node.js 22.13+, npm, and Python 3,
+installs the locked npm dependencies and Playwright Chromium (including system
+dependencies), and downloads the verified audio release. Amp snapshots this prepared
+environment, so fresh orbs with an exact snapshot skip setup. When setup reruns,
+browser downloads are cached and unchanged, valid audio is reused. No Cloudflare
+credentials or audio rendering tools are needed for development.
+
+`.agents/resume` only checks that the tools and dependencies are still available;
+it never installs packages. To repair an orb manually, run `.agents/setup`.
+
+Start the supervised development server and obtain its portal link with:
+
+```sh
+amp orb services ensure
+```
+
+The service is declared in `.amp/services.yaml`. Amp manages its port and portal
+hostname, and Vite accepts the hostname supplied by Amp. Generated portal state is
+ignored by Git.
+
 ## Reading the code
 
 Start with `src/main.ts`, which only mounts the app. Then read:

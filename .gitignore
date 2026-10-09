@@ -14,5 +14,8 @@ __pycache__/
 .dev.vars
 .dev.vars.*
 .aws/
-.agents/
+.agents/*
+!.agents/setup
+!.agents/resume
 .codex/
+.amp/portals/
