@@ -7,11 +7,18 @@ import {
   octave,
   type BoardNote,
   type MidiPitch,
-  type Spelling,
 } from '../music';
 import type { BoardSettings } from '../model';
 import { requireElement } from './dom';
-import { BOARD_HEIGHT, NOTE_RADIUS, ROW_HEIGHT, NUT_Y, rowY } from './geometry';
+import {
+  boardHeight,
+  NOTE_DIAMETER,
+  NOTE_CLEARANCE,
+  ROW_HEIGHT,
+  NUT_Y,
+  rowY,
+  rowGap,
+} from './geometry';
 import { positionMarkup } from './positions';
 
 export class FingerboardView {
@@ -22,17 +29,18 @@ export class FingerboardView {
   private readonly buttons = new Map<HTMLButtonElement, BoardNote>();
 
   constructor() {
-    this.fingerboard.style.setProperty('--board-height', `${BOARD_HEIGHT}px`);
-    this.fingerboard.style.setProperty('--note-diameter', `${NOTE_RADIUS * 2}px`);
+    this.fingerboard.style.setProperty('--note-diameter', `${NOTE_DIAMETER}px`);
     this.fingerboard.style.setProperty('--row-height', `${ROW_HEIGHT}px`);
     this.fingerboard.style.setProperty('--nut-y', `${NUT_Y}px`);
   }
-  renderNotes(spelling: Spelling): void {
+  renderNotes(settings: BoardSettings): void {
+    const { spelling } = settings;
+    this.fingerboard.style.setProperty('--board-height', `${boardHeight(settings)}px`);
     this.buttons.clear();
     const rows = Array.from({ length: MAX_STRING_OFFSET + 1 }, (_, offset) => {
       const row = document.createElement('div');
       row.className = offset === 0 ? 'note-row open-row' : 'note-row';
-      row.style.top = `${rowY(offset) - ROW_HEIGHT / 2}px`;
+      row.style.top = `${rowY(offset, settings) - ROW_HEIGHT / 2}px`;
       return row;
     });
     for (const note of BOARD_NOTES) {
@@ -51,7 +59,16 @@ export class FingerboardView {
         `${noteName(note.midi, spelling)}, Oktave ${octave(note.midi)}, ${string.name}-Saite, ${offset === 0 ? 'leere Saite' : `Halbtonschritt ${offset}`}`,
       );
       button.style.setProperty('--note-hue', String(noteHue(note.midi)));
-      button.textContent = offset === 0 ? string.name : noteName(note.midi, spelling);
+      const label = offset === 0 ? string.name : noteName(note.midi, spelling);
+      const gap = rowGap(offset, settings);
+      const crowded = gap < NOTE_DIAMETER;
+      button.classList.toggle('crowded', crowded);
+      button.style.setProperty(
+        '--note-size',
+        `${crowded ? gap - NOTE_CLEARANCE : NOTE_DIAMETER}px`,
+      );
+      button.textContent = crowded ? '' : label;
+      button.title = `${label}${octave(note.midi)} · ${string.name}-Saite`;
       cell.append(button);
       if (offset === 0) {
         const numeral = document.createElement('span');
@@ -67,7 +84,10 @@ export class FingerboardView {
     this.notes.replaceChildren(...rows);
   }
   renderPositions(settings: BoardSettings): void {
-    this.overlays.setAttribute('viewBox', `0 0 ${this.fingerboard.clientWidth} ${BOARD_HEIGHT}`);
+    this.overlays.setAttribute(
+      'viewBox',
+      `0 0 ${this.fingerboard.clientWidth} ${boardHeight(settings)}`,
+    );
     this.overlays.innerHTML = positionMarkup(settings, this.fingerboard.clientWidth);
   }
   highlight(pitch: MidiPitch | null, dimOthers: boolean): void {

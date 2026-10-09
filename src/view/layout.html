@@ -236,6 +236,21 @@
         ><button id="flat" aria-pressed="false">Be ♭</button>
       </div>
       <p class="micro">Deutsche Notennamen: H = B natural,<br />B = B flat.</p>
+      <label class="extension"
+        ><input id="to-scale" type="checkbox" aria-describedby="scale-help" /><span
+          >Wie auf dem Cello <small>Abstände maßstabsgetreu anzeigen</small></span
+        ></label
+      >
+      <p id="scale-help" class="micro">
+        Je höher der Ton, desto enger die Abstände. Dichte Töne erscheinen als Punkte ohne Namen.
+      </p>
+      <div id="spread-controls" hidden>
+        <label class="volume-label" for="spread"
+          >Spreizung <output id="spread-value" for="spread">100 %</output></label
+        >
+        <input id="spread" type="range" min="60" max="180" step="5" value="100" />
+        <p class="micro">Mehr Platz, gleiche Proportionen.</p>
+      </div>
     </section>
     <section>
       <div class="section-heading">

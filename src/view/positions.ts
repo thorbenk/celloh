@@ -5,6 +5,17 @@ import { rowY, NOTE_RADIUS } from './geometry';
 type BracketVariant = PositionVariant | 'standard';
 const BRACKET_CAP_WIDTH = 22;
 const FINGER_RADIUS = 8;
+const BRACKET_EDGE_MARGIN = 22;
+const BRACKET_LANE_SPACING = 34;
+const OUTER_LANE_X = BRACKET_EDGE_MARGIN;
+const MIDDLE_LANE_X = OUTER_LANE_X + BRACKET_LANE_SPACING;
+const INNER_LANE_X = MIDDLE_LANE_X + BRACKET_LANE_SPACING;
+const FINGER_INSET = 12;
+const LABEL_OUTSET = 8;
+const LABEL_ROTATION = 90;
+const EXTENSION_LABEL_GAP = 10;
+const EXTENSION_DASH_LENGTH = 4;
+const BRACKET_STROKE_WIDTH = 2;
 
 function variantsFor(position: Position, settings: BoardSettings): readonly BracketVariant[] {
   if (position.id === 1 || position.id === 4) return ['standard'];
@@ -15,18 +26,24 @@ function variantsFor(position: Position, settings: BoardSettings): readonly Brac
 function bracketX(position: Position, variant: BracketVariant, width: number): number {
   switch (position.id) {
     case 1:
-      return 90;
+      return INNER_LANE_X;
     case 2:
-      return width - (variant === 'upper' ? 56 : 90);
+      return width - (variant === 'upper' ? MIDDLE_LANE_X : INNER_LANE_X);
     case 3:
-      return variant === 'upper' ? 22 : 56;
+      return variant === 'upper' ? OUTER_LANE_X : MIDDLE_LANE_X;
     case 4:
-      return width - 22;
+      return width - OUTER_LANE_X;
   }
 }
 
-function fingerMarkup(offset: number, finger: number, x: number, color: string): string {
-  const y = rowY(offset);
+function fingerMarkup(
+  offset: number,
+  finger: number,
+  x: number,
+  color: string,
+  settings: BoardSettings,
+): string {
+  const y = rowY(offset, settings);
   return `
     <circle class="finger-marker" cx="${x}" cy="${y}" r="${FINGER_RADIUS}" fill="${color}" stroke="none"/>
     <text class="finger-number" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" fill="white" stroke="none">${finger}</text>
@@ -42,14 +59,14 @@ function bracketMarkup(
   const upper = variant === 'upper';
   const normal = fingerOffsets(position.id, upper, false);
   const fingers = fingerOffsets(position.id, upper, settings.extended);
-  const start = rowY(normal[0]) - NOTE_RADIUS;
-  const end = rowY(normal[3]) + NOTE_RADIUS;
+  const start = rowY(normal[0], settings) - NOTE_RADIUS;
+  const end = rowY(normal[3], settings) + NOTE_RADIUS;
   const x = bracketX(position, variant, width);
   const direction = position.side === 'left' ? 1 : -1;
   const capX = x + direction * BRACKET_CAP_WIDTH;
-  const fingerX = x + direction * 12;
-  const labelX = x - direction * 8;
-  const rotation = position.side === 'left' ? -90 : 90;
+  const fingerX = x + direction * FINGER_INSET;
+  const labelX = x - direction * LABEL_OUTSET;
+  const rotation = -direction * LABEL_ROTATION;
   const label =
     variant === 'standard'
       ? `${position.id}. Lage`
@@ -57,18 +74,18 @@ function bracketMarkup(
 
   let extension = '';
   if (settings.extended) {
-    const top = rowY(normal[0] - 1) - NOTE_RADIUS;
+    const top = rowY(normal[0] - 1, settings) - NOTE_RADIUS;
     extension = `
-      <path class="extension-bracket" stroke-dasharray="4 4" d="M${x},${start} V${top} H${capX}"/>
-      <text class="extension-text" x="${fingerX}" y="${top - 10}" stroke="none" fill="${position.color}" text-anchor="middle">↑ (1)</text>
+      <path class="extension-bracket" stroke-dasharray="${EXTENSION_DASH_LENGTH} ${EXTENSION_DASH_LENGTH}" d="M${x},${start} V${top} H${capX}"/>
+      <text class="extension-text" x="${fingerX}" y="${top - EXTENSION_LABEL_GAP}" stroke="none" fill="${position.color}" text-anchor="middle">↑ (1)</text>
     `;
   }
   return `
-    <g class="position-overlay" data-position="${position.id}" data-variant="${variant}" stroke="${position.color}" fill="none" stroke-width="2">
+    <g class="position-overlay" data-position="${position.id}" data-variant="${variant}" stroke="${position.color}" fill="none" stroke-width="${BRACKET_STROKE_WIDTH}">
       <path class="position-bracket" d="M${capX},${start} H${x} V${end} H${capX}"/>
       ${extension}
       <text class="position-label" transform="translate(${labelX} ${(start + end) / 2}) rotate(${rotation})" text-anchor="middle" stroke="none" fill="${position.color}">${label}</text>
-      ${fingers.map((offset, index) => fingerMarkup(offset, index + 1, fingerX, position.color)).join('')}
+      ${fingers.map((offset, index) => fingerMarkup(offset, index + 1, fingerX, position.color, settings)).join('')}
     </g>
   `;
 }

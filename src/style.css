@@ -259,6 +259,7 @@ main,
   width: 100%;
   height: var(--row-height);
   align-items: center;
+  pointer-events: none;
 }
 .note-cell {
   position: relative;
@@ -266,8 +267,10 @@ main,
   justify-content: center;
 }
 .note {
-  width: var(--note-diameter);
-  height: var(--note-diameter);
+  width: var(--note-size, var(--note-diameter));
+  height: var(--note-size, var(--note-diameter));
+  padding: 0;
+  pointer-events: auto;
   border-radius: 50%;
   border: 1px solid hsl(var(--note-hue) 65% 48%);
   font-size: 12px;
@@ -288,6 +291,15 @@ main,
   outline-offset: 3px;
   box-shadow: 0 0 0 6px #fffdf8;
   font-weight: 750;
+}
+.note.crowded {
+  border-color: transparent;
+  box-shadow: none;
+}
+.note.crowded.selected {
+  outline-width: 2px;
+  outline-offset: 1px;
+  box-shadow: none;
 }
 .open-row .note {
   font-size: 17px;

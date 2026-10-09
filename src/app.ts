@@ -44,7 +44,7 @@ export class App {
     ++this.playbackRequest;
   }
   private renderBoard(): void {
-    this.board.renderNotes(this.model.board.spelling);
+    this.board.renderNotes(this.model.board);
     this.board.renderPositions(this.model.board);
     this.renderSelection();
   }
@@ -177,6 +177,28 @@ export class App {
   }
   private bindSettings(): void {
     const options = { signal: this.events.signal };
+    const toScale = requireElement('#to-scale', HTMLInputElement);
+    const spreadControls = requireElement('#spread-controls', HTMLDivElement);
+    const spread = requireElement('#spread', HTMLInputElement);
+    const spreadValue = requireElement('#spread-value', HTMLOutputElement);
+    toScale.addEventListener(
+      'change',
+      () => {
+        this.model.board.toScale = toScale.checked;
+        spreadControls.hidden = !toScale.checked;
+        this.renderBoard();
+      },
+      options,
+    );
+    spread.addEventListener(
+      'input',
+      () => {
+        this.model.board.spread = spread.valueAsNumber / 100;
+        spreadValue.value = `${spread.value} %`;
+        this.renderBoard();
+      },
+      options,
+    );
     const spellings: readonly Spelling[] = ['sharp', 'flat'];
     for (const spelling of spellings) {
       requireElement(`#${spelling}`, HTMLButtonElement).addEventListener(

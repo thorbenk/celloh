@@ -174,6 +174,79 @@ test('settings slide over the centered board and close with Escape, button, or b
   }
 });
 
+test('to-scale spacing preserves cello proportions, declutters notes, and restores equal spacing', async ({
+  page,
+}) => {
+  for (const width of [1280, 375]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto('/');
+    const centers = () =>
+      page.locator('.note[data-string="0"]').evaluateAll((notes) =>
+        notes.map((note) => {
+          const bounds = note.getBoundingClientRect();
+          return bounds.top + bounds.height / 2;
+        }),
+      );
+    const equal = await centers();
+    expect(equal[2]! - equal[1]!).toBeCloseTo(58);
+    expect(equal[24]! - equal[23]!).toBeCloseTo(58);
+    await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+    const spread = page.getByRole('slider', { name: 'Spreizung' });
+    await expect(spread).not.toBeVisible();
+    await page.getByRole('checkbox', { name: 'Wie auf dem Cello' }).check();
+    const scaled = await centers();
+    const firstGap = scaled[2]! - scaled[1]!;
+    expect((scaled[14]! - scaled[13]!) / firstGap).toBeCloseTo(0.5, 2);
+    expect((scaled[3]! - scaled[2]!) / firstGap).toBeCloseTo(2 ** (-1 / 12), 2);
+    await spread.fill('60');
+    const compact = await centers();
+    expect((compact[2]! - compact[1]!) / firstGap).toBeCloseTo(0.6, 2);
+    await expect(page.locator('#spread-value')).toHaveText('60 %');
+    await page.locator('#upper').check();
+    await page.locator('#extension').check();
+    await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
+    const note = page.locator('.note[data-string="0"][data-offset="24"]');
+    await expect(note).toHaveText('');
+    await expect(note).toHaveAccessibleName('C, Oktave 4, C-Saite, Halbtonschritt 24');
+    await note.click();
+    await expect(page.locator('#selected-note')).toHaveText('C4');
+    await expect(note).toHaveAttribute('aria-pressed', 'true');
+    const clearance = await page.locator('.note[data-string="0"]').evaluateAll((notes) =>
+      notes.slice(1).map((note, index) => {
+        const previous = notes[index]!.getBoundingClientRect();
+        return note.getBoundingClientRect().top - previous.bottom;
+      }),
+    );
+    expect(Math.min(...clearance)).toBeGreaterThan(0);
+    const alignment = await page
+      .locator('.position-overlay[data-position="1"] .finger-marker')
+      .evaluateAll((markers) => {
+        const offsets = [1, 3, 4, 5]; // Backward extension moves only finger 1.
+        return markers.map((marker, index) => {
+          const bounds = marker.getBoundingClientRect();
+          const note = document
+            .querySelector(`.note[data-string="0"][data-offset="${offsets[index]}"]`)!
+            .getBoundingClientRect();
+          return Math.abs(bounds.top + bounds.height / 2 - note.top - note.height / 2);
+        });
+      });
+    expect(Math.max(...alignment)).toBeLessThan(1);
+    await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+    await expect(spread).toHaveValue('60');
+    await spread.fill('180');
+    const expanded = await centers();
+    expect((expanded[2]! - expanded[1]!) / firstGap).toBeCloseTo(1.8, 2);
+    await expect(note).toHaveText('C');
+    await expect(note).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('checkbox', { name: 'Wie auf dem Cello' }).uncheck();
+    await expect(spread).not.toBeVisible();
+    const restored = await centers();
+    expect(restored[2]! - restored[1]!).toBeCloseTo(58);
+    expect(restored[24]! - restored[23]!).toBeCloseTo(58);
+    await expect(note).toHaveText('C');
+  }
+});
+
 async function staffPoint(page: Page, step: number) {
   await page
     .locator('#notation-panel')

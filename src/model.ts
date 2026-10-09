@@ -20,6 +20,8 @@ export interface BoardSettings {
   readonly visiblePositions: Set<PositionNumber>;
   readonly variants: Set<PositionVariant>;
   extended: boolean;
+  toScale: boolean;
+  spread: number;
 }
 export interface PickerState {
   step: number;
@@ -34,6 +36,8 @@ export class AppModel {
     visiblePositions: new Set(POSITIONS.map((position) => position.id)),
     variants: new Set(['lower']),
     extended: false,
+    toScale: false,
+    spread: 1,
   };
   readonly picker: PickerState = { step: 7, accidental: 0, previewStep: null };
   dimOthers = true;
