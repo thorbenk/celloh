@@ -1,6 +1,6 @@
 services:
   web:
-    command: npm run dev -- --port "$PORT" --strictPort
+    command: npm run dev:portal -- --port "$PORT" --strictPort
     health: /
     portal:
       title: CellOh!

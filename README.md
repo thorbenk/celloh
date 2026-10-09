@@ -38,8 +38,15 @@ amp orb services ensure
 ```
 
 The service is declared in `.amp/services.yaml`. Amp manages its port and portal
-hostname, and Vite accepts the hostname supplied by Amp. Generated portal state is
-ignored by Git.
+hostname, and Vite accepts the hostname supplied by Amp. It runs `npm run dev:portal`,
+using Vite 8's experimental bundled development mode to avoid a source-module
+request waterfall over the higher-latency portal connection. HMR remains enabled.
+Generated portal state is ignored by Git.
+
+All commands use Vite 8, but bundled development is enabled only for the portal.
+Local `npm run dev` stays unbundled; production build configuration is unchanged.
+To fall back to unbundled portal development, change the service command to
+`npm run dev -- --port "$PORT" --strictPort` and rerun `amp orb services ensure`.
 
 ## Reading the code
 

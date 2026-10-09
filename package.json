@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:portal": "vite --host 0.0.0.0 --experimental-bundle",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "audio:fetch": "python3 scripts/fetch-audio.py",
