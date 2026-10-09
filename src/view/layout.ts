@@ -1,9 +1,13 @@
 import template from './layout.html?raw';
+import brandIconUrl from '../assets/brand-icon.webp';
+import brandEmblemUrl from '../assets/brand-emblem.webp';
 import { POSITIONS } from '../music';
 import { requireElement } from './dom';
 
 export function mountLayout(root: HTMLElement): void {
-  root.innerHTML = template;
+  root.innerHTML = template
+    .replaceAll('{{brandIcon}}', brandIconUrl)
+    .replaceAll('{{brandEmblem}}', brandEmblemUrl);
   const controls = requireElement('#position-controls', HTMLDivElement);
   for (const position of POSITIONS) {
     const label = document.createElement('label');

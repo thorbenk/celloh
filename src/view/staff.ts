@@ -1,3 +1,4 @@
+import bassClefUrl from '../assets/bass-clef.svg';
 import { isPlayablePitch, matchingBoardNotes, STRINGS, frequency } from '../music';
 import {
   naturalMidi,
@@ -55,12 +56,7 @@ export function staffMarkup(note: StaffNote | undefined, preview = false): strin
   ).join('');
   return `
     <g class="staff-lines" stroke="#657166" stroke-width="1">${lines}</g>
-    <g class="bass-clef" fill="#2d3833">
-      <path d="M28 90 C25 65 63 66 61 93 C60 114 42 135 25 145 C42 128 52 109 52 91 C52 78 34 75 30 89 Z"/>
-      <circle cx="30" cy="90" r="5"/>
-      <circle cx="69" cy="80" r="2.5"/>
-      <circle cx="69" cy="100" r="2.5"/>
-    </g>
+    <image class="bass-clef" href="${bassClefUrl}" x="24" y="70" width="56" height="65"/>
     ${note ? quarterNoteMarkup(note, preview) : ''}
   `;
 }

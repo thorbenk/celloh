@@ -6,6 +6,7 @@ import { FingerboardView } from './view/fingerboard';
 import { mountLayout } from './view/layout';
 import { PanelController } from './view/panels';
 import { StaffView } from './view/staff';
+import { DraggableNotation } from './view/draggable-notation';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
@@ -15,6 +16,7 @@ export class App {
   private readonly board: FingerboardView;
   private readonly staff: StaffView;
   private readonly panels: PanelController;
+  private readonly draggableNotation: DraggableNotation;
   private readonly resizeObserver: ResizeObserver;
   private playbackRequest = 0;
 
@@ -22,6 +24,7 @@ export class App {
     mountLayout(root);
     this.board = new FingerboardView();
     this.staff = new StaffView();
+    this.draggableNotation = new DraggableNotation();
     this.panels = new PanelController(() => {
       this.model.clearPreview();
       this.staff.renderPicker(this.model);
@@ -36,6 +39,7 @@ export class App {
     this.events.abort();
     this.resizeObserver.disconnect();
     this.panels.destroy();
+    this.draggableNotation.destroy();
     this.audio.stop();
     ++this.playbackRequest;
   }

@@ -11,12 +11,15 @@ export class PanelController {
   private readonly panels: readonly Panel[];
   private readonly events = new AbortController();
   private readonly toolbar = requireElement('.header-actions', HTMLDivElement);
+  private readonly footer = requireElement('.footer', HTMLElement);
   private readonly board = requireElement('.board-card', HTMLElement);
 
   constructor(onNotationClose: () => void) {
     this.panels = [
       this.createPanel('#settings', '#settings-open', '#settings-close'),
       this.createPanel('#notation-panel', '#notation-open', '#notation-close'),
+      this.createPanel('#info-panel', '#info-open', '#info-close'),
+      this.createPanel('#help-panel', '#help-open', '#help-close'),
     ];
     const options = { signal: this.events.signal };
     for (const panel of this.panels) {
@@ -54,7 +57,8 @@ export class PanelController {
           !active ||
           !(target instanceof Node) ||
           active.dialog.contains(target) ||
-          this.toolbar.contains(target)
+          this.toolbar.contains(target) ||
+          this.footer.contains(target)
         )
           return;
         if (active.dialog.id === 'notation-panel' && this.board.contains(target)) return;

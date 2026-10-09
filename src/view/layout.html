@@ -1,6 +1,9 @@
 <header class="header">
   <a class="brand" href="./" aria-label="CellOh! Startseite"
-    ><span class="brand-mark">♮</span>CellOh<span class="brand-end">!</span></a
+    ><img class="brand-mark" src="{{brandIcon}}" width="39" height="39" alt="" />CellOh<span
+      class="brand-end"
+      >!</span
+    ></a
   >
   <div class="header-actions">
     <button
@@ -22,7 +25,7 @@
       aria-controls="notation-panel"
       aria-expanded="false"
     >
-      <span aria-hidden="true">♩</span></button
+      <span class="material-icon icon-music-note" aria-hidden="true"></span></button
     ><button
       id="settings-open"
       class="icon-button"
@@ -30,45 +33,31 @@
       aria-controls="settings"
       aria-expanded="false"
     >
-      <svg
-        viewBox="0 0 24 24"
-        width="22"
-        height="22"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-        aria-hidden="true"
-      >
-        <path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 2 3-1 2 2 3-2 1-3 3-1 1-3-2-2-3-1-1-3z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
+      <span class="material-icon icon-settings" aria-hidden="true"></span>
     </button>
   </div>
 </header>
 <main>
   <div class="workspace">
     <section class="board-card" aria-label="Cello-Griffbrett">
-      <div class="board-heading">
-        <div>
-          <h2>Griffbrett</h2>
-          <p>4 Saiten · 2 Oktaven</p>
-        </div>
-        <span class="sound-tag"><span></span>Tippen & hören</span>
-      </div>
       <div class="board-scroll-wrap">
         <svg
           id="compact-staff"
+          tabindex="0"
+          aria-describedby="compact-staff-help"
           viewBox="0 -160 205 375"
           role="img"
           aria-label="Bassschlüssel, noch kein Ton gewählt"
         ></svg>
+        <span id="compact-staff-help" class="visually-hidden"
+          >Notenanzeige verschieben: ziehen oder mit den Pfeiltasten bewegen.</span
+        >
         <div
           class="board-scroll"
           tabindex="0"
           aria-label="Griffbrett, zum Anzeigen höherer Töne scrollen"
         >
           <div class="fingerboard">
-            <div class="board-top"><span aria-hidden="true"></span><span>LEERE SAITEN</span></div>
             <div id="notes" class="notes"></div>
             <svg
               id="overlays"
@@ -81,13 +70,37 @@
           </div>
         </div>
       </div>
-      <div class="board-key">
-        <span>Gleicher Tonname · gleiche Farbe</span><span>Abstände vereinfacht</span>
-      </div>
     </section>
   </div>
-  <details class="explanation">
-    <summary>Gut zu wissen: Lagen & Notennamen</summary>
+</main>
+<footer class="footer">
+  <button
+    id="info-open"
+    class="icon-button"
+    aria-label="Gut zu wissen öffnen"
+    aria-controls="info-panel"
+    aria-expanded="false"
+    title="Gut zu wissen"
+  >
+    <span class="material-icon icon-info" aria-hidden="true"></span>
+  </button>
+  <button
+    id="help-open"
+    class="icon-button"
+    aria-label="Über CellOh! öffnen"
+    aria-controls="help-panel"
+    aria-expanded="false"
+    title="Über CellOh!"
+  >
+    <span class="material-icon icon-help" aria-hidden="true"></span>
+  </button>
+</footer>
+<dialog id="info-panel" class="settings-panel" aria-labelledby="info-title">
+  <div class="settings-heading">
+    <h2 id="info-title">Gut zu wissen</h2>
+    <button id="info-close" class="icon-button" aria-label="Informationen schließen">×</button>
+  </div>
+  <div class="panel-copy">
     <p>
       Die Lagen zeigen die geschlossene Hand: Zwischen benachbarten Fingern liegt jeweils ein
       Halbton. Die 2. und 3. Lage haben eine untere und eine obere Variante. Bei der
@@ -104,14 +117,47 @@
       Orientierung:
       <a href="https://www.celloonline.com/cellofingeringchart.htm" target="_blank" rel="noreferrer"
         >Cello Online</a
-      >. Klang:
-      <a href="https://ethanwiner.com/ewsf2.html" target="_blank" rel="noreferrer"
-        >Ethan Winer · Cello Solo</a
       >. Gleichmäßige Abstände sind eine Lernhilfe; auf einem echten Cello werden sie Richtung Steg
       kleiner.
     </p>
-  </details>
-</main>
+  </div>
+</dialog>
+<dialog id="help-panel" class="settings-panel" aria-labelledby="help-title">
+  <div class="settings-heading">
+    <h2 id="help-title">Über CellOh!</h2>
+    <button id="help-close" class="icon-button" aria-label="Über CellOh! schließen">×</button>
+  </div>
+  <div class="panel-copy">
+    <img
+      class="about-emblem"
+      src="{{brandEmblem}}"
+      width="240"
+      height="240"
+      alt="Ein leuchtendes Cello in Form einer Glühbirne"
+    />
+    <p>
+      CellOh! hilft dir, Töne und Lagen auf dem Cello-Griffbrett zu entdecken. Tippe auf einen Griff
+      oder wähle einen Ton im Notenfenster, um ihn zu hören.
+    </p>
+    <p>
+      Der Cello-Klang stammt aus dem Soundfont
+      <a href="https://ethanwiner.com/ewsf2.html" target="_blank" rel="noreferrer"
+        >Cello Solo von Ethan Winer</a
+      >. Die einzelnen Töne wurden daraus vorab aufgenommen.
+    </p>
+    <p>
+      Icons: Google Material Icons (Apache 2.0). Bassschlüssel:
+      <a
+        href="https://commons.wikimedia.org/wiki/File:Bass_clef.svg"
+        target="_blank"
+        rel="noreferrer"
+        >Wikimedia Commons / Tlusťa</a
+      >
+      (gemeinfrei).
+    </p>
+  </div>
+</dialog>
+
 <dialog id="notation-panel" class="settings-panel notation-panel" aria-labelledby="notation-title">
   <div class="settings-heading">
     <h2 id="notation-title">Noten</h2>

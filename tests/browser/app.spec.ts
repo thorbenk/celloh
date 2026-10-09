@@ -37,6 +37,19 @@ test('mobile layout stays within viewport and brackets align with notes', async 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  for (const id of [
+    'highlight-toggle',
+    'notation-open',
+    'settings-open',
+    'info-open',
+    'help-open',
+  ]) {
+    const control = page.locator(`#${id}`);
+    await expect(control).toBeInViewport({ ratio: 1 });
+    const bounds = await control.boundingBox();
+    expect(bounds!.width).toBeGreaterThanOrEqual(44);
+    expect(bounds!.height).toBeGreaterThanOrEqual(44);
+  }
   const button = page.locator('.note[data-string="0"][data-offset="2"]');
   const bounds = await button.boundingBox();
   expect(bounds!.width).toBeGreaterThanOrEqual(44);
@@ -491,4 +504,29 @@ test('playback uses volume changes made while the sample is loading', async ({ p
   await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '1');
   const gain = Number(await page.locator('html').getAttribute('data-audio-gain'));
   expect(gain).toBeCloseTo(0.2);
+});
+
+test('corner notation can be moved and stays within the board after resizing', async ({ page }) => {
+  await page.goto('/');
+  const widget = page.locator('#compact-staff');
+  const initial = (await widget.boundingBox())!;
+  await page.mouse.move(initial.x + 60, initial.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(initial.x + 360, initial.y + 200);
+  await page.mouse.up();
+  const moved = (await widget.boundingBox())!;
+  expect(moved.x - initial.x).toBeCloseTo(300);
+  expect(moved.y - initial.y).toBeCloseTo(100);
+  await widget.focus();
+  await page.keyboard.press('ArrowRight');
+  expect((await widget.boundingBox())!.x - moved.x).toBeCloseTo(10);
+  await page.setViewportSize({ width: 375, height: 500 });
+  await expect(async () => {
+    const bounds = (await widget.boundingBox())!;
+    const canvas = (await page.locator('.board-scroll-wrap').boundingBox())!;
+    expect(bounds.x).toBeGreaterThanOrEqual(canvas.x);
+    expect(bounds.y).toBeGreaterThanOrEqual(canvas.y);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(canvas.x + canvas.width);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(canvas.y + canvas.height);
+  }).toPass();
 });
