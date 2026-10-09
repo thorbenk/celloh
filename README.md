@@ -103,6 +103,34 @@ For Cloudflare, use `npm run build:deploy` as the build command. It fetches the 
 
 For another static host, run the same command and upload the contents of `dist/`. The relative asset base supports both domain-root hosting and subdirectories, such as `/celloh/`. Serve through HTTP(S), rather than opening `index.html` through `file://`. No backend, external font service, or runtime CDN is required.
 
+### Cloudflare Workers
+
+`wrangler.toml` contains the public configuration for an asset-only Worker named `celloh`. It serves `dist/`, enables the `workers.dev` address and preview URLs, and contains no account credentials. Wrangler is pinned in the development dependencies and lockfile.
+
+Connect `thorbenk/celloh` to a Cloudflare Worker named `celloh`, then configure its Git build:
+
+| Setting                       | Value                    |
+| ----------------------------- | ------------------------ |
+| Production branch             | `master`                 |
+| Root directory                | Repository root          |
+| Build command                 | `npm run build:deploy`   |
+| Deploy command                | `npm run deploy`         |
+| Non-production deploy command | `npm run deploy:preview` |
+| Build variable `NODE_VERSION` | `22.22.1`                |
+
+Cloudflare's [build settings](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) manage the deployment API token and any private build variables. The app has no runtime secrets. `npm run deploy:preview` uploads a version with a preview URL without promoting it to production.
+
+For local deployment, authenticate with `npx wrangler login`, or copy `.env.example` to the gitignored `.env` and provide `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Use a token scoped to the deployment account with Workers Scripts edit permission. Wrangler [loads these environment variables](https://developers.cloudflare.com/workers/wrangler/system-environment-variables/). The example contains placeholders; account IDs and tokens stay out of the public configuration. Vite variables prefixed with `VITE_` are exposed to the browser, so do not use that prefix for credentials.
+
+```sh
+npm run build:deploy
+npm run deploy:check    # Validate/package locally without uploading
+npm run deploy:preview # Upload a preview version
+npm run deploy         # Publish to production
+```
+
+Deployment commands use the existing `dist/` directory; run the build first. `.wrangler/`, `.env` files, and `.dev.vars` files are ignored by Git. Only `dist/` is uploaded as public assets, so the credential template and repository configuration are not served with the app.
+
 ### Publishing audio releases
 
 The **Publish cello audio** GitHub Actions workflow creates `audio-v1` on the first push of these files to `master`. It also supports **Actions → Publish cello audio → Run workflow**. It uses the repository's built-in `GITHUB_TOKEN` with `contents: write`; no additional secrets are needed.

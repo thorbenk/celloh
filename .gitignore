@@ -5,11 +5,14 @@ test-results/
 playwright-report/
 public/audio/
 __pycache__/
+.wrangler/
 
 # Local credentials and agent configuration
 .env
 .env.*
 !.env.example
+.dev.vars
+.dev.vars.*
 .aws/
 .agents/
 .codex/

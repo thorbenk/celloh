@@ -5,3 +5,4 @@ public/audio/
 test-results/
 playwright-report/
 package-lock.json
+.wrangler/

@@ -1,0 +1,8 @@
+# Public deployment settings. Keep account credentials in .env or Cloudflare's build settings.
+name = "celloh"
+compatibility_date = "2026-10-09"
+workers_dev = true
+preview_urls = true
+
+[assets]
+directory = "./dist"

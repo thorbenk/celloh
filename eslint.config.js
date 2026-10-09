@@ -12,6 +12,7 @@ export default defineConfig(
     'public/audio/**',
     'test-results/**',
     'playwright-report/**',
+    '.wrangler/**',
   ]),
   {
     files: ['**/*.js'],
