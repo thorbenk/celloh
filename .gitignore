@@ -1,0 +1,14 @@
+node_modules/
+dist/
+references/
+test-results/
+playwright-report/
+public/audio/
+
+# Local credentials and agent configuration
+.env
+.env.*
+!.env.example
+.aws/
+.agents/
+.codex/

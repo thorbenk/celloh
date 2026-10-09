@@ -1,0 +1,196 @@
+<header class="header">
+  <a class="brand" href="./" aria-label="CellOh! Startseite"
+    ><span class="brand-mark">♮</span>CellOh<span class="brand-end">!</span></a
+  >
+  <div class="header-actions">
+    <button
+      id="highlight-toggle"
+      class="icon-button"
+      aria-label="Andere Töne dimmen"
+      aria-pressed="true"
+      title="Andere Töne dimmen"
+    >
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <circle cx="8" cy="12" r="5" fill="currentColor" />
+        <circle cx="18" cy="7" r="3" fill="currentColor" opacity=".25" />
+        <circle cx="18" cy="17" r="3" fill="currentColor" opacity=".25" />
+      </svg></button
+    ><button
+      id="notation-open"
+      class="icon-button"
+      aria-label="Noten öffnen"
+      aria-controls="notation-panel"
+      aria-expanded="false"
+    >
+      <span aria-hidden="true">♩</span></button
+    ><button
+      id="settings-open"
+      class="icon-button"
+      aria-label="Einstellungen öffnen"
+      aria-controls="settings"
+      aria-expanded="false"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        aria-hidden="true"
+      >
+        <path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 2 3-1 2 2 3-2 1-3 3-1 1-3-2-2-3-1-1-3z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    </button>
+  </div>
+</header>
+<main>
+  <div class="workspace">
+    <section class="board-card" aria-label="Cello-Griffbrett">
+      <div class="board-heading">
+        <div>
+          <h2>Griffbrett</h2>
+          <p>4 Saiten · 2 Oktaven</p>
+        </div>
+        <span class="sound-tag"><span></span>Tippen & hören</span>
+      </div>
+      <div class="board-scroll-wrap">
+        <svg
+          id="compact-staff"
+          viewBox="0 -160 205 375"
+          role="img"
+          aria-label="Bassschlüssel, noch kein Ton gewählt"
+        ></svg>
+        <div
+          class="board-scroll"
+          tabindex="0"
+          aria-label="Griffbrett, zum Anzeigen höherer Töne scrollen"
+        >
+          <div class="fingerboard">
+            <div class="board-top"><span aria-hidden="true"></span><span>LEERE SAITEN</span></div>
+            <div id="notes" class="notes"></div>
+            <svg
+              id="overlays"
+              class="overlays"
+              viewBox="0 0 600 1582"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            ></svg>
+            <div class="board-bottom">↓ RICHTUNG STEG</div>
+          </div>
+        </div>
+      </div>
+      <div class="board-key">
+        <span>Gleicher Tonname · gleiche Farbe</span><span>Abstände vereinfacht</span>
+      </div>
+    </section>
+  </div>
+  <details class="explanation">
+    <summary>Gut zu wissen: Lagen & Notennamen</summary>
+    <p>
+      Die Lagen zeigen die geschlossene Hand: Zwischen benachbarten Fingern liegt jeweils ein
+      Halbton. Die 2. und 3. Lage haben eine untere und eine obere Variante. Bei der
+      Rückwärtsstreckung bleibt Finger 2–4 am Platz; Finger 1 greift einen Halbton näher zur
+      Schnecke. Die gestrichelte Linie zeigt diesen zusätzlichen Bereich.
+    </p>
+    <p>
+      Kreuze und Be ändern nur die Schreibweise, nicht den Klang. H ist der natürliche Ton, B sein
+      um einen Halbton erniedrigter Nachbar. Gleiche Töne haben auf allen Saiten dieselbe Farbe,
+      auch bei anderer Schreibweise oder Oktave. Die Fingerzahlen neben den Klammern gehören zur
+      jeweiligen Lage. Untere und obere Varianten lassen sich gleichzeitig anzeigen.
+    </p>
+    <p>
+      Orientierung:
+      <a href="https://www.celloonline.com/cellofingeringchart.htm" target="_blank" rel="noreferrer"
+        >Cello Online</a
+      >. Klang:
+      <a href="https://ethanwiner.com/ewsf2.html" target="_blank" rel="noreferrer"
+        >Ethan Winer · Cello Solo</a
+      >. Gleichmäßige Abstände sind eine Lernhilfe; auf einem echten Cello werden sie Richtung Steg
+      kleiner.
+    </p>
+  </details>
+</main>
+<dialog id="notation-panel" class="settings-panel notation-panel" aria-labelledby="notation-title">
+  <div class="settings-heading">
+    <h2 id="notation-title">Noten</h2>
+    <button id="notation-close" class="icon-button" aria-label="Noten schließen">×</button>
+  </div>
+  <div class="note-widget">
+    <div class="widget-heading">
+      <h2>Bassschlüssel</h2>
+      <button id="clear-note" class="clear-note" aria-label="Tonmarkierung aufheben">
+        Zurücksetzen
+      </button>
+    </div>
+    <div class="widget-body">
+      <svg
+        id="staff"
+        viewBox="0 0 240 230"
+        role="button"
+        tabindex="0"
+        aria-label="Note wählen: C2 bis G4. Pfeiltasten ändern den Ton, Eingabetaste spielt ihn."
+        aria-describedby="staff-help"
+      ></svg>
+      <div class="widget-controls">
+        <div class="segmented accidentals" aria-label="Vorzeichen">
+          <button data-accidental="-1" aria-label="Be" aria-pressed="false">♭</button
+          ><button data-accidental="0" aria-label="Auflösungszeichen" aria-pressed="true">♮</button
+          ><button data-accidental="1" aria-label="Kreuz" aria-pressed="false">♯</button>
+        </div>
+        <div id="selected-note">Noch kein Ton gewählt</div>
+        <div id="selected-detail">C2–G4 auswählen</div>
+        <span id="audio-status" role="status" aria-live="polite">Bereit</span>
+      </div>
+    </div>
+    <p id="staff-help">Note zeigen, dann klicken oder tippen. ↑ ↓ wählen, Enter spielt.</p>
+  </div>
+</dialog>
+<dialog id="settings" class="settings-panel" aria-labelledby="settings-title">
+  <div class="settings-heading">
+    <h2 id="settings-title">Einstellungen</h2>
+    <button id="settings-close" class="icon-button" aria-label="Einstellungen schließen">×</button>
+  </div>
+  <div class="controls">
+    <section>
+      <div class="section-heading">
+        <span class="step">01</span>
+        <h2>Die Töne</h2>
+      </div>
+      <p class="hint">Wie möchtest du die Töne lesen?</p>
+      <div class="segmented" aria-label="Notennamen">
+        <button id="sharp" aria-pressed="true">Kreuze ♯</button
+        ><button id="flat" aria-pressed="false">Be ♭</button>
+      </div>
+      <p class="micro">Deutsche Notennamen: H = B natural,<br />B = B flat.</p>
+    </section>
+    <section>
+      <div class="section-heading">
+        <span class="step">02</span>
+        <h2>Die Lagen</h2>
+      </div>
+      <p class="hint">Zeige die Wege für deine Finger.</p>
+      <div id="position-controls" class="position-controls"></div>
+      <fieldset class="variant-controls">
+        <legend>2. & 3. Lage</legend>
+        <label><input id="lower" type="checkbox" checked /> Untere Lage</label
+        ><label><input id="upper" type="checkbox" /> Obere Lage</label>
+      </fieldset>
+      <label class="extension"
+        ><input id="extension" type="checkbox" /><span
+          >1. Finger nach hinten strecken <small>↑ Richtung Schnecke</small></span
+        ></label
+      >
+    </section>
+    <section>
+      <div class="section-heading">
+        <span class="step">03</span>
+        <h2>Der Klang</h2>
+      </div>
+      <label class="volume-label" for="volume">Lautstärke <span id="volume-value">65 %</span></label
+      ><input id="volume" type="range" min="0" max="100" value="65" />
+      <p class="micro">Ein echter Cello-Klang.<br />Tippe auf einen Ton, um ihn zu hören.</p>
+    </section>
+  </div>
+</dialog>
