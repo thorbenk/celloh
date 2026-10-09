@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { midiPitch } from '../src/music';
+import { MAJOR_KEYS, MINOR_KEYS, midiPitch } from '../src/music';
 import { naturalMidi, staffNote, ledgerSteps, staffY, writtenNoteName } from '../src/notation';
 
 void test('bass staff line pitches and middle C', () => {
@@ -23,6 +23,10 @@ void test('every displayed pitch reconstructs correctly in both spellings', () =
     for (const spelling of ['sharp', 'flat'] as const) {
       const note = staffNote(midiPitch(midi), spelling);
       assert.equal(naturalMidi(note.step) + note.accidental, midi);
+      for (const key of [...MAJOR_KEYS, ...MINOR_KEYS]) {
+        const keyed = staffNote(midiPitch(midi), spelling, key);
+        assert.equal(naturalMidi(keyed.step) + keyed.accidental, midi, key.name);
+      }
     }
 });
 
@@ -32,4 +36,8 @@ void test('written German note names retain enharmonic letter and octave', () =>
   assert.equal(writtenNoteName({ step: 13, accidental: -1 }), 'B3');
   assert.equal(writtenNoteName({ step: 13, accidental: 0 }), 'H3');
   assert.equal(writtenNoteName({ step: 13, accidental: 1 }), 'His3');
+  const ges = MAJOR_KEYS.find((key) => key.name === 'Ges-Dur')!;
+  const cis = MAJOR_KEYS.find((key) => key.name === 'Cis-Dur')!;
+  assert.equal(writtenNoteName(staffNote(midiPitch(59), 'flat', ges)), 'Ces4');
+  assert.equal(writtenNoteName(staffNote(midiPitch(60), 'sharp', cis)), 'His3');
 });

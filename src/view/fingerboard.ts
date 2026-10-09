@@ -4,11 +4,13 @@ import {
   STRINGS,
   noteName,
   noteHue,
-  octave,
+  keyLetter,
   type BoardNote,
   type MidiPitch,
+  type KeySignature,
 } from '../music';
 import type { BoardSettings } from '../model';
+import { staffNote, writtenNoteName } from '../notation';
 import { requireElement } from './dom';
 import {
   boardHeight,
@@ -34,7 +36,7 @@ export class FingerboardView {
     this.fingerboard.style.setProperty('--nut-y', `${NUT_Y}px`);
   }
   renderNotes(settings: BoardSettings): void {
-    const { spelling } = settings;
+    const { spelling, key } = settings;
     this.fingerboard.style.setProperty('--board-height', `${boardHeight(settings)}px`);
     this.buttons.clear();
     const rows = Array.from({ length: MAX_STRING_OFFSET + 1 }, (_, offset) => {
@@ -54,12 +56,14 @@ export class FingerboardView {
       button.dataset.offset = String(offset);
       button.dataset.midi = String(note.midi);
       button.setAttribute('aria-pressed', 'false');
+      const written = staffNote(note.midi, spelling, key);
+      const name = noteName(note.midi, spelling, key);
       button.setAttribute(
         'aria-label',
-        `${noteName(note.midi, spelling)}, Oktave ${octave(note.midi)}, ${string.name}-Saite, ${offset === 0 ? 'leere Saite' : `Halbtonschritt ${offset}`}`,
+        `${name}, Oktave ${2 + Math.floor(written.step / 7)}, ${string.name}-Saite, ${offset === 0 ? 'leere Saite' : `Halbtonschritt ${offset}`}`,
       );
       button.style.setProperty('--note-hue', String(noteHue(note.midi)));
-      const label = offset === 0 ? string.name : noteName(note.midi, spelling);
+      const label = offset === 0 ? string.name : name;
       const gap = rowGap(offset, settings);
       const crowded = gap < NOTE_DIAMETER;
       button.classList.toggle('crowded', crowded);
@@ -68,7 +72,7 @@ export class FingerboardView {
         `${crowded ? gap - NOTE_CLEARANCE : NOTE_DIAMETER}px`,
       );
       button.textContent = crowded ? '' : label;
-      button.title = `${label}${octave(note.midi)} · ${string.name}-Saite`;
+      button.title = `${writtenNoteName(written)} · ${string.name}-Saite`;
       cell.append(button);
       if (offset === 0) {
         const numeral = document.createElement('span');
@@ -90,11 +94,13 @@ export class FingerboardView {
     );
     this.overlays.innerHTML = positionMarkup(settings, this.fingerboard.clientWidth);
   }
-  highlight(pitch: MidiPitch | null, dimOthers: boolean): void {
+  highlight(pitch: MidiPitch | null, dimOthers: boolean, key: KeySignature | null): void {
     this.notes.classList.toggle('has-selection', dimOthers && pitch !== null);
+    this.notes.classList.toggle('has-key', key !== null);
     for (const [button, note] of this.buttons) {
       const matches = note.midi === pitch;
       button.classList.toggle('selected', matches);
+      button.classList.toggle('outside-key', key !== null && keyLetter(note.midi, key) === -1);
       button.setAttribute('aria-pressed', String(matches));
     }
   }

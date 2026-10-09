@@ -403,6 +403,135 @@ test('quick dimming toggle preserves selection and compact notation', async ({ p
   await page.screenshot({ path: '/tmp/celloh-compact-notation.png', fullPage: true });
 });
 
+test('key shading combines with pitch focus without disabling notes or changing positions', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const positions = await page.locator('#overlays').innerHTML();
+  await expect(page.locator('#active-key')).toBeHidden();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByLabel('Tonart', { exact: true }).selectOption('Es-Dur');
+  await expect(page.locator('#key-notes')).toHaveText('Es · F · G · As · B · C · D');
+  await expect(page.getByRole('button', { name: 'Be ♭', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
+  expect(await page.locator('#overlays').innerHTML()).toBe(positions);
+  const notes = await page.locator('.note').evaluateAll((notes) =>
+    notes.map((note) => ({
+      midi: Number((note as HTMLElement).dataset.midi),
+      opacity: getComputedStyle(note).opacity,
+      disabled: (note as HTMLButtonElement).disabled,
+    })),
+  );
+  for (const note of notes) {
+    expect(note.opacity).toBe([0, 2, 3, 5, 7, 8, 10].includes(note.midi % 12) ? '1' : '0.22');
+    expect(note.disabled).toBe(false);
+  }
+  const outside = page.locator('.note[data-string="0"][data-offset="4"]'); // E2
+  const inside = page.locator('.note[data-string="0"][data-offset="3"]'); // Es2
+  const higherE = page.locator('.note[data-string="2"][data-offset="2"]'); // E3
+  await expect(inside).toHaveText('Es');
+  await page.keyboard.press('Tab');
+  await outside.focus();
+  await expect(outside).toHaveCSS('opacity', '1');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
+  await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'E2, Bassschlüssel');
+  await page.mouse.move(0, 0);
+  await expect(outside).toHaveCSS('opacity', '1');
+  await expect(inside).toHaveCSS('opacity', '0.55');
+  await expect(higherE).toHaveCSS('opacity', '0.22'); // Key is octave-independent; selection isn't.
+  await inside.focus();
+  await expect(inside).toHaveCSS('opacity', '1');
+  await page.getByRole('button', { name: 'Andere Töne dimmen' }).click();
+  await expect(inside).toHaveCSS('opacity', '1');
+  await expect(higherE).toHaveCSS('opacity', '0.22');
+  await page.getByRole('button', { name: 'Andere Töne dimmen' }).click();
+  await page.getByRole('button', { name: 'Noten öffnen' }).click();
+  await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
+  await page.getByRole('button', { name: 'Noten schließen' }).click();
+  await expect(outside).toHaveCSS('opacity', '0.22');
+  await expect(inside).toHaveCSS('opacity', '1');
+  await inside.click();
+  await page.mouse.move(0, 0);
+  await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Es2, Bassschlüssel');
+  await page.setViewportSize({ width: 375, height: 812 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375);
+  for (const id of ['active-key', 'highlight-toggle', 'notation-open', 'settings-open']) {
+    const button = page.locator(`#${id}`);
+    await expect(button).toBeInViewport({ ratio: 1 });
+    expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.getByRole('button', { name: 'Es-Dur: Tonart aufheben' }).click();
+  await expect(page.locator('#active-key')).toBeHidden();
+  await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Dis2, Bassschlüssel');
+  await expect(outside).toHaveCSS('opacity', '0.22'); // Original pitch-focus behavior.
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await expect(page.getByLabel('Tonart', { exact: true })).toHaveValue('');
+});
+
+test('Dur and natural Moll lock spelling and restore the manual preference when cleared', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  const sharp = page.getByRole('button', { name: 'Kreuze ♯', exact: true });
+  const flat = page.getByRole('button', { name: 'Be ♭', exact: true });
+  const key = page.getByLabel('Tonart', { exact: true });
+  await flat.click();
+  await expect(sharp).toBeEnabled();
+  await expect(flat).toBeEnabled();
+  await expect(sharp).toHaveAccessibleDescription('');
+  await expect(page.locator('#spelling-help')).toBeHidden();
+  await expect(key.locator('optgroup')).toHaveCount(2);
+  await expect(key.locator('optgroup[label="Moll"] option')).toHaveCount(15);
+  await key.selectOption('D-Dur');
+  await expect(sharp).toBeDisabled();
+  await expect(flat).toBeDisabled();
+  await expect(sharp).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#spelling-help')).toHaveText('Die Tonart bestimmt die Schreibweise.');
+  await expect(page.locator('#spelling-help')).toBeVisible();
+  await expect(sharp).toHaveAccessibleDescription('Die Tonart bestimmt die Schreibweise.');
+  await expect(key).not.toHaveAccessibleDescription(/Natürliches Moll/);
+  await expect(page.locator('#minor-help')).toBeHidden();
+  await key.selectOption('c-Moll');
+  await expect(flat).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#key-notes')).toHaveText('C · D · Es · F · G · As · B');
+  await expect(page.locator('#minor-help')).toBeVisible();
+  await expect(key).toHaveAccessibleDescription(/Natürliches Moll/);
+  await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
+  await expect(page.getByRole('button', { name: 'c-Moll: Tonart aufheben' })).toBeVisible();
+  const raisedSeventh = page.locator('.note[data-string="1"][data-offset="4"]'); // H2
+  await expect(raisedSeventh).toHaveCSS('opacity', '0.22');
+  await raisedSeventh.click();
+  await expect(raisedSeventh).toHaveCSS('opacity', '1');
+  await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'H2, Bassschlüssel');
+  await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await key.selectOption('a-Moll');
+  await expect(sharp).toBeDisabled();
+  await expect(flat).toBeDisabled();
+  await expect(sharp).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#key-notes')).toHaveText('A · H · C · D · E · F · G');
+  await key.selectOption('');
+  await expect(sharp).toBeEnabled();
+  await expect(flat).toBeEnabled();
+  await expect(flat).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#spelling-help')).toBeHidden();
+  await expect(flat).toHaveAccessibleDescription('');
+  await expect(page.locator('#minor-help')).toBeHidden();
+  await key.selectOption('fis-Moll');
+  await expect(sharp).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#key-notes')).toHaveText('Fis · Gis · A · H · Cis · D · E');
+  await page.getByRole('button', { name: 'fis-Moll: Tonart aufheben' }).click();
+  await expect(key).toHaveValue('');
+  await expect(flat).toBeEnabled();
+  await expect(flat).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'H2, Bassschlüssel');
+});
+
 test('corner notation reserves a fixed range and divider clears it', async ({ page }) => {
   await page.goto('/');
   const compact = page.locator('#compact-staff');

@@ -9,6 +9,9 @@ import {
   frequency,
   fingerOffsets,
   POSITIONS,
+  MAJOR_KEYS,
+  MINOR_KEYS,
+  keyNoteNames,
 } from '../src/music';
 
 void test('cello tuning and two-octave range', () => {
@@ -48,6 +51,23 @@ void test('position variants use the correct first finger offsets', () => {
   assert.deepEqual(fingerOffsets(3, false, false), [5, 6, 7, 8]);
   assert.deepEqual(fingerOffsets(3, true, false), [6, 7, 8, 9]);
   assert.deepEqual(fingerOffsets(4, false, false), [7, 8, 9, 10]);
+});
+void test('key names use the correct major and natural-minor notes, including enharmonic keys', () => {
+  const expected: Record<string, string[]> = {
+    'Es-Dur': ['Es', 'F', 'G', 'As', 'B', 'C', 'D'],
+    'D-Dur': ['D', 'E', 'Fis', 'G', 'A', 'H', 'Cis'],
+    'Ges-Dur': ['Ges', 'As', 'B', 'Ces', 'Des', 'Es', 'F'],
+    'Cis-Dur': ['Cis', 'Dis', 'Eis', 'Fis', 'Gis', 'Ais', 'His'],
+    'c-Moll': ['C', 'D', 'Es', 'F', 'G', 'As', 'B'],
+    'a-Moll': ['A', 'H', 'C', 'D', 'E', 'F', 'G'],
+    'fis-Moll': ['Fis', 'Gis', 'A', 'H', 'Cis', 'D', 'E'],
+    'as-Moll': ['As', 'B', 'Ces', 'Des', 'Es', 'Fes', 'Ges'],
+    'ais-Moll': ['Ais', 'His', 'Cis', 'Dis', 'Eis', 'Fis', 'Gis'],
+  };
+  for (const [name, notes] of Object.entries(expected)) {
+    const key = [...MAJOR_KEYS, ...MINOR_KEYS].find((key) => key.name === name)!;
+    assert.deepEqual(keyNoteNames(key), notes);
+  }
 });
 void test('backward extensions move only the first finger', () => {
   for (const position of POSITIONS)

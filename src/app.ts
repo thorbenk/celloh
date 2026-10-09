@@ -1,6 +1,13 @@
 import { CelloAudio } from './audio';
 import { AppModel } from './model';
-import { POSITIONS, type PositionVariant, type Spelling } from './music';
+import {
+  MAJOR_KEYS,
+  MINOR_KEYS,
+  keyNoteNames,
+  POSITIONS,
+  type PositionVariant,
+  type Spelling,
+} from './music';
 import { requireElement } from './view/dom';
 import { FingerboardView } from './view/fingerboard';
 import { mountLayout } from './view/layout';
@@ -44,12 +51,36 @@ export class App {
     ++this.playbackRequest;
   }
   private renderBoard(): void {
+    const key = this.model.board.key;
+    const chip = requireElement('#active-key', HTMLButtonElement);
+    chip.hidden = key === null;
+    chip.setAttribute('aria-label', key ? `${key.name}: Tonart aufheben` : 'Tonart aufheben');
+    requireElement('#active-key-name', HTMLSpanElement).textContent = key?.name ?? '';
+    const keySelect = requireElement('#key', HTMLSelectElement);
+    keySelect.value = key?.name ?? '';
+    keySelect.setAttribute(
+      'aria-describedby',
+      key?.mode === 'minor' ? 'key-notes key-help minor-help' : 'key-notes key-help',
+    );
+    const notes = requireElement('#key-notes', HTMLParagraphElement);
+    notes.hidden = key === null;
+    notes.textContent = key ? keyNoteNames(key).join(' · ') : '';
+    requireElement('#spelling-help', HTMLParagraphElement).hidden = key === null;
+    requireElement('#minor-help', HTMLParagraphElement).hidden = key?.mode !== 'minor';
+    requireElement('.header', HTMLElement).classList.toggle('has-key', key !== null);
+    for (const spelling of ['sharp', 'flat']) {
+      const button = requireElement(`#${spelling}`, HTMLButtonElement);
+      button.disabled = key !== null;
+      if (key) button.setAttribute('aria-describedby', 'spelling-help');
+      else button.removeAttribute('aria-describedby');
+      button.setAttribute('aria-pressed', String(spelling === this.model.board.spelling));
+    }
     this.board.renderNotes(this.model.board);
     this.board.renderPositions(this.model.board);
     this.renderSelection();
   }
   private renderSelection(): void {
-    this.board.highlight(this.model.selectedPitch, this.model.dimOthers);
+    this.board.highlight(this.model.selectedPitch, this.model.dimOthers, this.model.board.key);
     this.staff.renderSelection(this.model);
   }
   private async playSelection(): Promise<void> {
@@ -94,7 +125,7 @@ export class App {
       () => {
         this.model.dimOthers = !this.model.dimOthers;
         dimToggle.setAttribute('aria-pressed', String(this.model.dimOthers));
-        this.board.highlight(this.model.selectedPitch, this.model.dimOthers);
+        this.board.highlight(this.model.selectedPitch, this.model.dimOthers, this.model.board.key);
       },
       options,
     );
@@ -177,6 +208,26 @@ export class App {
   }
   private bindSettings(): void {
     const options = { signal: this.events.signal };
+    const keySelect = requireElement('#key', HTMLSelectElement);
+    keySelect.addEventListener(
+      'change',
+      () => {
+        this.model.setKey(
+          [...MAJOR_KEYS, ...MINOR_KEYS].find((key) => key.name === keySelect.value) ?? null,
+        );
+        this.renderBoard();
+      },
+      options,
+    );
+    requireElement('#active-key', HTMLButtonElement).addEventListener(
+      'click',
+      () => {
+        this.model.setKey(null);
+        this.renderBoard();
+        requireElement('#settings-open', HTMLButtonElement).focus();
+      },
+      options,
+    );
     const toScale = requireElement('#to-scale', HTMLInputElement);
     const spreadControls = requireElement('#spread-controls', HTMLDivElement);
     const spread = requireElement('#spread', HTMLInputElement);
@@ -205,11 +256,6 @@ export class App {
         'click',
         () => {
           this.model.setSpelling(spelling);
-          for (const other of spellings)
-            requireElement(`#${other}`, HTMLButtonElement).setAttribute(
-              'aria-pressed',
-              String(other === spelling),
-            );
           this.renderBoard();
         },
         options,

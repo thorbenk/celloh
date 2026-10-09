@@ -8,6 +8,7 @@ import {
   type PositionNumber,
   type PositionVariant,
   type Spelling,
+  type KeySignature,
 } from './music';
 import { clampPickerStep, naturalMidi, notePitch, staffNote, type StaffNote } from './notation';
 
@@ -17,6 +18,7 @@ export type Selection =
   | { readonly source: 'staff'; readonly note: StaffNote };
 export interface BoardSettings {
   spelling: Spelling;
+  key: KeySignature | null;
   readonly visiblePositions: Set<PositionNumber>;
   readonly variants: Set<PositionVariant>;
   extended: boolean;
@@ -33,6 +35,7 @@ export interface PickerState {
 export class AppModel {
   readonly board: BoardSettings = {
     spelling: 'sharp',
+    key: null,
     visiblePositions: new Set(POSITIONS.map((position) => position.id)),
     variants: new Set(['lower']),
     extended: false,
@@ -42,6 +45,7 @@ export class AppModel {
   readonly picker: PickerState = { step: 7, accidental: 0, previewStep: null };
   dimOthers = true;
   private currentSelection: Selection | null = null;
+  private manualSpelling: Spelling = 'sharp';
 
   get selection(): Selection | null {
     return this.currentSelection;
@@ -62,7 +66,7 @@ export class AppModel {
   selectBoard(note: BoardNote): void {
     this.commitSelection({
       source: 'board',
-      note: staffNote(note.midi, this.board.spelling),
+      note: staffNote(note.midi, this.board.spelling, this.board.key),
       location: note.location,
     });
   }
@@ -90,11 +94,21 @@ export class AppModel {
     if (this.selection) this.picker.step = clampPickerStep(this.selection.note.step);
   }
   setSpelling(spelling: Spelling): void {
+    if (this.board.key) return;
+    this.manualSpelling = spelling;
     this.board.spelling = spelling;
+    this.respellSelection();
+  }
+  setKey(key: KeySignature | null): void {
+    this.board.key = key;
+    this.board.spelling = key?.spelling ?? this.manualSpelling;
+    this.respellSelection();
+  }
+  private respellSelection(): void {
     if (this.selection) {
       this.commitSelection({
         ...this.selection,
-        note: staffNote(notePitch(this.selection.note), spelling),
+        note: staffNote(notePitch(this.selection.note), this.board.spelling, this.board.key),
       });
     }
   }

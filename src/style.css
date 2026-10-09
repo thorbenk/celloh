@@ -29,7 +29,8 @@ body {
   grid-template-rows: var(--header-height) minmax(0, 1fr) var(--footer-height);
 }
 button,
-input {
+input,
+select {
   font: inherit;
 }
 button,
@@ -44,6 +45,7 @@ button {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
+select:focus-visible,
 summary:focus-visible,
 .board-scroll:focus-visible,
 #staff:focus-visible {
@@ -99,6 +101,10 @@ h2 {
   box-shadow: 0 1px 4px #0000000d;
   color: var(--green);
   font-weight: 650;
+}
+.segmented button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 .icon-button {
   display: grid;
@@ -157,7 +163,28 @@ h2 {
 }
 .header-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
+}
+.key-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #b8cebe;
+  border-radius: 10px;
+  background: #e0eadd;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.key-chip[hidden] {
+  display: none;
+}
+.key-chip:hover {
+  background: #d4e3d0;
 }
 main,
 .workspace,
@@ -318,9 +345,21 @@ main,
 .notes.has-selection .note:not(.selected) {
   opacity: 0.22;
 }
+.notes.has-key.has-selection .note:not(.selected):not(.outside-key) {
+  opacity: 0.55;
+}
+.notes.has-key .note.outside-key:not(.selected) {
+  opacity: 0.22;
+}
 .notes.has-selection .note:not(.selected):hover,
 .notes.has-selection .note:not(.selected):focus-visible {
   opacity: 0.75;
+}
+.notes.has-key .note:not(.selected):hover,
+.notes.has-key .note:not(.selected):focus-visible,
+.notes.has-key.has-selection .note:not(.selected):hover,
+.notes.has-key.has-selection .note:not(.selected):focus-visible {
+  opacity: 1;
 }
 .overlays {
   position: absolute;
@@ -468,6 +507,30 @@ main,
   line-height: 1.6;
   color: var(--muted);
   margin: 13px 0;
+}
+.key-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  font-size: 12px;
+}
+.key-control select {
+  min-height: 44px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid #b8cebe;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: var(--green);
+}
+.key-notes {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-bottom: 0;
 }
 .position-choice {
   display: flex;
@@ -657,6 +720,21 @@ input[type='range'] {
   }
   .settings-panel {
     width: min(310px, 100%);
+  }
+}
+@media (max-width: 520px) {
+  #app:has(.header.has-key) {
+    --header-height: 118px;
+  }
+  .header.has-key {
+    position: relative;
+    padding-bottom: 62px;
+  }
+  .header.has-key .key-chip {
+    position: absolute;
+    bottom: 6px;
+    right: 16px;
+    padding-block: 6px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

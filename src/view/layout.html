@@ -6,6 +6,9 @@
     ></a
   >
   <div class="header-actions">
+    <button id="active-key" class="key-chip" hidden aria-label="Tonart aufheben">
+      <span id="active-key-name"></span><span aria-hidden="true">×</span>
+    </button>
     <button
       id="highlight-toggle"
       class="icon-button"
@@ -235,7 +238,23 @@
         <button id="sharp" aria-pressed="true">Kreuze ♯</button
         ><button id="flat" aria-pressed="false">Be ♭</button>
       </div>
+      <p id="spelling-help" class="micro" hidden>Die Tonart bestimmt die Schreibweise.</p>
       <p class="micro">Deutsche Notennamen: H = B natural,<br />B = B flat.</p>
+      <div class="key-control">
+        <label for="key">Tonart</label>
+        <select id="key" aria-describedby="key-notes key-help">
+          <option value="">Alle Töne</option>
+        </select>
+      </div>
+      <p id="key-notes" class="key-notes" hidden></p>
+      <p id="key-help" class="micro">
+        Tonartfremde Töne werden gedimmt, bleiben aber spielbar. Tonarteigene Töne folgen der
+        Schreibweise der Tonart.
+      </p>
+      <p id="minor-help" class="micro" hidden>
+        Natürliches Moll: Töne der Tonartvorzeichnung. Veränderungen in harmonischem und melodischem
+        Moll bleiben spielbar.
+      </p>
       <label class="extension"
         ><input id="to-scale" type="checkbox" aria-describedby="scale-help" /><span
           >Wie auf dem Cello <small>Abstände maßstabsgetreu anzeigen</small></span

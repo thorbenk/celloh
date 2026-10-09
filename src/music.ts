@@ -5,6 +5,7 @@ export type PositionNumber = 1 | 2 | 3 | 4;
 export type PositionVariant = 'lower' | 'upper';
 export type Accidental = -1 | 0 | 1;
 export type FingerOffsets = readonly [number, number, number, number];
+export type LetterIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 type PitchClass = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 
 declare const midiPitchBrand: unique symbol;
@@ -67,8 +68,80 @@ const LABELS = {
   sharp: ['C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'Ais', 'H'],
   flat: ['C', 'Des', 'D', 'Es', 'E', 'F', 'Ges', 'G', 'As', 'A', 'B', 'H'],
 } as const;
+export const NATURALS = [0, 2, 4, 5, 7, 9, 11] as const;
+export const WRITTEN_NAMES = {
+  flat: ['Ces', 'Des', 'Es', 'Fes', 'Ges', 'As', 'B'],
+  natural: ['C', 'D', 'E', 'F', 'G', 'A', 'H'],
+  sharp: ['Cis', 'Dis', 'Eis', 'Fis', 'Gis', 'Ais', 'His'],
+} as const;
+export interface KeySignature {
+  readonly name: string;
+  readonly tonic: PitchClass;
+  readonly spelling: Spelling;
+  readonly mode: 'major' | 'minor';
+  /** Signed number of key-signature accidentals: negative for flats. */
+  readonly fifths: number;
+}
+export const MAJOR_KEYS: readonly KeySignature[] = (
+  [
+    ['Ces-Dur', 11, -7],
+    ['Ges-Dur', 6, -6],
+    ['Des-Dur', 1, -5],
+    ['As-Dur', 8, -4],
+    ['Es-Dur', 3, -3],
+    ['B-Dur', 10, -2],
+    ['F-Dur', 5, -1],
+    ['C-Dur', 0, 0],
+    ['G-Dur', 7, 1],
+    ['D-Dur', 2, 2],
+    ['A-Dur', 9, 3],
+    ['E-Dur', 4, 4],
+    ['H-Dur', 11, 5],
+    ['Fis-Dur', 6, 6],
+    ['Cis-Dur', 1, 7],
+  ] satisfies [string, PitchClass, number][]
+).map(([name, tonic, fifths]) => ({
+  name,
+  tonic,
+  spelling: fifths < 0 ? 'flat' : 'sharp',
+  mode: 'major',
+  fifths,
+}));
+export const MINOR_KEYS: readonly KeySignature[] = MAJOR_KEYS.map((major) => {
+  const tonic = ((major.tonic + 9) % 12) as PitchClass;
+  return {
+    ...major,
+    name: `${noteName(midiPitch(tonic), major.spelling, major).toLowerCase()}-Moll`,
+    tonic,
+    mode: 'minor',
+  };
+});
+export function keyAccidental(key: KeySignature, letter: LetterIndex): Accidental {
+  const order = key.fifths < 0 ? [6, 2, 5, 1, 4, 0, 3] : [3, 0, 4, 1, 5, 2, 6];
+  return order.indexOf(letter) < Math.abs(key.fifths) ? (key.fifths < 0 ? -1 : 1) : 0;
+}
+/** The written letter in this key, or -1 for a chromatic note. */
+export function keyLetter(midi: MidiPitch, key: KeySignature): LetterIndex | -1 {
+  return NATURALS.findIndex(
+    (natural, letter) =>
+      (natural + keyAccidental(key, letter as LetterIndex) + 12) % 12 === pitchClass(midi),
+  ) as LetterIndex | -1;
+}
+export function keyNoteNames(key: KeySignature): readonly string[] {
+  const intervals = key.mode === 'minor' ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
+  return intervals.map((offset) => noteName(midiPitch(key.tonic + offset), key.spelling, key));
+}
 const NOTE_HUES = [5, 30, 52, 80, 115, 150, 180, 205, 230, 265, 295, 330] as const;
-export function noteName(midi: MidiPitch, spelling: Spelling): string {
+export function noteName(
+  midi: MidiPitch,
+  spelling: Spelling,
+  key: KeySignature | null = null,
+): string {
+  const letter = key ? keyLetter(midi, key) : -1;
+  if (key && letter !== -1) {
+    const accidental = keyAccidental(key, letter);
+    return WRITTEN_NAMES[accidental < 0 ? 'flat' : accidental > 0 ? 'sharp' : 'natural'][letter];
+  }
   return LABELS[spelling][pitchClass(midi)];
 }
 export function noteHue(midi: MidiPitch): number {
