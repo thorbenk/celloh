@@ -4,6 +4,7 @@ references/
 test-results/
 playwright-report/
 public/audio/
+__pycache__/
 
 # Local credentials and agent configuration
 .env

@@ -1,0 +1,7 @@
+{
+  "repository": "thorbenk/celloh",
+  "tag": "audio-v1",
+  "soundfontUrl": "https://ethanwiner.com/cello_solo.zip",
+  "archiveSha256": "e130f0cc522cb3ff473b61328c6e8808fc2b71308a0f2009c583bcc6c9b0c0a6",
+  "soundfontSha256": "2297e81c080d5383b21caefd71e5924c9f75c6f0e1b1e518a08686ebe603f596"
+}

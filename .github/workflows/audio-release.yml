@@ -1,0 +1,117 @@
+name: Publish cello audio
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - audio-release.json
+      - scripts/render-audio.py
+      - scripts/fetch-audio.py
+      - .github/workflows/audio-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audio-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'thorbenk/celloh' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Check release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=$(python3 -c 'import json; print(json.load(open("audio-release.json"))["tag"])')
+          [[ "$tag" =~ ^audio-v[1-9][0-9]*$ ]]
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" --json assets > "$RUNNER_TEMP/existing-release.json"; then
+            python3 - "$tag" "$RUNNER_TEMP/existing-release.json" <<'PY'
+          import json, sys
+          tag, path = sys.argv[1:]
+          names = {asset['name'] for asset in json.load(open(path))['assets']}
+          expected = {f'cello-{tag}.tar.gz', f'cello-{tag}.tar.gz.sha256'}
+          if not expected <= names:
+              raise SystemExit('Existing release is incomplete. Repair it before rerunning.')
+          PY
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release $tag already exists; leaving it unchanged."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install rendering tools
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y fluidsynth ffmpeg
+
+      - name: Download and verify soundfont
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          python3 - <<'PY'
+          import hashlib, io, json, urllib.request, zipfile
+          from pathlib import Path
+          config = json.loads(Path('audio-release.json').read_text())
+          request = urllib.request.Request(config['soundfontUrl'], headers={
+              'User-Agent': 'Mozilla/5.0',
+              'Referer': 'https://ethanwiner.com/ewsf2.html',
+          })
+          with urllib.request.urlopen(request, timeout=30) as response:
+              archive = response.read()
+          if hashlib.sha256(archive).hexdigest() != config['archiveSha256']:
+              raise SystemExit('Soundfont ZIP checksum mismatch')
+          with zipfile.ZipFile(io.BytesIO(archive)) as source:
+              soundfont = source.read('cello_solo.sf2')
+          if hashlib.sha256(soundfont).hexdigest() != config['soundfontSha256']:
+              raise SystemExit('Soundfont checksum mismatch')
+          Path('references').mkdir(exist_ok=True)
+          Path('references/cello_solo.sf2').write_bytes(soundfont)
+          PY
+
+      - name: Render and package recordings
+        if: steps.version.outputs.exists == 'false'
+        env:
+          AUDIO_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          python3 scripts/render-audio.py references/cello_solo.sf2
+          python3 scripts/fetch-audio.py --verify
+          filename="cello-$AUDIO_TAG.tar.gz"
+          tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
+            -czf "$RUNNER_TEMP/$filename" -C public/audio -- {36..81}.mp3 manifest.json
+          cd "$RUNNER_TEMP"
+          sha256sum "$filename" > "$filename.sha256"
+
+      - name: Publish versioned release
+        if: steps.version.outputs.exists == 'false'
+        env:
+          AUDIO_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          filename="cello-$AUDIO_TAG.tar.gz"
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          46 prerendered cello recordings (MIDI 36–81), plus rendering manifest and bundle SHA-256.
+
+          Source: [Ethan Winer's Cello Solo](https://ethanwiner.com/ewsf2.html).
+          Royalty-free use, including commercial projects. Original soundfont and reference images are not included.
+
+          Download and verify with `npm run audio:fetch`; see the repository README for deployment.
+          NOTES
+          gh release create "$AUDIO_TAG" \
+            "$RUNNER_TEMP/$filename" "$RUNNER_TEMP/$filename.sha256" \
+            --target "$GITHUB_SHA" --title "Cello audio $AUDIO_TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" --latest=false

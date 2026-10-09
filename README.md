@@ -44,6 +44,7 @@ The code uses checked DOM lookups instead of non-null assertions. Button-to-note
 
 ```sh
 npm run check          # Formatting, type-aware linting, strict type checks, unit tests
+npm run test:audio     # Audio bundle validation tests (Python 3)
 npm run test:browser   # Fresh static build and Chromium integration tests
 npm run format        # Apply the shared formatting rules
 ```
@@ -73,7 +74,13 @@ The hand model is closed fingering, with a semitone between adjacent fingers. Lo
 
 ## Audio generation
 
-The generated MP3 files and manifest in `public/audio/` are ignored by Git, along with the original soundfont and downloaded reference images. Generate the recordings locally before testing playback or building a deployment with sound. The app can run without them, but note playback will report a loading error.
+The generated MP3 files and manifest in `public/audio/` are ignored by Git, along with the original soundfont and downloaded reference images. Download the published recordings before testing playback:
+
+```sh
+npm run audio:fetch
+```
+
+This downloads the release pinned in `audio-release.json`, checks the bundle against its published SHA-256, and validates all 46 recordings and the source soundfont recorded in the manifest. It needs Python 3, but no rendering tools or GitHub credentials for this public repository. A failed download or validation stops the command; it does not silently build without audio. The checksum is published alongside the bundle, rather than separately pinned in the repository, so release assets should never be replaced.
 
 To generate them, install FluidSynth and ffmpeg, download [Ethan Winer's Cello Solo soundfont](https://ethanwiner.com/ewsf2.html), and extract the ZIP into `references/`:
 
@@ -92,6 +99,16 @@ Ethan Winer explicitly permits royalty-free use, including commercial projects, 
 
 ## Static deployment
 
-Generate the audio first (see above), then run `npm run build` and upload the contents of `dist/` to any static web host. The relative asset base supports both domain-root hosting and subdirectories, such as `/celloh/`. Serve through HTTP(S), rather than opening `index.html` through `file://`. No backend, external font service, or runtime CDN is required.
+For Cloudflare, use `npm run build:deploy` as the build command. It fetches the pinned audio release, runs the code checks, and builds the app. Deploy `dist/`. Use Node.js 22.13+ and Python 3 in the build environment. The first audio release must finish publishing before this build can succeed.
+
+For another static host, run the same command and upload the contents of `dist/`. The relative asset base supports both domain-root hosting and subdirectories, such as `/celloh/`. Serve through HTTP(S), rather than opening `index.html` through `file://`. No backend, external font service, or runtime CDN is required.
+
+### Publishing audio releases
+
+The **Publish cello audio** GitHub Actions workflow creates `audio-v1` on the first push of these files to `master`. It also supports **Actions → Publish cello audio → Run workflow**. It uses the repository's built-in `GITHUB_TOKEN` with `contents: write`; no additional secrets are needed.
+
+The workflow downloads the original soundfont, checks both ZIP and soundfont SHA-256 values from `audio-release.json`, installs FluidSynth and ffmpeg, and renders the samples. It attaches `cello-audio-v1.tar.gz` and its `.sha256` file to the release, retaining the manifest inside the archive. The soundfont and reference charts are never attached or committed. Audio releases do not replace the repository's latest application release.
+
+Existing releases are left unchanged. To publish different recordings, change the tag in `audio-release.json` to `audio-v2` (and update source checksums if needed), then push to `master`. The workflow publishes the new version and subsequent builds fetch it. Rendering-tool versions follow Ubuntu 24.04 packages; each released bundle is reused unchanged rather than regenerated for app deployments.
 
 The app works in mobile browsers. Offline installation is a possible follow-up; this version requires connectivity to load the app and uncached recordings.
