@@ -41,14 +41,40 @@
   <div class="workspace">
     <section class="board-card" aria-label="Cello-Griffbrett">
       <div class="board-scroll-wrap">
-        <svg
-          id="compact-staff"
+        <div
+          id="notation-display"
           tabindex="0"
+          role="group"
+          aria-label="Verschiebbare Notenanzeige"
           aria-describedby="compact-staff-help"
-          viewBox="0 -160 205 375"
-          role="img"
-          aria-label="Bassschlüssel, noch kein Ton gewählt"
-        ></svg>
+        >
+          <svg
+            id="compact-staff"
+            viewBox="0 -160 205 375"
+            role="img"
+            aria-label="Bassschlüssel, noch kein Ton gewählt"
+          ></svg>
+          <button
+            id="notation-size-toggle"
+            class="notation-size-toggle"
+            aria-label="Notenanzeige vergrößern"
+            aria-expanded="false"
+            aria-controls="compact-staff"
+            title="Notenanzeige vergrößern"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="12"
+              height="12"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              aria-hidden="true"
+            >
+              <path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7" />
+            </svg>
+          </button>
+        </div>
         <span id="compact-staff-help" class="visually-hidden"
           >Notenanzeige verschieben: ziehen oder mit den Pfeiltasten bewegen.</span
         >

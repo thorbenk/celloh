@@ -50,7 +50,7 @@ summary:focus-visible,
   outline: 3px solid var(--green);
   outline-offset: 4px;
 }
-#compact-staff:focus-visible {
+#notation-display:focus-visible {
   outline: 3px solid var(--green);
   outline-offset: 2px;
 }
@@ -346,24 +346,55 @@ main,
   letter-spacing: 1.5px;
   color: #929585;
 }
-#compact-staff {
+#notation-display {
   position: absolute;
   z-index: 2;
   left: 4px;
   top: 4px;
   display: block;
   width: 120px;
-  height: 220px;
+  height: 130px;
   color: #26382b;
   background: #f8f6ef;
   border: 1px solid #dce2d5;
   border-radius: 8px;
+  overflow: hidden;
   cursor: grab;
   touch-action: none;
   user-select: none;
 }
-#compact-staff.dragging {
+#notation-display.dragging {
   cursor: grabbing;
+}
+
+#notation-display.expanded {
+  height: 220px;
+}
+#compact-staff {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  height: 218px;
+  pointer-events: none;
+}
+.notation-size-toggle {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: #f8f6ef;
+  color: var(--muted);
+  touch-action: manipulation;
+}
+.notation-size-toggle:hover {
+  background: #e0eadd;
 }
 
 /* Both panels slide below the toolbar, without disabling board interaction. */

@@ -508,8 +508,20 @@ test('playback uses volume changes made while the sample is loading', async ({ p
 
 test('corner notation can be moved and stays within the board after resizing', async ({ page }) => {
   await page.goto('/');
-  const widget = page.locator('#compact-staff');
+  const widget = page.locator('#notation-display');
   const initial = (await widget.boundingBox())!;
+  expect(initial.height).toBe(130);
+  const notationScale = () =>
+    page.locator('#compact-staff').evaluate((svg) => {
+      const matrix = (svg as SVGSVGElement).getScreenCTM()!;
+      return [matrix.a, matrix.d];
+    });
+  const collapsedScale = await notationScale();
+  await page.locator('#notation-size-toggle').click();
+  expect((await widget.boundingBox())!.height).toBe(220);
+  expect(await notationScale()).toEqual(collapsedScale);
+  await page.locator('#notation-size-toggle').click();
+  expect((await widget.boundingBox())!.height).toBe(130);
   await page.mouse.move(initial.x + 60, initial.y + 100);
   await page.mouse.down();
   await page.mouse.move(initial.x + 360, initial.y + 200);

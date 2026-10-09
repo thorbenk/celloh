@@ -16,39 +16,42 @@ import {
 import type { AppModel } from '../model';
 import { requireElement } from './dom';
 
+const NOTE_LEDGER_HALF_WIDTH = 19;
+const COMPACT_CONTROL_CLEARANCE = 6; // CSS pixels between the note's ledger lines and resize button.
+
 const ACCIDENTAL_SYMBOLS = { [-1]: '♭', 0: '♮', 1: '♯' } as const;
 
-function quarterNoteMarkup(note: StaffNote, preview: boolean): string {
+function quarterNoteMarkup(note: StaffNote, preview: boolean, x: number): string {
   const y = staffY(note.step);
   const color = preview ? '#287665' : '#26382b';
   const stemDown = note.step >= 8; // Middle staff line and above: stem on the left, pointing down.
-  const stemX = stemDown ? 143 : 161;
+  const stemX = x + (stemDown ? -9 : 9);
   const stemEnd = y + (stemDown ? 55 : -55);
   const ledgers = ledgerSteps(note.step)
     .map(
       (step) => `
-    <line class="ledger-line" x1="133" x2="171" y1="${staffY(step)}" y2="${staffY(step)}" stroke="currentColor" stroke-width="1.5"/>
+    <line class="ledger-line" x1="${x - NOTE_LEDGER_HALF_WIDTH}" x2="${x + NOTE_LEDGER_HALF_WIDTH}" y1="${staffY(step)}" y2="${staffY(step)}" stroke="currentColor" stroke-width="1.5"/>
   `,
     )
     .join('');
   const accidental =
     note.accidental !== 0 || note.showNatural
       ? `
-    <text class="staff-accidental" x="114" y="${y + 8}" font-size="30">${ACCIDENTAL_SYMBOLS[note.accidental]}</text>
+    <text class="staff-accidental" x="${x - 38}" y="${y + 8}" font-size="30">${ACCIDENTAL_SYMBOLS[note.accidental]}</text>
   `
       : '';
   return `
     <g class="staff-note ${preview ? 'preview-note' : ''}" data-step="${note.step}" data-midi="${notePitch(note)}" fill="${color}">
       ${ledgers}
       ${accidental}
-      <ellipse class="notehead" cx="152" cy="${y}" rx="10" ry="7" transform="rotate(-18 152 ${y})"/>
+      <ellipse class="notehead" cx="${x}" cy="${y}" rx="10" ry="7" transform="rotate(-18 ${x} ${y})"/>
       <line class="note-stem" x1="${stemX}" x2="${stemX}" y1="${y}" y2="${stemEnd}" stroke="${color}" stroke-width="2"/>
     </g>
   `;
 }
 
 /** Shared drawing for the interactive picker and the read-only corner notation. */
-export function staffMarkup(note: StaffNote | undefined, preview = false): string {
+export function staffMarkup(note: StaffNote | undefined, preview = false, noteX = 152): string {
   const lines = STAFF_LINES.map(
     (step) => `
     <line x1="18" x2="222" y1="${staffY(step)}" y2="${staffY(step)}"/>
@@ -57,13 +60,14 @@ export function staffMarkup(note: StaffNote | undefined, preview = false): strin
   return `
     <g class="staff-lines" stroke="#657166" stroke-width="1">${lines}</g>
     <image class="bass-clef" href="${bassClefUrl}" x="24" y="70" width="56" height="65"/>
-    ${note ? quarterNoteMarkup(note, preview) : ''}
+    ${note ? quarterNoteMarkup(note, preview, noteX) : ''}
   `;
 }
 
 export class StaffView {
   readonly staff = requireElement('#staff', SVGSVGElement);
   private readonly compact = requireElement('#compact-staff', SVGSVGElement);
+  private readonly sizeToggle = requireElement('#notation-size-toggle', HTMLButtonElement);
   private readonly name = requireElement('#selected-note', HTMLDivElement);
   private readonly detail = requireElement('#selected-detail', HTMLDivElement);
   readonly status = requireElement('#audio-status', HTMLSpanElement);
@@ -89,9 +93,18 @@ export class StaffView {
         ? `${writtenNoteName(selection.note)}, Bassschlüssel`
         : 'Bassschlüssel, noch kein Ton gewählt',
     );
-    this.compact.innerHTML = staffMarkup(selection?.note);
+    this.compact.innerHTML = staffMarkup(selection?.note, false, this.compactNoteX());
     this.renderPicker(model);
   }
+  /** Reserve the resize button's actual screen width, then convert the available space to SVG units. */
+  private compactNoteX(): number {
+    const matrix = this.compact.getScreenCTM();
+    if (!matrix) return 152;
+    const edge = this.compact.createSVGPoint();
+    edge.x = this.sizeToggle.getBoundingClientRect().left - COMPACT_CONTROL_CLEARANCE;
+    return Math.min(152, edge.matrixTransform(matrix.inverse()).x - NOTE_LEDGER_HALF_WIDTH);
+  }
+
   renderPicker(model: AppModel): void {
     const displayed = model.displayedNote;
     // Keep the selected high note visible; the interactive picker remains C2–G4.

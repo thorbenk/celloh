@@ -8,7 +8,8 @@ interface Drag {
 
 /** Move the read-only notation within the visible board, independently of board scrolling. */
 export class DraggableNotation {
-  private readonly widget = requireElement('#compact-staff', SVGSVGElement);
+  private readonly widget = requireElement('#notation-display', HTMLDivElement);
+  private readonly sizeToggle = requireElement('#notation-size-toggle', HTMLButtonElement);
   private readonly canvas = requireElement('.board-scroll-wrap', HTMLDivElement);
   private readonly events = new AbortController();
   private readonly observer: ResizeObserver;
@@ -18,10 +19,29 @@ export class DraggableNotation {
 
   constructor() {
     const options = { signal: this.events.signal };
+    this.sizeToggle.addEventListener(
+      'click',
+      () => {
+        const expanded = this.widget.classList.toggle('expanded');
+        const label = expanded ? 'Notenanzeige verkleinern' : 'Notenanzeige vergrößern';
+        this.sizeToggle.setAttribute('aria-expanded', String(expanded));
+        this.sizeToggle.setAttribute('aria-label', label);
+        this.sizeToggle.title = label;
+        requireElement('path', SVGPathElement, this.sizeToggle).setAttribute(
+          'd',
+          expanded
+            ? 'M20 4l-7 7m0-6v6h6M4 20l7-7m-6 0h6v6'
+            : 'M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7',
+        );
+        this.move(this.x, this.y);
+      },
+      options,
+    );
     this.widget.addEventListener(
       'pointerdown',
       (event) => {
         if (!event.isPrimary || event.button !== 0 || this.drag) return;
+        if (event.target instanceof Node && this.sizeToggle.contains(event.target)) return;
         event.preventDefault();
         const bounds = this.widget.getBoundingClientRect();
         this.drag = {
@@ -59,6 +79,7 @@ export class DraggableNotation {
     this.widget.addEventListener(
       'keydown',
       (event) => {
+        if (event.target !== this.widget) return;
         const distance = event.shiftKey ? 30 : 10;
         switch (event.key) {
           case 'ArrowLeft':
