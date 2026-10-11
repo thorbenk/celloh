@@ -24,7 +24,8 @@ test('notes, spellings, position variants, extensions, and audio', async ({ page
   await page.locator('#lower').uncheck();
   await expect(page.locator('.position-overlay')).toHaveCount(3);
   await page.locator('#extension').check();
-  await expect(page.locator('.extension-text')).toHaveCount(3);
+  await expect(page.locator('.extension-bracket')).toHaveCount(3);
+  await expect(page.locator('.extension-text, .board-bottom')).toHaveCount(0);
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await page.locator('.note[data-string="0"][data-offset="24"]').click();
   await expect(page.locator('#selected-note')).toHaveText('C4');

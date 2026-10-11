@@ -93,3 +93,62 @@ test('short workspace reserves the dock below the board and above the footer', a
   expect((await page.locator('.board-scroll').boundingBox())?.height).toBe(238);
   expect((await page.locator('#app').boundingBox())?.height).toBe(500);
 });
+
+test('pitch sequence works independently, scrolls on append, and clears to its minimal height', async ({
+  page,
+}) => {
+  await page.goto('/iframe.html?id=components-pitch-sequence--extreme-range&viewMode=story');
+  const notes = page.locator('.pitch-sequence .staff-note');
+  await expect(notes).toHaveCount(5);
+  await expect(
+    page.locator('.piano-key, .fingerboard, #staff, #compact-staff, .header'),
+  ).toHaveCount(0);
+  const svg = page.locator('.sequence-scroll svg');
+  const scale = await svg.evaluate((svg) => (svg as SVGSVGElement).getScreenCTM()?.a);
+  const height = (await svg.boundingBox())!.height;
+  await page.getByRole('button', { name: 'Ton hinzufügen' }).click();
+  expect((await svg.boundingBox())!.height).toBe(height);
+  expect(await svg.evaluate((svg) => (svg as SVGSVGElement).getScreenCTM()?.a)).toBe(scale);
+  await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+  await expect(notes).toHaveCount(0);
+  expect((await svg.boundingBox())!.height).toBeLessThan(height);
+  await expect(page.getByRole('button', { name: 'Tonfolge leeren' })).toBeDisabled();
+  for (let i = 0; i < 15; i++) await page.getByRole('button', { name: 'Ton hinzufügen' }).click();
+  await expect(notes).toHaveCount(15);
+  expect(
+    await page.locator('.sequence-scroll').evaluate((scroll) => scroll.scrollLeft),
+  ).toBeGreaterThan(200);
+  await expect(notes.last()).toBeInViewport({ ratio: 1 });
+  await page.locator('.sequence-scroll').evaluate((scroll) => {
+    scroll.scrollLeft = 0;
+  });
+  await expect(notes.first()).toBeInViewport({ ratio: 1 });
+  await page.getByRole('button', { name: 'Ton hinzufügen' }).click();
+  await expect(notes.last()).toBeInViewport({ ratio: 1 });
+});
+
+test('pitch sequence uses the key signature and cancels/restores alterations per octave', async ({
+  page,
+}) => {
+  for (const [story, label, signs] of [
+    ['sharp-key', 'D-Dur: Fis3, F3, F3, Fis3, Fis4, F4, Fis4', ['', '♮', '', '♯', '', '♮', '♯']],
+    ['flat-key', 'Es-Dur: Es3, E3, E3, Es3, B3, H3, B3', ['', '♮', '', '♭', '', '♮', '♭']],
+  ] as const) {
+    await page.goto(`/iframe.html?id=components-pitch-sequence--${story}&viewMode=story`);
+    await expect(page.locator('.sequence-scroll svg')).toHaveAccessibleName(label);
+    expect(
+      await page
+        .locator('.staff-note')
+        .evaluateAll((notes) =>
+          notes.map((note) => note.querySelector('.staff-accidental')?.textContent ?? ''),
+        ),
+    ).toEqual(signs);
+    await expect(page.locator('.key-signature .staff-accidental')).toHaveCount(
+      story === 'sharp-key' ? 2 : 3,
+    );
+  }
+  await page.goto('/iframe.html?id=components-pitch-sequence--seven-flats&viewMode=story');
+  await expect(page.locator('.key-signature .staff-accidental')).toHaveCount(7);
+  // C2 cancels Ces here: the natural extends below the low notehead, unlike its upward stem.
+  await expect(page.locator('.staff-note .staff-accidental').first()).toBeInViewport({ ratio: 1 });
+});

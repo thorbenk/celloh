@@ -13,7 +13,6 @@ const INNER_LANE_X = MIDDLE_LANE_X + BRACKET_LANE_SPACING;
 const FINGER_INSET = 12;
 const LABEL_OUTSET = 8;
 const LABEL_ROTATION = 90;
-const EXTENSION_LABEL_GAP = 10;
 const EXTENSION_DASH_LENGTH = 4;
 const BRACKET_STROKE_WIDTH = 2;
 
@@ -77,7 +76,6 @@ function bracketMarkup(
     const top = rowY(normal[0] - 1, settings) - NOTE_RADIUS;
     extension = `
       <path class="extension-bracket" stroke-dasharray="${EXTENSION_DASH_LENGTH} ${EXTENSION_DASH_LENGTH}" d="M${x},${start} V${top} H${capX}"/>
-      <text class="extension-text" x="${fingerX}" y="${top - EXTENSION_LABEL_GAP}" stroke="none" fill="${position.color}" text-anchor="middle">↑ (1)</text>
     `;
   }
   return `

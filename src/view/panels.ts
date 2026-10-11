@@ -14,6 +14,7 @@ export class PanelController {
   private readonly footer = requireElement('.footer', HTMLElement);
   private readonly board = requireElement('.board-card', HTMLElement);
   private readonly piano = requireElement('#piano', HTMLElement);
+  private readonly sequence = requireElement('#pitch-sequence', HTMLElement);
 
   constructor(onNotationClose: () => void) {
     this.panels = [
@@ -65,7 +66,8 @@ export class PanelController {
           !(target instanceof Node) ||
           active.dialog.contains(target) ||
           this.toolbar.contains(target) ||
-          this.footer.contains(target)
+          this.footer.contains(target) ||
+          this.sequence.contains(target)
         )
           return;
         if (

@@ -7,6 +7,7 @@ import {
   POSITIONS,
   type PositionVariant,
   type Spelling,
+  type MidiPitch,
 } from './music';
 import { requireElement } from './view/dom';
 import { FingerboardView } from './view/fingerboard';
@@ -15,6 +16,7 @@ import { PanelController } from './view/panels';
 import { CompactStaffView, StaffView } from './view/staff';
 import { DraggableNotation } from './view/draggable-notation';
 import { PianoKeyboardView } from './view/piano';
+import { PitchSequenceView } from './view/pitch-sequence';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
@@ -25,9 +27,12 @@ export class App {
   private readonly staff: StaffView;
   private readonly compact: CompactStaffView;
   private readonly piano: PianoKeyboardView;
+  private readonly sequence: PitchSequenceView;
+  private readonly pitches: MidiPitch[] = [];
   private readonly panels: PanelController;
   private readonly draggableNotation: DraggableNotation;
   private readonly resizeObserver: ResizeObserver;
+  private readonly sequenceObserver: ResizeObserver;
   private playbackRequest = 0;
 
   constructor(root: HTMLElement) {
@@ -43,6 +48,24 @@ export class App {
     this.piano.element.id = 'piano';
     requireElement('.footer', HTMLElement, root).before(this.piano.element);
     this.bindPiano(root);
+    this.sequence = new PitchSequenceView(() => {
+      this.pitches.length = 0;
+      this.sequence.render(this.pitches, this.model.board.key);
+    });
+    this.sequence.element.id = 'pitch-sequence';
+    this.sequence.element.hidden = true;
+    this.piano.element.before(this.sequence.element);
+    const sequenceToggle = requireElement('#sequence-toggle', HTMLButtonElement, root);
+    sequenceToggle.addEventListener(
+      'click',
+      () => {
+        const visible = this.sequence.element.hidden;
+        this.sequence.element.hidden = !visible;
+        sequenceToggle.setAttribute('aria-expanded', String(visible));
+        this.sequence.revealLatest();
+      },
+      { signal: this.events.signal },
+    );
     this.draggableNotation = new DraggableNotation(root);
     this.panels = new PanelController(() => {
       this.model.clearPreview();
@@ -53,12 +76,21 @@ export class App {
     this.bindSettings();
     this.renderBoard();
     this.resizeObserver = this.board.observeResize(this.model.board);
+    this.sequenceObserver = new ResizeObserver(() => {
+      root.style.setProperty(
+        '--sequence-visible-height',
+        `${this.sequence.element.getBoundingClientRect().height}px`,
+      );
+    });
+    this.sequenceObserver.observe(this.sequence.element);
   }
   destroy(): void {
     this.events.abort();
     this.resizeObserver.disconnect();
+    this.sequenceObserver.disconnect();
     this.panels.destroy();
     this.piano.destroy();
+    this.sequence.destroy();
     this.draggableNotation.destroy();
     this.audio.stop();
     ++this.playbackRequest;
@@ -98,6 +130,7 @@ export class App {
     this.compact.render(this.model.selection?.note ?? null);
     this.piano.render(this.model.board, this.model.selectedPitch, this.model.dimOthers);
     this.piano.reveal(this.model.selectedPitch);
+    this.sequence.render(this.pitches, this.model.board.key);
   }
   private bindPiano(root: HTMLElement): void {
     const toggle = requireElement('#piano-toggle', HTMLButtonElement, root);
@@ -132,6 +165,8 @@ export class App {
   private async playSelection(): Promise<void> {
     const pitch = this.model.selectedPitch;
     if (pitch === null) return;
+    this.pitches.push(pitch);
+    this.sequence.render(this.pitches, this.model.board.key);
     const request = ++this.playbackRequest;
     this.staff.status.textContent = 'Klang wird geladen …';
     try {

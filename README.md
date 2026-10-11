@@ -27,8 +27,8 @@ npm run test:stories
 ```
 
 Storybook uses the existing vanilla TypeScript views and production HTML/CSS, not
-copies or a second UI framework. The fingerboard, compact notation, and note picker
-and piano keyboard mount without the application shell. Controls vary their container width/height,
+copies or a second UI framework. The fingerboard, compact notation, note picker,
+piano keyboard, and pitch sequence mount without the application shell. Controls vary their container width/height,
 pitch, key signature, and spacing. Workspace stories cover portrait, short portrait,
 and desktop layouts, including the extra key-signature row and hidden/open piano dock. View observers and
 event handlers are disposed when a story or its controls change.
@@ -46,8 +46,9 @@ environment, so fresh orbs with an exact snapshot skip setup. When setup reruns,
 browser downloads are cached and unchanged, valid audio is reused. No Cloudflare
 credentials or audio rendering tools are needed for development.
 
-`.agents/resume` only checks that the tools and dependencies are still available;
-it never installs packages. To repair an orb manually, run `.agents/setup`.
+`.agents/resume` checks the tools and dependencies, launches and closes Playwright
+Chromium, and verifies the audio release; it never installs packages. A missing browser
+or recording is reported immediately. To repair an orb manually, run `.agents/setup`.
 
 Start the supervised development server and obtain its portal link with:
 
@@ -118,6 +119,16 @@ With system Chromium or Chrome installed, run `npm run test:browser`. This build
   highlighting with the board and notation. Left/right arrows navigate keys; Enter/Space
   plays, Home/End move to the range limits. Selected off-screen keys are brought into
   view without interrupting an active pointer gesture or wheel scroll.
+- Optional “Tonfolge” notation history above the piano (also usable with the piano hidden).
+  Played notes from all three inputs appear as quarter notes, including repeated pitches;
+  previews and settings changes do not add entries. It scrolls to new notes automatically,
+  can be scrolled independently by touch or keyboard, and has a separate “Leeren” button.
+  History lasts for the current page session, including while hidden. The current key
+  determines spelling and the bass-clef key signature; without a selected key it uses C major.
+  Alterations and natural cancellations apply to the written pitch/octave until changed
+  (there are no measures). Changing the key re-notates the existing pitches without changing
+  their sound. Note size stays fixed; height grows only to fit the entered range and resets
+  when cleared. Sharps, flats, and naturals use font-independent SVG shapes in all staff views.
 - Note-icon panel with an interactive bass staff, quarter note, and ledger lines; hover previews, click or tap plays, and arrow keys / Enter work too.
 - Exact-pitch matches are highlighted across all strings; a toolbar toggle enables or disables dimming of other pitches without clearing the selection. Reset clears the selection.
 - Read-only bass-clef notation in the fingerboard’s upper-left corner always shows the selected pitch, including when the note panel is closed. It reserves a fixed C2–A5 range so the staff and note scale remain stable as ledger lines appear.

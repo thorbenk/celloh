@@ -1,5 +1,14 @@
 import bassClefUrl from '../assets/bass-clef.svg';
-import { isPlayablePitch, matchingBoardNotes, STRINGS, frequency } from '../music';
+import {
+  isPlayablePitch,
+  matchingBoardNotes,
+  STRINGS,
+  frequency,
+  keyAccidental,
+  type Accidental,
+  type KeySignature,
+  type LetterIndex,
+} from '../music';
 import {
   naturalMidi,
   staffY,
@@ -21,7 +30,22 @@ const COMPACT_CONTROL_CLEARANCE = 6; // CSS pixels between the note's ledger lin
 
 const ACCIDENTAL_SYMBOLS = { [-1]: '♭', 0: '♮', 1: '♯' } as const;
 
-function quarterNoteMarkup(note: StaffNote, preview: boolean, x: number): string {
+/** Font-independent musical signs: upright stems, slanted thick crossbars, and a tapered flat bowl. */
+function accidentalMarkup(accidental: Accidental, x: number, y: number): string {
+  const paths = {
+    [-1]: '<path d="M-5 -29V10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M-5 -7C12 -18 18 -2 -5 10V6C10 -4 6 -13 -5 -3Z"/>',
+    0: '<path d="M-5 -23V13M5 -13V23" fill="none" stroke="currentColor" stroke-width="2"/><path d="M-5 -10L5 -14V-8L-5 -4ZM-5 8L5 4V10L-5 14Z"/>',
+    1: '<path d="M-5 -23V23M5 -26V20" fill="none" stroke="currentColor" stroke-width="2"/><path d="M-11 -8L11 -14V-7L-11 -1ZM-11 8L11 2V9L-11 15Z"/>',
+  };
+  return `<g class="staff-accidental" data-accidental="${accidental}" transform="translate(${x} ${y})" fill="currentColor"><title>${ACCIDENTAL_SYMBOLS[accidental]}</title>${paths[accidental]}</g>`;
+}
+
+function quarterNoteMarkup(
+  note: StaffNote,
+  preview: boolean,
+  x: number,
+  showAccidental: boolean,
+): string {
   const y = staffY(note.step);
   const color = preview ? '#287665' : '#26382b';
   const stemDown = note.step >= 8; // Middle staff line and above: stem on the left, pointing down.
@@ -34,14 +58,9 @@ function quarterNoteMarkup(note: StaffNote, preview: boolean, x: number): string
   `,
     )
     .join('');
-  const accidental =
-    note.accidental !== 0 || note.showNatural
-      ? `
-    <text class="staff-accidental" x="${x - 38}" y="${y + 8}" font-size="30">${ACCIDENTAL_SYMBOLS[note.accidental]}</text>
-  `
-      : '';
+  const accidental = showAccidental ? accidentalMarkup(note.accidental, x - 32, y) : '';
   return `
-    <g class="staff-note ${preview ? 'preview-note' : ''}" data-step="${note.step}" data-midi="${notePitch(note)}" fill="${color}">
+    <g class="staff-note ${preview ? 'preview-note' : ''}" data-step="${note.step}" data-midi="${notePitch(note)}" fill="${color}" color="${color}">
       ${ledgers}
       ${accidental}
       <ellipse class="notehead" cx="${x}" cy="${y}" rx="10" ry="7" transform="rotate(-18 ${x} ${y})"/>
@@ -50,17 +69,46 @@ function quarterNoteMarkup(note: StaffNote, preview: boolean, x: number): string
   `;
 }
 
-/** Shared drawing for the interactive picker and the read-only corner notation. */
-export function staffMarkup(note: StaffNote | undefined, preview = false, noteX = 152): string {
+/** Shared single/multiple-quarter-note drawing for the picker and read-only notation. */
+export function staffMarkup(
+  note: StaffNote | readonly StaffNote[] | undefined,
+  preview = false,
+  noteX = 152,
+  options: { width?: number; key?: KeySignature } = {},
+): string {
+  const key = options.key;
+  const signatureSteps = key && key.fifths < 0 ? [6, 9, 5, 8, 4, 7, 3] : [10, 7, 11, 8, 5, 9, 6];
+  const signature = signatureSteps
+    .slice(0, Math.abs(key?.fifths ?? 0))
+    .map((step, index) =>
+      accidentalMarkup(key && key.fifths < 0 ? -1 : 1, 94 + index * 22, staffY(step)),
+    )
+    .join('');
+  const notes = note === undefined ? [] : 'step' in note ? [note] : note;
+  // No barlines: an explicit alteration remains in force for this written pitch until changed.
+  const alterations = new Map<number, Accidental>();
+  const quarters = notes
+    .map((current, index) => {
+      const previous =
+        alterations.get(current.step) ??
+        (key ? keyAccidental(key, (((current.step % 7) + 7) % 7) as LetterIndex) : 0);
+      alterations.set(current.step, current.accidental);
+      const show = key
+        ? current.accidental !== previous
+        : current.accidental !== 0 || !!current.showNatural;
+      return quarterNoteMarkup(current, preview, noteX + index * 72, show);
+    })
+    .join('');
   const lines = STAFF_LINES.map(
     (step) => `
-    <line x1="18" x2="222" y1="${staffY(step)}" y2="${staffY(step)}"/>
+    <line x1="18" x2="${(options.width ?? 240) - 18}" y1="${staffY(step)}" y2="${staffY(step)}"/>
   `,
   ).join('');
   return `
     <g class="staff-lines" stroke="#657166" stroke-width="1">${lines}</g>
     <image class="bass-clef" href="${bassClefUrl}" x="24" y="70" width="56" height="65"/>
-    ${note ? quarterNoteMarkup(note, preview, noteX) : ''}
+    <g class="key-signature">${signature}</g>
+    ${quarters}
   `;
 }
 
