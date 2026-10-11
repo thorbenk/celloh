@@ -44,6 +44,7 @@ export class App {
   private playbackRequest = 0;
   private replayIndex: number | null = null;
   private replayTimer: number | null = null;
+  private referenceA = 440;
   private tempo = 120;
 
   constructor(root: HTMLElement) {
@@ -177,7 +178,7 @@ export class App {
       target === null
         ? null
         : `${noteName(target, this.model.board.spelling, this.model.board.key)}${octave(target)}`,
-      target === null ? null : frequency(target),
+      target === null ? null : frequency(target, this.referenceA),
     );
     this.renderBoardHighlight();
     this.staff.renderSelection(this.model);
@@ -556,6 +557,20 @@ export class App {
       () => {
         holdValue.value = `${hold.value} ms`;
         this.pitchFeedback.setHoldMs(hold.valueAsNumber);
+      },
+      options,
+    );
+    const referenceA = requireElement('#reference-a', HTMLInputElement);
+    const referenceValue = requireElement('#reference-a-value', HTMLOutputElement);
+    referenceA.addEventListener(
+      'input',
+      () => {
+        this.referenceA = referenceA.valueAsNumber;
+        referenceValue.value = `${referenceA.value} Hz`;
+        this.audio.setReferenceA(this.referenceA);
+        this.pitchFeedback.setReferenceA(this.referenceA);
+        this.board.pitchFeedback.resetHistory();
+        this.renderSelection();
       },
       options,
     );

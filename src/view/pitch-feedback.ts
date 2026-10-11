@@ -113,7 +113,7 @@ export class PitchFeedbackView {
     const hz = this.automatic
       ? this.detectedPitch === null
         ? null
-        : frequency(this.detectedPitch)
+        : frequency(this.detectedPitch, this.recognizer.referenceA)
       : this.targetHz;
     const name = this.automatic ? this.detectedName : this.targetName;
     requireElement('.pitch-target', HTMLElement, this.element).textContent =
@@ -166,7 +166,7 @@ export class PitchFeedbackView {
         ...m,
         cents:
           pitch !== null && m.filteredHz !== null
-            ? centsBetween(m.filteredHz, frequency(pitch))
+            ? centsBetween(m.filteredHz, frequency(pitch, this.recognizer.referenceA))
             : null,
       };
     }
@@ -192,6 +192,12 @@ export class PitchFeedbackView {
           : 'In tune · Stimmt';
     if (this.status.textContent !== message + octaveError)
       this.status.textContent = message + octaveError;
+  }
+  setReferenceA(hz: number): void {
+    if (this.recognizer.referenceA === hz) return;
+    this.recognizer.referenceA = hz;
+    this.resetRecognition();
+    this.clear();
   }
   setHoldMs(ms: number): void {
     if (this.recognizer.holdMs === ms) return;

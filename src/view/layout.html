@@ -410,6 +410,21 @@
       </section>
     </div>
     <div id="sound-settings" role="tabpanel" aria-labelledby="sound-tab" hidden>
+      <label class="volume-label" for="reference-a"
+        >Kammerton A <output id="reference-a-value" for="reference-a">440 Hz</output></label
+      >
+      <input
+        id="reference-a"
+        type="range"
+        min="430"
+        max="450"
+        step="1"
+        value="440"
+        aria-describedby="reference-a-help"
+      />
+      <p class="micro" id="reference-a-help">
+        Stimmung für Cello-Klang und Intonation. Standard: 440 Hz.
+      </p>
       <label class="volume-label" for="volume">Lautstärke <span id="volume-value">65 %</span></label
       ><input id="volume" type="range" min="0" max="100" value="65" />
       <p class="micro">Ein echter Cello-Klang.<br />Tippe auf einen Ton, um ihn zu hören.</p>

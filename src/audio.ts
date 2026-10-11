@@ -11,6 +11,7 @@ export class CelloAudio {
   private readonly buffers = new Map<MidiPitch, Promise<AudioBuffer>>();
   private active: PlayingNote | null = null;
   private request = 0;
+  private referenceA = 440;
   private volume = 0.65;
 
   /** Warm the sample cache before a sequence, resuming audio in the initiating gesture. */
@@ -35,6 +36,7 @@ export class CelloAudio {
     const source = context.createBufferSource();
     const gain = context.createGain();
     source.buffer = decoded;
+    source.playbackRate.value = this.referenceA / 440;
     // Read the latest volume, including changes made while the recording loaded.
     gain.gain.value = this.volume;
     source.connect(gain).connect(context.destination);
@@ -47,6 +49,16 @@ export class CelloAudio {
     };
     source.start();
     return true;
+  }
+
+  setReferenceA(hz: number): void {
+    if (!Number.isFinite(hz) || hz < 430 || hz > 450) {
+      throw new RangeError(`Invalid reference A: ${hz}`);
+    }
+    this.referenceA = hz;
+    if (this.context && this.active) {
+      this.active.source.playbackRate.setTargetAtTime(hz / 440, this.context.currentTime, 0.025);
+    }
   }
 
   setVolume(volume: number): void {

@@ -35,3 +35,13 @@ void test('rejected frames interrupt candidate holds and duration can be tuned',
   r.reset();
   assert.equal(r.measure(hz, true, 320), null);
 });
+
+void test('recognition uses the chosen reference pitch', () => {
+  const r = new HeldPitchRecognizer();
+  r.referenceA = 480;
+  const hz = frequency(midiPitch(69), 480);
+  assert.equal(hz, 480);
+  assert.equal(frequency(midiPitch(57), 442), 221);
+  for (let time = 0; time <= 240; time += 40) assert.equal(r.measure(hz, true, time), null);
+  assert.equal(r.measure(hz, true, 280), 69);
+});

@@ -150,8 +150,8 @@ export function noteHue(midi: MidiPitch): number {
 export function octave(midi: MidiPitch): number {
   return Math.floor(midi / 12) - 1;
 }
-export function frequency(midi: MidiPitch): number {
-  return 440 * 2 ** ((midi - 69) / 12);
+export function frequency(midi: MidiPitch, referenceA = 440): number {
+  return referenceA * 2 ** ((midi - 69) / 12);
 }
 
 export interface Position {

@@ -11,6 +11,7 @@ export const RECOGNITION_CONFIG = {
 
 /** Recognize an exact octave after a stable run of reliable estimates, without changing exercises. */
 export class HeldPitchRecognizer {
+  referenceA = 440;
   holdMs = RECOGNITION_CONFIG.holdMs;
   private candidate: MidiPitch | null = null;
   private candidateSince = 0;
@@ -30,13 +31,13 @@ export class HeldPitchRecognizer {
       this.candidate = null;
       return this.recognized;
     }
-    const rounded = Math.round(69 + 12 * Math.log2(hz / 440));
+    const rounded = Math.round(69 + 12 * Math.log2(hz / this.referenceA));
     if (!isPlayablePitch(rounded)) {
       this.candidate = null;
       return this.recognized;
     }
     const pitch = midiPitch(rounded);
-    const cents = centsBetween(hz, frequency(pitch));
+    const cents = centsBetween(hz, frequency(pitch, this.referenceA));
     if (Math.abs(cents) > RECOGNITION_CONFIG.maximumCents) {
       this.candidate = null;
       return this.recognized;

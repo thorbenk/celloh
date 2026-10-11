@@ -104,3 +104,42 @@ test('zoom and notation size and position survive reload', async ({ page }) => {
     ]);
   expect(Math.abs(widths[0]! - widths[1]!)).toBeLessThan(1);
 });
+
+test('reference A retunes samples and intonation and persists across reloads', async ({ page }) => {
+  await page.addInitScript(() => {
+    // Called with the source node as its receiver below.
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (
+      this: AudioBufferSourceNode,
+      ...args: Parameters<AudioBufferSourceNode['start']>
+    ) {
+      document.documentElement.dataset.playbackRate = String(this.playbackRate.value);
+      start.apply(this, args);
+    };
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.locator('#sound-tab').click();
+  await page.getByRole('slider', { name: 'Kammerton A' }).fill('442');
+  await expect(page.locator('#reference-a-value')).toHaveText('442 Hz');
+  await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
+  await page.locator('#intonation-toggle').click();
+  await page.locator('.note[data-string="3"][data-offset="12"]').click();
+  await expect(page.locator('.pitch-target')).toHaveText('A4 · 442.0 Hz');
+  await expect
+    .poll(async () => Number(await page.locator('html').getAttribute('data-playback-rate')))
+    .toBeCloseTo(442 / 440);
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.locator('#sound-tab').click();
+  await page.locator('#reference-a').fill('444');
+  await expect(page.locator('.pitch-target')).toHaveText('A4 · 444.0 Hz');
+  await page.reload();
+  await expect(page.locator('#reference-a')).toHaveValue('444');
+  await expect(page.locator('#reference-a-value')).toHaveText('444 Hz');
+  await page.locator('.note[data-string="3"][data-offset="12"]').click();
+  await expect(page.locator('.pitch-target')).toHaveText('A4 · 444.0 Hz');
+  await expect
+    .poll(async () => Number(await page.locator('html').getAttribute('data-playback-rate')))
+    .toBeCloseTo(444 / 440);
+});
