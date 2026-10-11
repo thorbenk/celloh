@@ -12,7 +12,7 @@ import { requireElement } from './view/dom';
 import { FingerboardView } from './view/fingerboard';
 import { mountLayout } from './view/layout';
 import { PanelController } from './view/panels';
-import { StaffView } from './view/staff';
+import { CompactStaffView, StaffView } from './view/staff';
 import { DraggableNotation } from './view/draggable-notation';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
@@ -22,6 +22,7 @@ export class App {
   private readonly events = new AbortController();
   private readonly board: FingerboardView;
   private readonly staff: StaffView;
+  private readonly compact: CompactStaffView;
   private readonly panels: PanelController;
   private readonly draggableNotation: DraggableNotation;
   private readonly resizeObserver: ResizeObserver;
@@ -29,9 +30,10 @@ export class App {
 
   constructor(root: HTMLElement) {
     mountLayout(root);
-    this.board = new FingerboardView();
-    this.staff = new StaffView();
-    this.draggableNotation = new DraggableNotation();
+    this.board = new FingerboardView(root);
+    this.staff = new StaffView(root);
+    this.compact = new CompactStaffView(root);
+    this.draggableNotation = new DraggableNotation(root);
     this.panels = new PanelController(() => {
       this.model.clearPreview();
       this.staff.renderPicker(this.model);
@@ -82,6 +84,7 @@ export class App {
   private renderSelection(): void {
     this.board.highlight(this.model.selectedPitch, this.model.dimOthers, this.model.board.key);
     this.staff.renderSelection(this.model);
+    this.compact.render(this.model.selection?.note ?? null);
   }
   private async playSelection(): Promise<void> {
     const pitch = this.model.selectedPitch;

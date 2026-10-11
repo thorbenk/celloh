@@ -65,16 +65,22 @@ export function staffMarkup(note: StaffNote | undefined, preview = false, noteX 
 }
 
 export class StaffView {
-  readonly staff = requireElement('#staff', SVGSVGElement);
-  private readonly compact = requireElement('#compact-staff', SVGSVGElement);
-  private readonly sizeToggle = requireElement('#notation-size-toggle', HTMLButtonElement);
-  private readonly name = requireElement('#selected-note', HTMLDivElement);
-  private readonly detail = requireElement('#selected-detail', HTMLDivElement);
-  readonly status = requireElement('#audio-status', HTMLSpanElement);
-  readonly accidentalButtons = ACCIDENTALS.map((accidental) => ({
-    accidental,
-    button: requireElement(`[data-accidental="${accidental}"]`, HTMLButtonElement),
-  }));
+  readonly staff: SVGSVGElement;
+  private readonly name: HTMLDivElement;
+  private readonly detail: HTMLDivElement;
+  readonly status: HTMLSpanElement;
+  readonly accidentalButtons;
+
+  constructor(root: ParentNode = document) {
+    this.staff = requireElement('#staff', SVGSVGElement, root);
+    this.name = requireElement('#selected-note', HTMLDivElement, root);
+    this.detail = requireElement('#selected-detail', HTMLDivElement, root);
+    this.status = requireElement('#audio-status', HTMLSpanElement, root);
+    this.accidentalButtons = ACCIDENTALS.map((accidental) => ({
+      accidental,
+      button: requireElement(`[data-accidental="${accidental}"]`, HTMLButtonElement, root),
+    }));
+  }
 
   renderSelection(model: AppModel): void {
     const selection = model.selection;
@@ -86,23 +92,7 @@ export class StaffView {
         selection.source === 'board' ? `${STRINGS[selection.location.stringId].name}-Saite · ` : '';
       this.detail.textContent = `${origin}${matches} Griff${matches === 1 ? '' : 'e'} · ${frequency(pitch).toFixed(1).replace('.', ',')} Hz`;
     } else this.detail.textContent = 'C2–G4 auswählen';
-    this.compact.setAttribute('viewBox', COMPACT_VIEW_BOX);
-    this.compact.setAttribute(
-      'aria-label',
-      selection
-        ? `${writtenNoteName(selection.note)}, Bassschlüssel`
-        : 'Bassschlüssel, noch kein Ton gewählt',
-    );
-    this.compact.innerHTML = staffMarkup(selection?.note, false, this.compactNoteX());
     this.renderPicker(model);
-  }
-  /** Reserve the resize button's actual screen width, then convert the available space to SVG units. */
-  private compactNoteX(): number {
-    const matrix = this.compact.getScreenCTM();
-    if (!matrix) return 152;
-    const edge = this.compact.createSVGPoint();
-    edge.x = this.sizeToggle.getBoundingClientRect().left - COMPACT_CONTROL_CLEARANCE;
-    return Math.min(152, edge.matrixTransform(matrix.inverse()).x - NOTE_LEDGER_HALF_WIDTH);
   }
 
   renderPicker(model: AppModel): void {
@@ -127,5 +117,34 @@ export class StaffView {
     point.x = event.clientX;
     point.y = event.clientY;
     return stepAtStaffY(point.matrixTransform(matrix.inverse()).y);
+  }
+}
+
+/** Read-only notation can be mounted without the interactive picker or application shell. */
+export class CompactStaffView {
+  private readonly compact: SVGSVGElement;
+  private readonly sizeToggle: HTMLButtonElement;
+
+  constructor(root: ParentNode = document) {
+    this.compact = requireElement('#compact-staff', SVGSVGElement, root);
+    this.sizeToggle = requireElement('#notation-size-toggle', HTMLButtonElement, root);
+  }
+
+  render(note: StaffNote | null): void {
+    this.compact.setAttribute('viewBox', COMPACT_VIEW_BOX);
+    this.compact.setAttribute(
+      'aria-label',
+      note ? `${writtenNoteName(note)}, Bassschlüssel` : 'Bassschlüssel, noch kein Ton gewählt',
+    );
+    this.compact.innerHTML = staffMarkup(note ?? undefined, false, this.compactNoteX());
+  }
+
+  /** Reserve the resize button's screen width, then convert the space to SVG units. */
+  private compactNoteX(): number {
+    const matrix = this.compact.getScreenCTM();
+    if (!matrix) return 152;
+    const edge = this.compact.createSVGPoint();
+    edge.x = this.sizeToggle.getBoundingClientRect().left - COMPACT_CONTROL_CLEARANCE;
+    return Math.min(152, edge.matrixTransform(matrix.inverse()).x - NOTE_LEDGER_HALF_WIDTH);
   }
 }

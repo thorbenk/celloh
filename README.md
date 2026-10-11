@@ -19,6 +19,24 @@ npm run build
 npm run preview
 ```
 
+### Component previews
+
+```sh
+npm run storybook -- --port 6006
+npm run test:stories
+```
+
+Storybook uses the existing vanilla TypeScript views and production HTML/CSS, not
+copies or a second UI framework. The fingerboard, compact notation, and note picker
+mount without the application shell. Controls vary their container width/height,
+pitch, key signature, and spacing. Workspace stories cover portrait, short portrait,
+and desktop layouts, including the extra key-signature row. View observers and
+event handlers are disposed when a story or its controls change.
+
+`test:stories` builds Storybook and runs isolated Chromium checks against that build.
+`build:storybook` creates a separate, gitignored `storybook-static/` directory;
+Storybook is not included in the production app bundle.
+
 ### Amp orbs
 
 `.agents/setup` uses the orb's preinstalled Node.js 22.13+, npm, and Python 3,
@@ -37,7 +55,7 @@ Start the supervised development server and obtain its portal link with:
 amp orb services ensure
 ```
 
-The service is declared in `.amp/services.yaml`. Amp manages its port and portal
+The app and Storybook services are declared in `.amp/services.yaml`. Amp manages their ports and portal
 hostname, and Vite accepts the hostname supplied by Amp. It runs `npm run dev:portal`,
 using Vite 8's experimental bundled development mode to avoid a source-module
 request waterfall over the higher-latency portal connection. HMR remains enabled.

@@ -8,7 +8,7 @@ export function mountLayout(root: HTMLElement): void {
   root.innerHTML = template
     .replaceAll('{{brandIcon}}', brandIconUrl)
     .replaceAll('{{brandEmblem}}', brandEmblemUrl);
-  const keySelect = requireElement('#key', HTMLSelectElement);
+  const keySelect = requireElement('#key', HTMLSelectElement, root);
   for (const [label, keys] of [
     ['Dur', MAJOR_KEYS],
     ['Moll', MINOR_KEYS],
@@ -18,7 +18,7 @@ export function mountLayout(root: HTMLElement): void {
     for (const key of keys) group.append(new Option(key.name, key.name));
     keySelect.append(group);
   }
-  const controls = requireElement('#position-controls', HTMLDivElement);
+  const controls = requireElement('#position-controls', HTMLDivElement, root);
   for (const position of POSITIONS) {
     const label = document.createElement('label');
     label.className = 'position-choice';

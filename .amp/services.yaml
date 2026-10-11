@@ -4,3 +4,8 @@ services:
     health: /
     portal:
       title: CellOh!
+  storybook:
+    command: npm run storybook -- --port "$PORT" --ci
+    health: /iframe.html
+    portal:
+      title: CellOh! components

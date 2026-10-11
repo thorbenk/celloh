@@ -24,13 +24,17 @@ import {
 import { positionMarkup } from './positions';
 
 export class FingerboardView {
-  readonly notes = requireElement('#notes', HTMLDivElement);
-  readonly board = requireElement('.board-card', HTMLElement);
-  private readonly fingerboard = requireElement('.fingerboard', HTMLDivElement);
-  private readonly overlays = requireElement('#overlays', SVGSVGElement);
+  readonly notes: HTMLDivElement;
+  readonly board: HTMLElement;
+  private readonly fingerboard: HTMLDivElement;
+  private readonly overlays: SVGSVGElement;
   private readonly buttons = new Map<HTMLButtonElement, BoardNote>();
 
-  constructor() {
+  constructor(root: ParentNode = document) {
+    this.notes = requireElement('#notes', HTMLDivElement, root);
+    this.board = requireElement('.board-card', HTMLElement, root);
+    this.fingerboard = requireElement('.fingerboard', HTMLDivElement, root);
+    this.overlays = requireElement('#overlays', SVGSVGElement, root);
     this.fingerboard.style.setProperty('--note-diameter', `${NOTE_DIAMETER}px`);
     this.fingerboard.style.setProperty('--row-height', `${ROW_HEIGHT}px`);
     this.fingerboard.style.setProperty('--nut-y', `${NUT_Y}px`);

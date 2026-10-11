@@ -8,16 +8,19 @@ interface Drag {
 
 /** Move the read-only notation within the visible board, independently of board scrolling. */
 export class DraggableNotation {
-  private readonly widget = requireElement('#notation-display', HTMLDivElement);
-  private readonly sizeToggle = requireElement('#notation-size-toggle', HTMLButtonElement);
-  private readonly canvas = requireElement('.board-scroll-wrap', HTMLDivElement);
+  private readonly widget: HTMLDivElement;
+  private readonly sizeToggle: HTMLButtonElement;
+  private readonly canvas: HTMLDivElement;
   private readonly events = new AbortController();
   private readonly observer: ResizeObserver;
   private drag: Drag | null = null;
   private x = 4;
   private y = 4;
 
-  constructor() {
+  constructor(root: ParentNode = document) {
+    this.widget = requireElement('#notation-display', HTMLDivElement, root);
+    this.sizeToggle = requireElement('#notation-size-toggle', HTMLButtonElement, root);
+    this.canvas = requireElement('.board-scroll-wrap', HTMLDivElement, root);
     const options = { signal: this.events.signal };
     this.sizeToggle.addEventListener(
       'click',

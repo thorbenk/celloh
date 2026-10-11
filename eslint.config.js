@@ -7,6 +7,7 @@ import prettier from 'eslint-config-prettier';
 export default defineConfig(
   globalIgnores([
     'dist/**',
+    'storybook-static/**',
     'node_modules/**',
     'references/**',
     'public/audio/**',
