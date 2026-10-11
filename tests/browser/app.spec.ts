@@ -1,5 +1,149 @@
 import { test, expect, type Page } from '@playwright/test';
 
+test('hamburger actions open information panels and return focus to the visible opener', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const menu = page.getByRole('button', { name: 'Menü öffnen' });
+  for (const [action, title] of [
+    ['Gut zu wissen öffnen', 'Gut zu wissen'],
+    ['Über CellOh! öffnen', 'Über CellOh!'],
+  ] as const) {
+    await menu.click();
+    await expect(menu).toHaveAttribute('aria-expanded', 'true');
+    await page.getByRole('button', { name: action }).click();
+    await expect(page.getByRole('dialog', { name: title, exact: true })).toBeVisible();
+    await expect(page.locator('#menu-panel')).not.toBeVisible();
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeFocused();
+  }
+  await menu.click();
+  await page.locator('.note[data-string="0"][data-offset="0"]').click();
+  await expect(page.locator('#menu-panel')).not.toBeVisible();
+});
+
+test('zoom actions fit the whole board or its width and restore the normal note size', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  const zoom = async (label: string) => {
+    await page.getByRole('button', { name: 'Menü öffnen' }).click();
+    await page.getByRole('button', { name: label, exact: true }).click();
+    await expect(page.locator('#menu-panel')).not.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Menü öffnen' })).toBeFocused();
+  };
+  const size = () => page.locator('.fingerboard').boundingBox();
+  await zoom('Alles einpassen');
+  const viewport = (await page.locator('.board-scroll').boundingBox())!;
+  expect((await size())!.height).toBeCloseTo(viewport.height, 0);
+  expect((await size())!.width).toBeLessThan(viewport.width);
+  await expect(page.locator('.note[data-string="3"][data-offset="24"]')).toBeInViewport({
+    ratio: 0.999,
+  });
+  expect(await page.locator('.board-scroll').evaluate((el) => el.scrollHeight)).toBe(
+    viewport.height,
+  );
+  await page.getByRole('button', { name: 'Klaviatur', exact: true }).click();
+  await expect.poll(async () => (await size())!.height).toBeCloseTo(viewport.height - 88, 0);
+  await zoom('Breite einpassen');
+  expect((await size())!.width).toBeCloseTo(375, 0);
+  expect((await size())!.height).toBeGreaterThan(viewport.height);
+  await page.setViewportSize({ width: 320, height: 700 });
+  await expect.poll(async () => (await size())!.width).toBeCloseTo(320, 0);
+  await zoom('100 %');
+  expect((await size())!.width).toBe(520);
+  expect((await page.locator('.note').first().boundingBox())!.width).toBe(44);
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await expect.poll(async () => (await size())!.width).toBe(900);
+  await zoom('Breite einpassen');
+  expect((await size())!.width).toBeCloseTo(1200, 0);
+});
+
+test('touch pinch scales around the fingers without playing notes; one finger still scrolls', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 375, height: 812 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await context.newPage();
+  await page.goto('http://127.0.0.1:4173');
+  const cdp = await context.newCDPSession(page);
+  const touch = async (
+    type: 'touchStart' | 'touchMove' | 'touchEnd',
+    points: { x: number; y: number }[],
+  ) => {
+    await cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: points.map((point, id) => ({ ...point, id })),
+    });
+  };
+  const note = page.locator('.note[data-string="2"][data-offset="3"]');
+  const before = (await note.boundingBox())!;
+  await touch('touchStart', [
+    { x: 190, y: 350 },
+    { x: 310, y: 350 },
+  ]);
+  await touch('touchMove', [
+    { x: 160, y: 350 },
+    { x: 340, y: 350 },
+  ]);
+  await touch('touchMove', [
+    { x: 130, y: 350 },
+    { x: 370, y: 350 },
+  ]);
+  await touch('touchEnd', []);
+  await expect.poll(async () => (await note.boundingBox())!.width).toBeCloseTo(88, 0);
+  const after = (await note.boundingBox())!;
+  expect(after.x + after.width / 2).toBeCloseTo(250 + 2 * (before.x + before.width / 2 - 250), 0);
+  expect(after.y + after.height / 2).toBeCloseTo(350 + 2 * (before.y + before.height / 2 - 350), 0);
+  await expect(page.locator('.note.selected')).toHaveCount(0);
+  expect(await page.evaluate(() => window.visualViewport!.scale)).toBe(1);
+  const scroll = () => page.locator('.board-scroll').evaluate((el) => el.scrollTop);
+  const initialScroll = await scroll();
+  await touch('touchStart', [{ x: 250, y: 550 }]);
+  for (const y of [520, 480, 440, 400]) await touch('touchMove', [{ x: 250, y }]);
+  await touch('touchEnd', []);
+  await expect.poll(scroll).toBeGreaterThan(initialScroll + 50);
+  // A tap during a native fling stops momentum instead of activating a control.
+  await page.locator('.board-scroll').evaluate(
+    (el) =>
+      new Promise<void>((resolve) => {
+        let previous = el.scrollTop;
+        let stableFrames = 0;
+        const frame = () => {
+          stableFrames = el.scrollTop === previous ? stableFrames + 1 : 0;
+          previous = el.scrollTop;
+          if (stableFrames >= 10) resolve();
+          else requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      }),
+  );
+  await page.getByRole('button', { name: 'Menü öffnen' }).tap();
+  await page.getByRole('button', { name: '100 %', exact: true }).tap();
+  await touch('touchStart', [
+    { x: 130, y: 350 },
+    { x: 370, y: 350 },
+  ]);
+  await touch('touchMove', [
+    { x: 190, y: 350 },
+    { x: 310, y: 350 },
+  ]);
+  await touch('touchEnd', []);
+  await expect.poll(async () => (await note.boundingBox())!.width).toBeCloseTo(22, 0);
+  await expect(page.locator('.note.selected')).toHaveCount(0);
+  // Wait out the compatibility-click guard before a deliberate new tap.
+  await page.waitForTimeout(450);
+  await note.tap();
+  await expect(note).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
+  await context.close();
+});
+
 test('notes, spellings, position variants, extensions, and audio', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -38,19 +182,26 @@ test('mobile layout stays within viewport and brackets align with notes', async 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
-  for (const id of [
-    'highlight-toggle',
-    'notation-open',
-    'settings-open',
-    'info-open',
-    'help-open',
-  ]) {
+  for (const id of ['menu-open', 'notation-open', 'settings-open']) {
     const control = page.locator(`#${id}`);
     await expect(control).toBeInViewport({ ratio: 1 });
     const bounds = await control.boundingBox();
     expect(bounds!.width).toBeGreaterThanOrEqual(44);
     expect(bounds!.height).toBeGreaterThanOrEqual(44);
   }
+  await page.getByRole('button', { name: 'Menü öffnen' }).click();
+  for (const id of [
+    'highlight-toggle',
+    'info-open',
+    'help-open',
+    'zoom-fit',
+    'zoom-width',
+    'zoom-reset',
+  ]) {
+    await expect(page.locator(`#${id}`)).toBeInViewport({ ratio: 1 });
+    expect((await page.locator(`#${id}`).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.keyboard.press('Escape');
   const button = page.locator('.note[data-string="0"][data-offset="2"]');
   const bounds = await button.boundingBox();
   expect(bounds!.width).toBeGreaterThanOrEqual(44);
@@ -365,12 +516,14 @@ test('quick dimming toggle preserves selection and compact notation', async ({ p
   await page.goto('/');
   const toggle = page.getByRole('button', { name: 'Andere Töne dimmen' });
   const compact = page.locator('#compact-staff');
+  await page.getByRole('button', { name: 'Menü öffnen' }).click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await page.locator('.note[data-string="1"][data-offset="0"]').click();
   await expect(compact).toHaveAttribute('aria-label', 'G2, Bassschlüssel');
   await expect(compact.locator('.staff-note')).toHaveAttribute('data-midi', '43');
   const unmatched = page.locator('.note[data-midi="36"]').first();
   expect(await unmatched.evaluate((note) => getComputedStyle(note).opacity)).toBe('0.22');
+  await page.getByRole('button', { name: 'Menü öffnen' }).click();
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   expect(await unmatched.evaluate((note) => getComputedStyle(note).opacity)).toBe('1');
@@ -384,6 +537,7 @@ test('quick dimming toggle preserves selection and compact notation', async ({ p
       .first()
       .evaluate((note) => getComputedStyle(note).opacity),
   ).toBe('1');
+  await page.getByRole('button', { name: 'Menü öffnen' }).click();
   await toggle.click();
   expect(
     await page
@@ -446,6 +600,7 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await expect(higherE).toHaveCSS('opacity', '0.22'); // Key is octave-independent; selection isn't.
   await inside.focus();
   await expect(inside).toHaveCSS('opacity', '1');
+  await page.getByRole('button', { name: 'Menü öffnen' }).click();
   await page.getByRole('button', { name: 'Andere Töne dimmen' }).click();
   await expect(inside).toHaveCSS('opacity', '1');
   await expect(higherE).toHaveCSS('opacity', '0.22');
@@ -460,7 +615,7 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Es2, Bassschlüssel');
   await page.setViewportSize({ width: 375, height: 812 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375);
-  for (const id of ['active-key', 'highlight-toggle', 'notation-open', 'settings-open']) {
+  for (const id of ['active-key', 'menu-open', 'notation-open', 'settings-open']) {
     const button = page.locator(`#${id}`);
     await expect(button).toBeInViewport({ ratio: 1 });
     expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);

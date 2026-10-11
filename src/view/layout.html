@@ -10,18 +10,6 @@
       <span id="active-key-name"></span><span aria-hidden="true">×</span>
     </button>
     <button
-      id="highlight-toggle"
-      class="icon-button"
-      aria-label="Andere Töne dimmen"
-      aria-pressed="true"
-      title="Andere Töne dimmen"
-    >
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-        <circle cx="8" cy="12" r="5" fill="currentColor" />
-        <circle cx="18" cy="7" r="3" fill="currentColor" opacity=".25" />
-        <circle cx="18" cy="17" r="3" fill="currentColor" opacity=".25" />
-      </svg></button
-    ><button
       id="notation-open"
       class="icon-button"
       aria-label="Noten öffnen"
@@ -37,6 +25,25 @@
       aria-expanded="false"
     >
       <span class="material-icon icon-settings" aria-hidden="true"></span>
+    </button>
+    <button
+      id="menu-open"
+      class="icon-button"
+      aria-label="Menü öffnen"
+      aria-controls="menu-panel"
+      aria-expanded="false"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <path d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
     </button>
   </div>
 </header>
@@ -86,15 +93,17 @@
           tabindex="0"
           aria-label="Griffbrett, zum Anzeigen höherer Töne scrollen"
         >
-          <div class="fingerboard">
-            <div id="notes" class="notes"></div>
-            <svg
-              id="overlays"
-              class="overlays"
-              viewBox="0 0 600 1582"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            ></svg>
+          <div class="board-zoom-space">
+            <div class="fingerboard">
+              <div id="notes" class="notes"></div>
+              <svg
+                id="overlays"
+                class="overlays"
+                viewBox="0 0 600 1582"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              ></svg>
+            </div>
           </div>
         </div>
       </div>
@@ -139,27 +148,39 @@
     </svg>
     Tonfolge
   </button>
-  <button
-    id="info-open"
-    class="icon-button"
-    aria-label="Gut zu wissen öffnen"
-    aria-controls="info-panel"
-    aria-expanded="false"
-    title="Gut zu wissen"
-  >
-    <span class="material-icon icon-info" aria-hidden="true"></span>
-  </button>
-  <button
-    id="help-open"
-    class="icon-button"
-    aria-label="Über CellOh! öffnen"
-    aria-controls="help-panel"
-    aria-expanded="false"
-    title="Über CellOh!"
-  >
-    <span class="material-icon icon-help" aria-hidden="true"></span>
-  </button>
 </footer>
+<dialog id="menu-panel" class="settings-panel menu-panel" aria-labelledby="menu-title">
+  <div class="settings-heading">
+    <h2 id="menu-title">Menü</h2>
+    <button id="menu-close" class="icon-button" aria-label="Menü schließen">×</button>
+  </div>
+  <div class="menu-actions">
+    <button id="highlight-toggle" aria-pressed="true">Andere Töne dimmen</button>
+    <hr />
+    <button id="zoom-fit">Alles einpassen</button>
+    <button id="zoom-width">Breite einpassen</button>
+    <button id="zoom-reset">100 %</button>
+    <hr />
+    <button
+      id="info-open"
+      aria-label="Gut zu wissen öffnen"
+      aria-controls="info-panel"
+      aria-expanded="false"
+    >
+      <span class="material-icon icon-info" aria-hidden="true"></span>
+      Gut zu wissen
+    </button>
+    <button
+      id="help-open"
+      aria-label="Über CellOh! öffnen"
+      aria-controls="help-panel"
+      aria-expanded="false"
+    >
+      <span class="material-icon icon-help" aria-hidden="true"></span>
+      Über CellOh!
+    </button>
+  </div>
+</dialog>
 <dialog id="info-panel" class="settings-panel" aria-labelledby="info-title">
   <div class="settings-heading">
     <h2 id="info-title">Gut zu wissen</h2>

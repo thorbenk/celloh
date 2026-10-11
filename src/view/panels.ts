@@ -20,6 +20,7 @@ export class PanelController {
     this.panels = [
       this.createPanel('#settings', '#settings-open', '#settings-close'),
       this.createPanel('#notation-panel', '#notation-open', '#notation-close'),
+      this.createPanel('#menu-panel', '#menu-open', '#menu-close'),
       this.createPanel('#info-panel', '#info-open', '#info-close'),
       this.createPanel('#help-panel', '#help-open', '#help-close'),
     ];
@@ -39,7 +40,7 @@ export class PanelController {
             (document.activeElement === document.body ||
               panel.dialog.contains(document.activeElement))
           )
-            panel.button.focus();
+            this.opener(panel).focus();
         },
         options,
       );
@@ -103,5 +104,9 @@ export class PanelController {
   private close(panel: Panel): void {
     panel.button.setAttribute('aria-expanded', 'false');
     panel.dialog.close();
+  }
+  private opener(panel: Panel): HTMLButtonElement {
+    const parent = panel.button.closest('dialog');
+    return parent && !parent.open ? requireElement('#menu-open', HTMLButtonElement) : panel.button;
   }
 }

@@ -419,9 +419,26 @@ main,
   height: 100%;
   overflow: auto;
   overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
   scrollbar-width: thin;
   scrollbar-color: #cbcbb9 transparent;
   background: linear-gradient(90deg, #f6f4ed, #fbfaf5 15%, #fbfaf5 85%, #f6f4ed);
+}
+.board-zoom-space {
+  margin-inline: auto;
+}
+.board-zoom-space.zoomable {
+  position: relative;
+  overflow: hidden;
+}
+.board-zoom-space.zoomable .fingerboard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  transform-origin: top left;
 }
 .fingerboard {
   position: relative;
@@ -430,6 +447,54 @@ main,
   min-width: 520px;
   max-width: 900px;
   margin-inline: auto;
+}
+.settings-panel.menu-panel {
+  inset: calc(var(--header-height) + 8px) 12px auto auto;
+  width: min(300px, calc(100vw - 24px));
+  height: auto;
+  border: 1px solid #e3e0d5;
+  border-radius: 12px;
+}
+.menu-panel .settings-heading {
+  padding: 12px 16px;
+}
+.menu-actions {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+}
+.menu-actions button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #354d40;
+  text-align: left;
+  font-size: 14px;
+}
+.menu-actions button:hover {
+  background: #eef2e7;
+}
+.menu-actions button[aria-pressed='true'] {
+  background: #e0eadd;
+}
+.menu-actions button[aria-pressed]::after {
+  content: '✓';
+  margin-left: auto;
+  visibility: hidden;
+}
+.menu-actions button[aria-pressed='true']::after {
+  visibility: visible;
+}
+.menu-actions hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #e5e3d9;
+  margin: 6px 0;
 }
 .notes {
   position: absolute;

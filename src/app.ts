@@ -17,6 +17,7 @@ import { CompactStaffView, StaffView } from './view/staff';
 import { DraggableNotation } from './view/draggable-notation';
 import { PianoKeyboardView } from './view/piano';
 import { PitchSequenceView } from './view/pitch-sequence';
+import { BoardZoom } from './view/board-zoom';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
@@ -31,6 +32,7 @@ export class App {
   private readonly pitches: MidiPitch[] = [];
   private readonly panels: PanelController;
   private readonly draggableNotation: DraggableNotation;
+  private readonly zoom: BoardZoom;
   private readonly resizeObserver: ResizeObserver;
   private readonly sequenceObserver: ResizeObserver;
   private playbackRequest = 0;
@@ -85,6 +87,7 @@ export class App {
     this.bindPicker();
     this.bindSettings();
     this.renderBoard();
+    this.zoom = new BoardZoom(root);
     this.resizeObserver = this.board.observeResize(this.model.board);
     this.sequenceObserver = new ResizeObserver(() => {
       root.style.setProperty(
@@ -103,6 +106,7 @@ export class App {
     this.piano.destroy();
     this.sequence.destroy();
     this.draggableNotation.destroy();
+    this.zoom.destroy();
   }
   private renderBoard(): void {
     const key = this.model.board.key;
