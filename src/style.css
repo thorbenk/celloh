@@ -202,6 +202,7 @@ main,
   height: 100%;
 }
 .footer {
+  container: bottom-tools / inline-size;
   grid-row: 5;
   display: flex;
   justify-content: center;
@@ -392,6 +393,9 @@ main,
   background: currentColor;
   -webkit-mask: var(--icon) center / contain no-repeat;
   mask: var(--icon) center / contain no-repeat;
+}
+.icon-speed {
+  --icon: url('./assets/speed.svg');
 }
 .icon-music-note {
   --icon: url('./assets/music_note.svg');
@@ -1010,5 +1014,99 @@ input[type='range'] {
   }
   .settings-panel[open] {
     animation: none;
+  }
+}
+
+/* Live pitch feedback keeps the board usable on small screens. */
+main:has(.pitch-feedback) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+main:has(.pitch-feedback) .workspace {
+  flex: 1;
+  min-height: 0;
+}
+.pitch-feedback[hidden] {
+  display: none;
+}
+.pitch-feedback {
+  flex: none;
+  padding: 10px 16px;
+  border-top: 1px solid #ddd8ce;
+  background: #f8f5ef;
+  font-size: 12px;
+}
+.pitch-heading,
+.pitch-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pitch-heading button {
+  border: 1px solid var(--green);
+  border-radius: 7px;
+  padding: 8px;
+  background: white;
+  color: var(--green);
+  min-height: 44px;
+}
+.pitch-status {
+  margin: 4px 0;
+}
+.pitch-reading,
+.pitch-debug {
+  font-variant-numeric: tabular-nums;
+}
+.pitch-meter {
+  position: relative;
+  height: 12px;
+  margin: 8px 0 3px;
+  background: #e6e1d8;
+  border-radius: 6px;
+}
+.pitch-zero {
+  position: absolute;
+  left: 50%;
+  height: 100%;
+  border-left: 2px solid var(--green);
+}
+.pitch-marker {
+  position: absolute;
+  top: -3px;
+  width: 8px;
+  height: 18px;
+  border-radius: 4px;
+  background: #a15e24;
+  transform: translateX(-50%);
+  transition: left 80ms linear;
+}
+.pitch-marker[data-direction='tune'] {
+  background: var(--green);
+}
+.pitch-labels {
+  color: var(--muted);
+  font-size: 10px;
+}
+.pitch-feedback details {
+  margin-top: 4px;
+}
+.pitch-debug {
+  max-height: 110px;
+  overflow: auto;
+  margin: 4px 0;
+  font-size: 11px;
+}
+@media (max-height: 600px) {
+  .pitch-feedback {
+    max-height: 100px;
+    overflow-y: auto;
+  }
+}
+
+@container bottom-tools (max-width: 480px) {
+  .tool-label {
+    display: none;
   }
 }

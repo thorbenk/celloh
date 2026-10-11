@@ -103,9 +103,10 @@
     aria-expanded="false"
   >
     <span class="material-icon icon-music-note" aria-hidden="true"></span>
-    Noten
+    <span class="tool-label">Noten</span>
   </button>
   <button
+    aria-label="Klaviatur"
     id="piano-toggle"
     class="icon-button labelled-button piano-toggle"
     aria-controls="piano"
@@ -124,9 +125,10 @@
       <path d="M7 4v16M12 4v16M17 4v16" />
       <path d="M6 4v9M11 4v9M16 4v9" stroke-width="3" />
     </svg>
-    Klaviatur
+    <span class="tool-label">Klaviatur</span>
   </button>
   <button
+    aria-label="Tonfolge"
     id="sequence-toggle"
     class="icon-button labelled-button sequence-toggle"
     aria-controls="pitch-sequence"
@@ -140,7 +142,18 @@
       <ellipse cx="11.5" cy="17" rx="3" ry="2" transform="rotate(-18 11.5 17)" />
       <ellipse cx="19.5" cy="15" rx="3" ry="2" transform="rotate(-18 19.5 15)" />
     </svg>
-    Tonfolge
+    <span class="tool-label">Tonfolge</span>
+  </button>
+  <button
+    id="intonation-toggle"
+    class="icon-button labelled-button"
+    aria-label="Intonation"
+    aria-controls="intonation"
+    aria-expanded="false"
+    title="Intonation anzeigen oder ausblenden"
+  >
+    <span class="material-icon icon-speed" aria-hidden="true"></span>
+    <span class="tool-label">Intonation</span>
   </button>
 </footer>
 <dialog

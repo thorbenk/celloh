@@ -373,7 +373,12 @@ test('one bottom tool row keeps notation, keyboard and sequence independently us
     await page.setViewportSize({ width, height: 812 });
     await page.goto('/');
     const tools = page.locator('.footer button');
-    await expect(tools).toHaveText(['Noten', 'Klaviatur', 'Tonfolge']);
+    await expect(tools).toHaveText(['Noten', 'Klaviatur', 'Tonfolge', 'Intonation']);
+    for (const label of await page.locator('.footer .tool-label').all()) {
+      if (width < 500) await expect(label).toBeHidden();
+      else await expect(label).toBeVisible();
+    }
+    await expect(page.locator('#intonation')).toBeHidden();
     const rows = await tools.evaluateAll((buttons) =>
       buttons.map((button) => button.getBoundingClientRect().top),
     );

@@ -1,3 +1,5 @@
+import { PitchFeedbackView } from './view/pitch-feedback';
+import { frequency, noteName, octave } from './music';
 import { CelloAudio } from './audio';
 import { AppModel } from './model';
 import {
@@ -21,6 +23,7 @@ import { BoardZoom } from './view/board-zoom';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
+  private readonly pitchFeedback: PitchFeedbackView;
   private readonly model = new AppModel();
   private readonly audio = new CelloAudio();
   private readonly events = new AbortController();
@@ -52,6 +55,18 @@ export class App {
     });
     this.piano.element.id = 'piano';
     requireElement('.footer', HTMLElement, root).before(this.piano.element);
+    this.pitchFeedback = new PitchFeedbackView(() => this.stopReplay());
+    requireElement('main', HTMLElement, root).append(this.pitchFeedback.element);
+    const intonationToggle = requireElement('#intonation-toggle', HTMLButtonElement, root);
+    intonationToggle.addEventListener(
+      'click',
+      () => {
+        const visible = this.pitchFeedback.element.hidden;
+        this.pitchFeedback.setVisible(visible);
+        intonationToggle.setAttribute('aria-expanded', String(visible));
+      },
+      { signal: this.events.signal },
+    );
     this.bindPiano(root);
     this.sequence = new PitchSequenceView(
       () => {
@@ -100,6 +115,7 @@ export class App {
   destroy(): void {
     this.stopReplay();
     this.events.abort();
+    this.pitchFeedback.destroy();
     this.resizeObserver.disconnect();
     this.sequenceObserver.disconnect();
     this.panels.destroy();
@@ -138,6 +154,13 @@ export class App {
     this.renderSelection();
   }
   private renderSelection(): void {
+    const target = this.model.selectedPitch;
+    this.pitchFeedback.setTarget(
+      target === null
+        ? null
+        : `${noteName(target, this.model.board.spelling, this.model.board.key)}${octave(target)}`,
+      target === null ? null : frequency(target),
+    );
     this.board.highlight(this.model.selectedPitch, this.model.dimOthers, this.model.board.key);
     this.staff.renderSelection(this.model);
     this.compact.render(this.model.selection?.note ?? null);

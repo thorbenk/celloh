@@ -45,5 +45,8 @@
   },
   "engines": {
     "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "pitchy": "^4.1.0"
   }
 }
