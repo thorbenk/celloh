@@ -1,10 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
 
-test('hamburger actions open information panels and return focus to the visible opener', async ({
+test('help actions open information panels and return focus to the visible opener', async ({
   page,
 }) => {
   await page.goto('/');
-  const menu = page.getByRole('button', { name: 'Menü öffnen' });
+  const menu = page.getByRole('button', { name: 'Hilfe öffnen' });
   for (const [action, title] of [
     ['Gut zu wissen öffnen', 'Gut zu wissen'],
     ['Über CellOh! öffnen', 'Über CellOh!'],
@@ -13,14 +13,14 @@ test('hamburger actions open information panels and return focus to the visible 
     await expect(menu).toHaveAttribute('aria-expanded', 'true');
     await page.getByRole('button', { name: action }).click();
     await expect(page.getByRole('dialog', { name: title, exact: true })).toBeVisible();
-    await expect(page.locator('#menu-panel')).not.toBeVisible();
+    await expect(page.locator('#assistance-panel')).not.toBeVisible();
     await expect(menu).toHaveAttribute('aria-expanded', 'false');
     await page.keyboard.press('Escape');
     await expect(menu).toBeFocused();
   }
   await menu.click();
   await page.locator('.note[data-string="0"][data-offset="0"]').click();
-  await expect(page.locator('#menu-panel')).not.toBeVisible();
+  await expect(page.locator('#assistance-panel')).not.toBeVisible();
 });
 
 test('zoom actions fit the whole board or its width and restore the normal note size', async ({
@@ -29,10 +29,11 @@ test('zoom actions fit the whole board or its width and restore the normal note 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
   const zoom = async (label: string) => {
-    await page.getByRole('button', { name: 'Menü öffnen' }).click();
+    await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+    await page.getByRole('tab', { name: 'Griffbrett' }).click();
     await page.getByRole('button', { name: label, exact: true }).click();
-    await expect(page.locator('#menu-panel')).not.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Menü öffnen' })).toBeFocused();
+    await expect(page.locator('#settings')).not.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Einstellungen öffnen' })).toBeFocused();
   };
   const size = () => page.locator('.fingerboard').boundingBox();
   await zoom('Alles einpassen');
@@ -123,7 +124,8 @@ test('touch pinch scales around the fingers without playing notes; one finger st
         requestAnimationFrame(frame);
       }),
   );
-  await page.getByRole('button', { name: 'Menü öffnen' }).tap();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).tap();
+  await page.getByRole('tab', { name: 'Griffbrett' }).tap();
   await page.getByRole('button', { name: '100 %', exact: true }).tap();
   await touch('touchStart', [
     { x: 130, y: 350 },
@@ -182,22 +184,29 @@ test('mobile layout stays within viewport and brackets align with notes', async 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
-  for (const id of ['menu-open', 'notation-open', 'settings-open']) {
+  for (const id of [
+    'assistance-open',
+    'notation-open',
+    'settings-open',
+    'piano-toggle',
+    'sequence-toggle',
+  ]) {
     const control = page.locator(`#${id}`);
     await expect(control).toBeInViewport({ ratio: 1 });
     const bounds = await control.boundingBox();
     expect(bounds!.width).toBeGreaterThanOrEqual(44);
     expect(bounds!.height).toBeGreaterThanOrEqual(44);
   }
-  await page.getByRole('button', { name: 'Menü öffnen' }).click();
-  for (const id of [
-    'highlight-toggle',
-    'info-open',
-    'help-open',
-    'zoom-fit',
-    'zoom-width',
-    'zoom-reset',
-  ]) {
+  await page.getByRole('button', { name: 'Hilfe öffnen' }).click();
+  for (const id of ['info-open', 'help-open']) {
+    await expect(page.locator(`#${id}`)).toBeInViewport({ ratio: 1 });
+    expect((await page.locator(`#${id}`).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Griffbrett' }).click();
+  for (const id of ['highlight-toggle', 'zoom-fit', 'zoom-width', 'zoom-reset']) {
+    await page.locator(`#${id}`).scrollIntoViewIfNeeded();
     await expect(page.locator(`#${id}`)).toBeInViewport({ ratio: 1 });
     expect((await page.locator(`#${id}`).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   }
@@ -303,17 +312,48 @@ test('settings slide over the centered board and close with Escape, button, or b
     const open = page.getByRole('button', { name: 'Einstellungen öffnen' });
     await expect(panel).not.toBeVisible();
     await expect(page.locator('.intro')).toHaveCount(0);
+    const piano = page.getByRole('button', { name: 'Klaviatur', exact: true });
+    if ((await piano.getAttribute('aria-expanded')) === 'false') await piano.click();
+    await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
     const before = await page.locator('.board-card').boundingBox();
     const workspace = await page.locator('.workspace').boundingBox();
     expect(Math.abs(workspace!.x + workspace!.width / 2 - width / 2)).toBeLessThan(2);
     await open.click();
     await expect(panel).toBeVisible();
     expect(await page.locator('.board-card').boundingBox()).toEqual(before);
+    await panel.evaluate((panel) =>
+      Promise.all(panel.getAnimations().map((animation) => animation.finished)),
+    );
+    const bounds = (await panel.boundingBox())!;
+    const footer = (await page.locator('.footer').boundingBox())!;
+    expect(bounds.y + bounds.height).toBe(footer.y);
+    expect(
+      await page.locator('#piano').evaluate((piano) => {
+        const bounds = piano.getBoundingClientRect();
+        return Boolean(
+          document.elementFromPoint(bounds.right - 20, bounds.top + 20)?.closest('#settings'),
+        );
+      }),
+    ).toBe(true);
+    await expect(piano).toBeInViewport({ ratio: 1 });
     await page.locator('#upper').check();
+    await page.getByRole('tab', { name: 'Musik' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Griffbrett' })).toBeFocused();
+    await expect(page.getByRole('tabpanel', { name: 'Griffbrett' })).toBeVisible();
+    await expect(page.getByRole('tabpanel', { name: 'Musik' })).toBeHidden();
+    await page.keyboard.press('End');
+    await expect(page.getByRole('tab', { name: 'Klang' })).toBeFocused();
+    await page.getByRole('slider', { name: 'Tonfolge-Tempo' }).fill('80');
     await page.keyboard.press('Escape');
     await expect(panel).not.toBeVisible();
     await expect(open).toBeFocused();
     await open.click();
+    await expect(page.getByRole('tab', { name: 'Klang' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('slider', { name: 'Tonfolge-Tempo' })).toHaveValue('80');
+    await page.getByRole('tab', { name: 'Klang' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Musik' })).toBeFocused();
     await expect(page.locator('#upper')).toBeChecked();
     await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
     await expect(panel).not.toBeVisible();
@@ -323,6 +363,60 @@ test('settings slide over the centered board and close with Escape, button, or b
       await expect(panel).not.toBeVisible();
     }
     await page.screenshot({ path: `/tmp/celloh-centered-${width}.png`, fullPage: true });
+  }
+});
+
+test('one bottom tool row keeps notation, keyboard and sequence independently usable', async ({
+  page,
+}) => {
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 812 });
+    await page.goto('/');
+    const tools = page.locator('.footer button');
+    await expect(tools).toHaveText(['Noten', 'Klaviatur', 'Tonfolge']);
+    const rows = await tools.evaluateAll((buttons) =>
+      buttons.map((button) => button.getBoundingClientRect().top),
+    );
+    expect(new Set(rows).size).toBe(1);
+    for (const tool of await tools.all()) await expect(tool).toBeInViewport({ ratio: 1 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    const piano = page.getByRole('button', { name: 'Klaviatur', exact: true });
+    if ((await piano.getAttribute('aria-expanded')) === 'false') await piano.click();
+    await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+    await page.getByRole('button', { name: 'Noten öffnen' }).click();
+    const picker = page.getByRole('dialog', { name: 'Noten', exact: true });
+    await expect(picker).toBeVisible();
+    await picker.evaluate((panel) =>
+      Promise.all(panel.getAnimations().map((animation) => animation.finished)),
+    );
+    const bounds = (await picker.boundingBox())!;
+    expect(bounds.y + bounds.height).toBe((await page.locator('.footer').boundingBox())!.y);
+    for (const id of ['piano', 'pitch-sequence']) {
+      expect(
+        await page.locator(`#${id}`).evaluate((dock) => {
+          const bounds = dock.getBoundingClientRect();
+          return Boolean(
+            document
+              .elementFromPoint(bounds.right - 20, bounds.top + 20)
+              ?.closest('#notation-panel'),
+          );
+        }),
+      ).toBe(true);
+    }
+    await expect(picker.getByRole('heading', { name: 'Bassschlüssel' })).toHaveCount(0);
+    await expect(picker.getByRole('button', { name: 'Tonmarkierung aufheben' })).toBeInViewport({
+      ratio: 1,
+    });
+    await expect(page.locator('#piano')).toBeVisible();
+    await expect(page.locator('#pitch-sequence')).toBeVisible();
+    await expect(
+      page.locator('#pitch-sequence').getByRole('button', { name: 'Tonfolge abspielen' }),
+    ).toBeVisible();
+    await expect(page.locator('.footer').getByRole('slider')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'Noten öffnen' })).toBeFocused();
+    await expect(page.locator('#piano')).toBeVisible();
+    await expect(page.locator('#pitch-sequence')).toBeVisible();
   }
 });
 
@@ -343,6 +437,7 @@ test('to-scale spacing preserves cello proportions, declutters notes, and restor
     expect(equal[2]! - equal[1]!).toBeCloseTo(58);
     expect(equal[24]! - equal[23]!).toBeCloseTo(58);
     await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+    await page.getByRole('tab', { name: 'Griffbrett' }).click();
     const spread = page.getByRole('slider', { name: 'Spreizung' });
     await expect(spread).not.toBeVisible();
     await page.getByRole('checkbox', { name: 'Wie auf dem Cello' }).check();
@@ -354,6 +449,7 @@ test('to-scale spacing preserves cello proportions, declutters notes, and restor
     const compact = await centers();
     expect((compact[2]! - compact[1]!) / firstGap).toBeCloseTo(0.6, 2);
     await expect(page.locator('#spread-value')).toHaveText('60 %');
+    await page.getByRole('tab', { name: 'Musik' }).click();
     await page.locator('#upper').check();
     await page.locator('#extension').check();
     await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
@@ -384,6 +480,7 @@ test('to-scale spacing preserves cello proportions, declutters notes, and restor
       });
     expect(Math.max(...alignment)).toBeLessThan(1);
     await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+    await page.getByRole('tab', { name: 'Griffbrett' }).click();
     await expect(spread).toHaveValue('60');
     await spread.fill('180');
     const expanded = await centers();
@@ -516,14 +613,16 @@ test('quick dimming toggle preserves selection and compact notation', async ({ p
   await page.goto('/');
   const toggle = page.getByRole('button', { name: 'Andere Töne dimmen' });
   const compact = page.locator('#compact-staff');
-  await page.getByRole('button', { name: 'Menü öffnen' }).click();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Griffbrett' }).click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await page.locator('.note[data-string="1"][data-offset="0"]').click();
   await expect(compact).toHaveAttribute('aria-label', 'G2, Bassschlüssel');
   await expect(compact.locator('.staff-note')).toHaveAttribute('data-midi', '43');
   const unmatched = page.locator('.note[data-midi="36"]').first();
   expect(await unmatched.evaluate((note) => getComputedStyle(note).opacity)).toBe('0.22');
-  await page.getByRole('button', { name: 'Menü öffnen' }).click();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Griffbrett' }).click();
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'false');
   expect(await unmatched.evaluate((note) => getComputedStyle(note).opacity)).toBe('1');
@@ -537,7 +636,8 @@ test('quick dimming toggle preserves selection and compact notation', async ({ p
       .first()
       .evaluate((note) => getComputedStyle(note).opacity),
   ).toBe('1');
-  await page.getByRole('button', { name: 'Menü öffnen' }).click();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Griffbrett' }).click();
   await toggle.click();
   expect(
     await page
@@ -600,7 +700,8 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await expect(higherE).toHaveCSS('opacity', '0.22'); // Key is octave-independent; selection isn't.
   await inside.focus();
   await expect(inside).toHaveCSS('opacity', '1');
-  await page.getByRole('button', { name: 'Menü öffnen' }).click();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Griffbrett' }).click();
   await page.getByRole('button', { name: 'Andere Töne dimmen' }).click();
   await expect(inside).toHaveCSS('opacity', '1');
   await expect(higherE).toHaveCSS('opacity', '0.22');
@@ -615,7 +716,7 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Es2, Bassschlüssel');
   await page.setViewportSize({ width: 375, height: 812 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375);
-  for (const id of ['active-key', 'menu-open', 'notation-open', 'settings-open']) {
+  for (const id of ['active-key', 'assistance-open', 'notation-open', 'settings-open']) {
     const button = page.locator(`#${id}`);
     await expect(button).toBeInViewport({ ratio: 1 });
     expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
@@ -625,6 +726,7 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Dis2, Bassschlüssel');
   await expect(outside).toHaveCSS('opacity', '0.22'); // Original pitch-focus behavior.
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Musik' }).click();
   await expect(page.getByLabel('Tonart', { exact: true })).toHaveValue('');
 });
 
@@ -857,6 +959,7 @@ test('playback uses volume changes made while the sample is loading', async ({ p
   await page.goto('/');
   await page.locator('.note[data-string="1"][data-offset="0"]').click();
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Klang' }).click();
   await page.locator('#volume').fill('20');
   gate.resolve();
   await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '1');
@@ -875,14 +978,16 @@ test('sequence replay keeps every pitch view in sync, honors tempo, and never re
   }
   await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Klang' }).click();
   const tempo = page.getByRole('slider', { name: 'Tonfolge-Tempo' });
   await expect(tempo).toHaveValue('120');
   await tempo.fill('40');
   await expect(page.locator('#replay-tempo-value')).toHaveText('40 BPM');
-  await page.getByRole('button', { name: 'Noten öffnen' }).click();
+  await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await page.getByRole('button', { name: 'Noten öffnen' }).click();
   const notes = page.locator('.sequence-scroll .staff-note');
   const checkPitch = async (index: number, pitch: number): Promise<void> => {
     await expect(notes.nth(index)).toHaveClass(/playing/);
@@ -922,6 +1027,7 @@ test('sequence replay keeps every pitch view in sync, honors tempo, and never re
   await expect(page.getByRole('button', { name: 'Tonfolge abspielen' })).toBeEnabled();
 
   // Stop, manual playing, and confirmed clearing must invalidate all future beats.
+  await page.getByRole('button', { name: 'Noten schließen' }).click();
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '9');
   await page.getByRole('button', { name: 'Tonfolge stoppen' }).click();

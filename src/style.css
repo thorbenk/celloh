@@ -102,7 +102,8 @@ h2 {
   font-size: 12px;
   color: var(--muted);
 }
-.segmented button[aria-pressed='true'] {
+.segmented button[aria-pressed='true'],
+.segmented button[aria-selected='true'] {
   background: #fffdf8;
   box-shadow: 0 1px 4px #0000000d;
   color: var(--green);
@@ -203,23 +204,20 @@ main,
 .footer {
   grid-row: 5;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   align-items: center;
   gap: 10px;
   padding: 6px 24px;
   border-top: 1px solid #e5e3d9;
 }
-.piano-toggle,
-.sequence-toggle {
+.labelled-button {
   display: flex;
   justify-content: center;
   gap: 8px;
   width: auto;
+  min-width: 44px;
   padding: 0 12px;
   font-size: 12px;
-}
-.sequence-toggle {
-  margin-right: auto;
 }
 
 /* Read-only notation history: fixed music scale, content-sized vertical range. */
@@ -448,22 +446,22 @@ main,
   max-width: 900px;
   margin-inline: auto;
 }
-.settings-panel.menu-panel {
+.settings-panel.assistance-panel {
   inset: calc(var(--header-height) + 8px) 12px auto auto;
   width: min(300px, calc(100vw - 24px));
   height: auto;
   border: 1px solid #e3e0d5;
   border-radius: 12px;
 }
-.menu-panel .settings-heading {
+.assistance-panel .settings-heading {
   padding: 12px 16px;
 }
-.menu-actions {
+.panel-actions {
   display: grid;
   gap: 4px;
   padding: 8px;
 }
-.menu-actions button {
+.panel-actions button {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -476,25 +474,19 @@ main,
   text-align: left;
   font-size: 14px;
 }
-.menu-actions button:hover {
+.panel-actions button:hover {
   background: #eef2e7;
 }
-.menu-actions button[aria-pressed='true'] {
+.panel-actions button[aria-pressed='true'] {
   background: #e0eadd;
 }
-.menu-actions button[aria-pressed]::after {
+.panel-actions button[aria-pressed]::after {
   content: '✓';
   margin-left: auto;
   visibility: hidden;
 }
-.menu-actions button[aria-pressed='true']::after {
+.panel-actions button[aria-pressed='true']::after {
   visibility: visible;
-}
-.menu-actions hr {
-  width: 100%;
-  border: 0;
-  border-top: 1px solid #e5e3d9;
-  margin: 6px 0;
 }
 .notes {
   position: absolute;
@@ -703,6 +695,12 @@ main,
   overflow-y: auto;
   box-shadow: -10px 0 40px #26382b20;
 }
+#settings,
+#notation-panel {
+  bottom: var(--footer-height);
+  height: calc(100dvh - var(--header-height) - var(--footer-height));
+  max-height: calc(100dvh - var(--header-height) - var(--footer-height));
+}
 .settings-panel[open] {
   animation: slide-in 0.2s ease-out;
 }
@@ -716,6 +714,15 @@ main,
 .settings-heading h2 {
   font-size: 18px;
 }
+.settings-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 12px 24px 0;
+}
+.settings-tabs button {
+  min-height: 44px;
+}
 .controls {
   padding: 24px;
 }
@@ -723,22 +730,6 @@ main,
   border-top: 1px solid #e8e5dc;
   margin-top: 24px;
   padding-top: 23px;
-}
-.section-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.step {
-  font-size: 10px;
-  color: #7a8576;
-  font-weight: 650;
-  border: 1px solid #dce2d5;
-  border-radius: 50%;
-  height: 25px;
-  width: 25px;
-  display: grid;
-  place-items: center;
 }
 .hint {
   font-size: 11px;
@@ -859,14 +850,11 @@ input[type='range'] {
   padding: 20px;
   background: #fffdf8;
 }
-.widget-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.notation-panel .settings-heading {
+  gap: 12px;
 }
-.widget-heading h2 {
-  font-size: 13px;
+.notation-panel .settings-heading h2 {
+  margin-right: auto;
 }
 .clear-note {
   border: 0;
@@ -961,6 +949,41 @@ input[type='range'] {
   }
 }
 @media (max-width: 520px) {
+  .header {
+    padding-inline: 12px;
+  }
+  .brand {
+    font-size: 20px;
+  }
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    margin-right: 6px;
+  }
+  .header-actions .labelled-button {
+    flex-direction: column;
+    gap: 2px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+  .header-actions .material-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .footer {
+    padding-inline: 8px;
+  }
+  .footer .labelled-button {
+    flex: 1;
+    gap: 6px;
+    padding-inline: 6px;
+  }
+  .footer .material-icon,
+  .footer svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
   #app:has(.header.has-key) {
     --header-height: 118px;
   }
@@ -979,11 +1002,6 @@ input[type='range'] {
   .footer {
     padding-inline: 8px;
     gap: 4px;
-  }
-  .piano-toggle,
-  .sequence-toggle {
-    gap: 6px;
-    padding-inline: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

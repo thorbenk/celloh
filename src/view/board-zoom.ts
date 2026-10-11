@@ -39,8 +39,8 @@ export class BoardZoom {
           this.scale = 1;
           this.resize();
           this.viewport.scrollTo(0, 0);
-          requireElement('#menu-close', HTMLButtonElement, root).click();
-          requireElement('#menu-open', HTMLButtonElement, root).focus();
+          requireElement('#settings-close', HTMLButtonElement, root).click();
+          requireElement('#settings-open', HTMLButtonElement, root).focus();
         },
         options,
       );

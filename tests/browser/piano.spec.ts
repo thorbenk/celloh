@@ -73,8 +73,7 @@ test('board, piano, and staff share exact pitch, spelling, highlighting, reset, 
   await expect(key(58)).toHaveText('B3');
   await page.getByRole('button', { name: 'Noten öffnen' }).click();
   const panelBounds = (await page.locator('#notation-panel').boundingBox())!;
-  expect(panelBounds.y + panelBounds.height).toBe((await page.locator('#piano').boundingBox())!.y);
-  await key(58).click();
+  expect(panelBounds.y + panelBounds.height).toBe((await page.locator('.footer').boundingBox())!.y);
   await expect(page.getByRole('dialog', { name: 'Noten', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Auflösungszeichen' }).click();
   await expect(key(59)).toHaveAttribute('aria-pressed', 'true');
@@ -199,7 +198,7 @@ test('optional pitch history records only played notes, follows key changes, and
   await expect
     .poll(async () => {
       const panel = (await page.locator('#notation-panel').boundingBox())!;
-      return panel.y + panel.height - (await sequence.boundingBox())!.y;
+      return panel.y + panel.height - (await page.locator('.footer').boundingBox())!.y;
     })
     .toBe(0);
   await page.locator('#staff').focus();
@@ -211,12 +210,12 @@ test('optional pitch history records only played notes, follows key changes, and
   await expect(notes).toHaveCount(10);
   await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
   await expect(notes).toHaveCount(10);
+  await page.getByRole('button', { name: 'Noten schließen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await expect(notes).toHaveCount(10);
   await page.getByRole('button', { name: 'Ja, leeren' }).click();
   await expect(notes).toHaveCount(0);
   expect((await sequence.boundingBox())!.height).toBe(normalHeight);
-  await page.getByRole('button', { name: 'Noten schließen' }).click();
   await page.getByRole('button', { name: 'D-Dur: Tonart aufheben' }).click();
   await expect(sequence.locator('svg')).toHaveAccessibleName('C-Dur: noch keine Töne');
   await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
