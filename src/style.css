@@ -209,7 +209,8 @@ main,
   padding: 6px 24px;
   border-top: 1px solid #e5e3d9;
 }
-.piano-toggle {
+.piano-toggle,
+.sequence-toggle {
   display: flex;
   justify-content: center;
   gap: 8px;
@@ -218,10 +219,7 @@ main,
   font-size: 12px;
 }
 .sequence-toggle {
-  width: auto;
-  padding-inline: 10px;
   margin-right: auto;
-  font-size: 12px;
 }
 
 /* Read-only notation history: fixed music scale, content-sized vertical range. */
@@ -880,6 +878,17 @@ input[type='range'] {
     bottom: 6px;
     right: 16px;
     padding-block: 6px;
+  }
+}
+@media (max-width: 360px) {
+  .footer {
+    padding-inline: 8px;
+    gap: 4px;
+  }
+  .piano-toggle,
+  .sequence-toggle {
+    gap: 6px;
+    padding-inline: 8px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
