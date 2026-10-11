@@ -6,7 +6,7 @@ export const PITCH_CONFIG = {
   minimumClarity: 0.9,
   medianSamples: 5,
   smoothingMs: 150,
-  toleranceCents: 5,
+  toleranceCents: 10,
   noSignalMs: 500,
   minimumHz: 40,
   maximumHz: 2000,

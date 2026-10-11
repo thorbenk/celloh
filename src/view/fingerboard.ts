@@ -1,3 +1,4 @@
+import { BoardPitchFeedbackView } from './board-pitch-feedback';
 import {
   BOARD_NOTES,
   MAX_STRING_OFFSET,
@@ -6,6 +7,7 @@ import {
   noteHue,
   keyLetter,
   type BoardNote,
+  type BoardLocation,
   type MidiPitch,
   type KeySignature,
 } from '../music';
@@ -24,6 +26,7 @@ import {
 import { positionMarkup } from './positions';
 
 export class FingerboardView {
+  readonly pitchFeedback = new BoardPitchFeedbackView();
   readonly notes: HTMLDivElement;
   readonly board: HTMLElement;
   private readonly fingerboard: HTMLDivElement;
@@ -98,15 +101,29 @@ export class FingerboardView {
     );
     this.overlays.innerHTML = positionMarkup(settings, this.fingerboard.clientWidth);
   }
-  highlight(pitch: MidiPitch | null, dimOthers: boolean, key: KeySignature | null): void {
+  highlight(
+    pitch: MidiPitch | null,
+    dimOthers: boolean,
+    key: KeySignature | null,
+    location?: BoardLocation,
+  ): void {
+    const anchors: HTMLButtonElement[] = [];
     this.notes.classList.toggle('has-selection', dimOthers && pitch !== null);
     this.notes.classList.toggle('has-key', key !== null);
     for (const [button, note] of this.buttons) {
       const matches = note.midi === pitch;
+      if (
+        matches &&
+        (!location ||
+          (location.stringId === note.location.stringId &&
+            location.offset === note.location.offset))
+      )
+        anchors.push(button);
       button.classList.toggle('selected', matches);
       button.classList.toggle('outside-key', key !== null && keyLetter(note.midi, key) === -1);
       button.setAttribute('aria-pressed', String(matches));
     }
+    this.pitchFeedback.setAnchors(anchors);
   }
   noteForTarget(target: EventTarget | null): BoardNote | null {
     if (!(target instanceof Element)) return null;

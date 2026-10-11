@@ -55,7 +55,10 @@ export class App {
     });
     this.piano.element.id = 'piano';
     requireElement('.footer', HTMLElement, root).before(this.piano.element);
-    this.pitchFeedback = new PitchFeedbackView(() => this.stopReplay());
+    this.pitchFeedback = new PitchFeedbackView(
+      () => this.stopReplay(),
+      (cents, active, accepted) => this.board.pitchFeedback.update(cents, active, accepted),
+    );
     requireElement('main', HTMLElement, root).append(this.pitchFeedback.element);
     const intonationToggle = requireElement('#intonation-toggle', HTMLButtonElement, root);
     intonationToggle.addEventListener(
@@ -161,7 +164,12 @@ export class App {
         : `${noteName(target, this.model.board.spelling, this.model.board.key)}${octave(target)}`,
       target === null ? null : frequency(target),
     );
-    this.board.highlight(this.model.selectedPitch, this.model.dimOthers, this.model.board.key);
+    this.board.highlight(
+      this.model.selectedPitch,
+      this.model.dimOthers,
+      this.model.board.key,
+      this.model.selection?.source === 'board' ? this.model.selection.location : undefined,
+    );
     this.staff.renderSelection(this.model);
     this.compact.render(this.model.selection?.note ?? null);
     this.piano.render(this.model.board, this.model.selectedPitch, this.model.dimOthers);

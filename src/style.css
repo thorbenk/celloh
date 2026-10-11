@@ -1110,3 +1110,68 @@ main:has(.pitch-feedback) .workspace {
     display: none;
   }
 }
+
+.board-pitch-feedback {
+  position: absolute;
+  right: calc(50% + var(--anchor-size, 44px) / 2 + 12px);
+  top: 50%;
+  transform: translateY(-22px);
+  z-index: 4;
+  width: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  color: var(--pitch-color, #a15e24);
+  pointer-events: none;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.board-pitch-feedback[hidden] {
+  display: none;
+}
+.board-pitch-feedback[data-direction='tune'] {
+  color: var(--green);
+}
+.board-pitch-feedback[data-direction='neutral'] {
+  color: var(--muted);
+}
+.board-pitch-symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  flex-shrink: 0;
+}
+.board-pitch-dot {
+  display: none;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+.board-pitch-feedback[data-direction='tune'] .board-pitch-arrow,
+.board-pitch-feedback[data-direction='neutral'] .board-pitch-arrow {
+  display: none;
+}
+.board-pitch-feedback[data-direction='tune'] .board-pitch-dot,
+.board-pitch-feedback[data-direction='neutral'] .board-pitch-dot {
+  display: block;
+}
+.board-pitch-unit {
+  font-size: 10px;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.board-pitch-trace {
+  position: absolute;
+  right: calc(100% - 38px);
+  z-index: -1;
+  top: -11px;
+  overflow: hidden;
+}

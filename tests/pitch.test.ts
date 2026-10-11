@@ -7,11 +7,11 @@ void test('cents preserve octave differences and direction includes tolerance bo
   assert.equal(centsBetween(220, 220), 0);
   assert.equal(centsBetween(440, 220), 1200);
   assert.equal(centsBetween(110, 220), -1200);
-  assert.equal(pitchDirection(-5.01), 'low');
-  assert.equal(pitchDirection(-5), 'tune');
-  assert.equal(pitchDirection(5), 'tune');
-  assert.equal(pitchDirection(5.01), 'high');
-  assert.equal(pitchDirection(8, 10), 'tune');
+  assert.equal(pitchDirection(-10.01), 'low');
+  assert.equal(pitchDirection(-10), 'tune');
+  assert.equal(pitchDirection(10), 'tune');
+  assert.equal(pitchDirection(10.01), 'high');
+  assert.equal(pitchDirection(8, 5), 'high');
 });
 void test('median rejects isolated outliers', () => {
   assert.equal(median([4, 2, 1000, 3, 1]), 3);

@@ -17,7 +17,10 @@ export class PitchFeedbackView {
   private readonly debug: HTMLElement;
   private state: ListeningState = 'stopped';
   private targetHz: number | null = null;
-  constructor(onStart: () => void) {
+  constructor(
+    onStart: () => void,
+    private readonly onFeedback: (cents: number | null, active: boolean, accepted: boolean) => void,
+  ) {
     this.element.className = 'pitch-feedback';
     this.element.id = 'intonation';
     this.element.hidden = true;
@@ -66,6 +69,7 @@ export class PitchFeedbackView {
     this.clear();
   }
   private clear(): void {
+    this.onFeedback(null, this.state === 'listening' && !this.element.hidden, false);
     this.marker.hidden = true;
     this.reading.textContent = '— Hz · — Cent';
     this.debug.textContent = 'Noch keine Messung';
@@ -88,6 +92,7 @@ export class PitchFeedbackView {
     const hz = (value: number | null) =>
       value !== null && Number.isFinite(value) ? value.toFixed(1) : '—';
     this.debug.textContent = `Roh: ${hz(m.rawHz)} Hz\nGefiltert: ${hz(m.filteredHz)} Hz\nAbweichung: ${hz(m.cents)} Cent\nKlarheit: ${m.clarity.toFixed(3)}\nFrame: ${m.accepted ? 'akzeptiert' : 'verworfen'}\nAbtastrate: ${rate} Hz`;
+    this.onFeedback(m.cents, this.state === 'listening' && !this.element.hidden, m.accepted);
     if (m.filteredHz === null || m.cents === null) {
       this.marker.hidden = true;
       this.reading.textContent = '— Hz · — Cent';
