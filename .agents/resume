@@ -11,3 +11,17 @@ if [[ ! -d node_modules ]]; then
   echo "Dependencies are missing; run .agents/setup to repair this orb." >&2
   exit 1
 fi
+
+if ! node --input-type=module <<'JS'
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch({ timeout: 5000 });
+await browser.close();
+JS
+then
+  echo "Playwright Chromium is unavailable; run .agents/setup to repair this orb." >&2
+  exit 1
+fi
+if ! npm run audio:verify; then
+  echo "Audio recordings are missing or invalid; run .agents/setup to repair this orb." >&2
+  exit 1
+fi

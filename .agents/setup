@@ -18,9 +18,12 @@ echo "Installing dependencies from package-lock.json..."
 time npm ci --no-audit --no-fund
 
 echo "Installing the lockfile-matched Playwright Chromium browser..."
-system_dependencies=$(npx playwright install-deps --dry-run chromium)
-echo "$system_dependencies"
-if [[ "$system_dependencies" != "All system dependencies are installed." ]]; then
+# A dry run exits 1 when packages are missing; test it in a conditional so
+# set -e does not abort before the install (and skip browsers and audio).
+if system_dependencies=$(npx playwright install-deps --dry-run chromium); then
+  echo "$system_dependencies"
+else
+  echo "$system_dependencies"
   time npx playwright install-deps chromium
 fi
 time npx playwright install chromium
