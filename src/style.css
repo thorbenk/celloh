@@ -397,6 +397,15 @@ main,
 .icon-terminal {
   --icon: url('./assets/terminal.svg');
 }
+.icon-fit-page {
+  --icon: url('./assets/fit_page.svg');
+}
+.icon-fit-width {
+  --icon: url('./assets/fit_width.svg');
+}
+.icon-view-real-size {
+  --icon: url('./assets/view_real_size.svg');
+}
 .icon-mic {
   --icon: url('./assets/mic.svg');
 }
@@ -1215,4 +1224,21 @@ main:has(.pitch-feedback) .workspace {
 .settings-switch {
   font-size: 11px;
   line-height: 1.6;
+}
+
+#board-settings .panel-actions {
+  padding: 0;
+}
+#board-settings .slider-switch {
+  gap: 8px;
+}
+#board-settings .panel-actions button {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  font-size: 11px;
+}
+#board-settings .panel-actions .material-icon {
+  justify-self: center;
 }
