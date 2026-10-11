@@ -1,3 +1,4 @@
+import type { SettingsStore } from '../settings';
 import { requireElement } from './dom';
 
 type Fit = 'all' | 'width' | null;
@@ -21,7 +22,13 @@ export class BoardZoom {
   private pinching = false;
   private suppressClickUntil = 0;
 
-  constructor(root: ParentNode = document) {
+  constructor(
+    root: ParentNode = document,
+    private readonly settings?: SettingsStore,
+  ) {
+    const fit = settings?.choice('zoomFit', 'manual', ['manual', 'all', 'width']);
+    this.fit = fit === 'all' || fit === 'width' ? fit : null;
+    this.scale = settings?.number('zoomScale', 1, 0.1, 4) ?? 1;
     this.viewport = requireElement('.board-scroll', HTMLDivElement, root);
     this.space = requireElement('.board-zoom-space', HTMLDivElement, root);
     this.board = requireElement('.fingerboard', HTMLDivElement, root);
@@ -38,6 +45,7 @@ export class BoardZoom {
           this.fit = fit;
           this.scale = 1;
           this.resize();
+          this.save();
           this.viewport.scrollTo(0, 0);
           requireElement('#settings-close', HTMLButtonElement, root).click();
           requireElement('#settings-open', HTMLButtonElement, root).focus();
@@ -147,9 +155,15 @@ export class BoardZoom {
     this.space.style.height = `${this.board.clientHeight * this.scale}px`;
   }
 
+  private save(): void {
+    this.settings?.set('zoomFit', this.fit ?? 'manual');
+    this.settings?.set('zoomScale', this.scale);
+  }
+
   private zoomAt(scale: number, clientX: number, clientY: number, x: number, y: number): void {
     this.scale = Math.max(0.1, Math.min(4, scale));
     this.apply();
+    this.save();
     const bounds = this.board.getBoundingClientRect();
     this.viewport.scrollLeft += bounds.left + x * this.scale - clientX;
     this.viewport.scrollTop += bounds.top + y * this.scale - clientY;

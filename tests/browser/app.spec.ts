@@ -308,6 +308,8 @@ test('note colors match across strings and spelling, with clear nut and bracket 
 test('settings slide over the centered board and close with Escape, button, or backdrop', async ({
   page,
 }) => {
+  // Each viewport scenario starts with default preferences.
+  await page.addInitScript(() => localStorage.clear());
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto('/');
@@ -377,6 +379,8 @@ test('settings slide over the centered board and close with Escape, button, or b
 test('one bottom tool row keeps notation, keyboard and sequence independently usable', async ({
   page,
 }) => {
+  // Each viewport scenario starts with default preferences.
+  await page.addInitScript(() => localStorage.clear());
   for (const width of [320, 390, 1280]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto('/');
@@ -436,6 +440,8 @@ test('one bottom tool row keeps notation, keyboard and sequence independently us
 test('to-scale spacing preserves cello proportions, declutters notes, and restores equal spacing', async ({
   page,
 }) => {
+  // Each viewport scenario starts with default preferences.
+  await page.addInitScript(() => localStorage.clear());
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 812 });
     await page.goto('/');

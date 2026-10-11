@@ -1,3 +1,4 @@
+import { SettingsStore } from './settings';
 import { PitchFeedbackView } from './view/pitch-feedback';
 import { frequency, noteName, octave } from './music';
 import { CelloAudio } from './audio';
@@ -23,6 +24,7 @@ import { BoardZoom } from './view/board-zoom';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
+  private readonly settings = new SettingsStore();
   private automaticPitch: MidiPitch | null | undefined = undefined;
   private readonly pitchFeedback: PitchFeedbackView;
   private readonly model = new AppModel();
@@ -76,6 +78,7 @@ export class App {
       () => {
         const visible = this.pitchFeedback.element.hidden;
         this.pitchFeedback.setVisible(visible);
+        this.settings.set('intonationVisible', visible);
         intonationToggle.setAttribute('aria-expanded', String(visible));
       },
       { signal: this.events.signal },
@@ -101,12 +104,13 @@ export class App {
       () => {
         const visible = this.sequence.element.hidden;
         this.sequence.element.hidden = !visible;
+        this.settings.set('sequenceVisible', visible);
         sequenceToggle.setAttribute('aria-expanded', String(visible));
         this.sequence.revealLatest();
       },
       { signal: this.events.signal },
     );
-    this.draggableNotation = new DraggableNotation(root);
+    this.draggableNotation = new DraggableNotation(root, this.settings);
     this.panels = new PanelController(() => {
       this.model.clearPreview();
       this.staff.renderPicker(this.model);
@@ -114,8 +118,9 @@ export class App {
     this.bindBoard();
     this.bindPicker();
     this.bindSettings();
+    this.restoreSettings(root);
     this.renderBoard();
-    this.zoom = new BoardZoom(root);
+    this.zoom = new BoardZoom(root, this.settings);
     this.resizeObserver = this.board.observeResize(this.model.board);
     this.sequenceObserver = new ResizeObserver(() => {
       root.style.setProperty(
@@ -193,13 +198,7 @@ export class App {
   }
   private bindPiano(root: HTMLElement): void {
     const toggle = requireElement('#piano-toggle', HTMLButtonElement, root);
-    let visible = matchMedia('(min-width: 701px)').matches;
-    try {
-      const saved = localStorage.getItem('celloh.piano-visible');
-      if (saved !== null) visible = saved === 'true';
-    } catch {
-      /* Storage may be unavailable; the toggle still works for this session. */
-    }
+    let visible = this.settings.boolean('pianoVisible', matchMedia('(min-width: 701px)').matches);
     const update = (): void => {
       this.piano.element.hidden = !visible;
       toggle.setAttribute('aria-expanded', String(visible));
@@ -212,13 +211,71 @@ export class App {
       () => {
         visible = !visible;
         update();
-        try {
-          localStorage.setItem('celloh.piano-visible', String(visible));
-        } catch {
-          /* Keep the in-memory choice when browser storage is blocked. */
-        }
+        this.settings.set('pianoVisible', visible);
       },
       { signal: this.events.signal },
+    );
+  }
+  private restoreSettings(root: HTMLElement): void {
+    this.model.setSpelling(this.settings.choice('spelling', 'sharp', ['sharp', 'flat']));
+    const inputs = root.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+      '#settings input, #settings select, .pitch-auto-toggle',
+    );
+    for (const input of inputs) {
+      const key =
+        input.id ||
+        (input instanceof HTMLInputElement && input.dataset.position
+          ? `position-${input.dataset.position}`
+          : 'automaticPitch');
+      if (input instanceof HTMLSelectElement) {
+        input.value = this.settings.choice(
+          key,
+          input.value,
+          Array.from(input.options, (option) => option.value),
+        );
+      } else if (input.type === 'checkbox') {
+        input.checked = this.settings.boolean(key, input.checked);
+      } else {
+        const value = this.settings.number(
+          key,
+          input.valueAsNumber,
+          Number(input.min),
+          Number(input.max),
+        );
+        const step = Number(input.step || 1);
+        input.value = String(
+          Number(input.min) + Math.round((value - Number(input.min)) / step) * step,
+        );
+      }
+      const event =
+        input instanceof HTMLInputElement && input.type === 'range' ? 'input' : 'change';
+      input.dispatchEvent(new Event(event));
+      input.addEventListener(
+        event,
+        () => {
+          this.settings.set(
+            key,
+            input instanceof HTMLSelectElement
+              ? input.value
+              : input.type === 'checkbox'
+                ? input.checked
+                : input.valueAsNumber,
+          );
+        },
+        { signal: this.events.signal },
+      );
+    }
+    const intonationVisible = this.settings.boolean('intonationVisible', false);
+    this.pitchFeedback.setVisible(intonationVisible);
+    requireElement('#intonation-toggle', HTMLButtonElement, root).setAttribute(
+      'aria-expanded',
+      String(intonationVisible),
+    );
+    const sequenceVisible = this.settings.boolean('sequenceVisible', false);
+    this.sequence.element.hidden = !sequenceVisible;
+    requireElement('#sequence-toggle', HTMLButtonElement, root).setAttribute(
+      'aria-expanded',
+      String(sequenceVisible),
     );
   }
   private async playSelection(): Promise<void> {
@@ -415,6 +472,7 @@ export class App {
       'click',
       () => {
         this.model.setKey(null);
+        this.settings.set('key', '');
         this.renderBoard();
         requireElement('#settings-open', HTMLButtonElement).focus();
       },
@@ -448,6 +506,7 @@ export class App {
         'click',
         () => {
           this.model.setSpelling(spelling);
+          this.settings.set('spelling', spelling);
           this.renderBoard();
         },
         options,

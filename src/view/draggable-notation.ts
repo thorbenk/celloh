@@ -1,3 +1,4 @@
+import type { SettingsStore } from '../settings';
 import { requireElement } from './dom';
 
 interface Drag {
@@ -17,7 +18,12 @@ export class DraggableNotation {
   private x = 4;
   private y = 4;
 
-  constructor(root: ParentNode = document) {
+  constructor(
+    root: ParentNode = document,
+    private readonly settings?: SettingsStore,
+  ) {
+    this.x = settings?.number('notationX', 4, 0, 100000) ?? 4;
+    this.y = settings?.number('notationY', 4, 0, 100000) ?? 4;
     this.widget = requireElement('#notation-display', HTMLDivElement, root);
     this.sizeToggle = requireElement('#notation-size-toggle', HTMLButtonElement, root);
     this.canvas = requireElement('.board-scroll-wrap', HTMLDivElement, root);
@@ -36,10 +42,12 @@ export class DraggableNotation {
             ? 'M20 4l-7 7m0-6v6h6M4 20l7-7m-6 0h6v6'
             : 'M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7',
         );
+        this.settings?.set('notationExpanded', expanded);
         this.move(this.x, this.y);
       },
       options,
     );
+    if (settings?.boolean('notationExpanded', false)) this.sizeToggle.click();
     this.widget.addEventListener(
       'pointerdown',
       (event) => {
@@ -71,6 +79,7 @@ export class DraggableNotation {
     );
     const endDrag = (event: PointerEvent): void => {
       if (event.pointerId !== this.drag?.pointerId) return;
+      this.savePosition();
       this.drag = null;
       this.widget.classList.remove('dragging');
       if (this.widget.hasPointerCapture(event.pointerId))
@@ -101,6 +110,7 @@ export class DraggableNotation {
             return;
         }
         event.preventDefault();
+        this.savePosition();
       },
       options,
     );
@@ -115,6 +125,11 @@ export class DraggableNotation {
       this.widget.releasePointerCapture(this.drag.pointerId);
     this.drag = null;
     this.widget.classList.remove('dragging');
+  }
+
+  private savePosition(): void {
+    this.settings?.set('notationX', this.x);
+    this.settings?.set('notationY', this.y);
   }
 
   private move(x: number, y: number): void {
