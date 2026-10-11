@@ -30,16 +30,38 @@ const meta = {
     useEffect(() => {
       const pitches = args.pitches.map(midiPitch);
       const key = [...MAJOR_KEYS, ...MINOR_KEYS].find((key) => key.name === args.key) ?? null;
-      const view = new PitchSequenceView(() => {
-        pitches.length = 0;
-        view.render(pitches, key);
-      });
+      let index: number | null = null;
+      let timer: number | undefined;
+      const stop = (): void => {
+        window.clearInterval(timer);
+        index = null;
+      };
+      const view = new PitchSequenceView(
+        () => {
+          stop();
+          pitches.length = 0;
+          view.render(pitches, key);
+        },
+        () => {
+          if (index !== null) stop();
+          else {
+            index = 0;
+            timer = window.setInterval(() => {
+              index = (index ?? 0) + 1;
+              if (index >= pitches.length) stop();
+              view.render(pitches, key, index);
+            }, 500);
+          }
+          view.render(pitches, key, index);
+        },
+      );
       const add = document.createElement('button');
       add.textContent = 'Ton hinzufügen';
       const events = new AbortController();
       add.addEventListener(
         'click',
         () => {
+          stop();
           pitches.push(midiPitch(args.pitch));
           view.render(pitches, key);
         },
@@ -48,6 +70,7 @@ const meta = {
       root.replaceChildren(view.element, add);
       view.render(pitches, key);
       return () => {
+        stop();
         events.abort();
         view.destroy();
       };

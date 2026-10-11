@@ -709,6 +709,118 @@ test('playback uses volume changes made while the sample is loading', async ({ p
   expect(gain).toBeCloseTo(0.2);
 });
 
+test('sequence replay keeps every pitch view in sync, honors tempo, and never records itself', async ({
+  page,
+}) => {
+  await recordAudioPlayback(page);
+  await page.goto('/');
+  for (const pitch of [50, 54, 54, 43]) {
+    await page.locator(`.piano-key[data-midi="${pitch}"]`).click();
+    await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
+  }
+  await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  const tempo = page.getByRole('slider', { name: 'Tonfolge-Tempo' });
+  await expect(tempo).toHaveValue('120');
+  await tempo.fill('40');
+  await expect(page.locator('#replay-tempo-value')).toHaveText('40 BPM');
+  await page.getByRole('button', { name: 'Noten öffnen' }).click();
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  const notes = page.locator('.sequence-scroll .staff-note');
+  const checkPitch = async (index: number, pitch: number): Promise<void> => {
+    await expect(notes.nth(index)).toHaveClass(/playing/);
+    await expect(page.locator('.piano-key.selected')).toHaveAttribute('data-midi', String(pitch));
+    await expect(page.locator('#staff .staff-note')).toHaveAttribute('data-midi', String(pitch));
+    await expect(page.locator('#compact-staff .staff-note')).toHaveAttribute(
+      'data-midi',
+      String(pitch),
+    );
+    expect(
+      await page
+        .locator('.note.selected')
+        .evaluateAll((notes) => notes.map((note) => Number((note as HTMLElement).dataset.midi))),
+    ).toEqual(Array(await page.locator('.note.selected').count()).fill(pitch));
+    await expect(page.locator('.note.selected').first()).toBeAttached();
+    await expect(page.locator('html')).toHaveAttribute('data-audio-starts', String(5 + index));
+    await expect(notes).toHaveCount(4);
+  };
+  await checkPitch(0, 50);
+  await page.clock.runFor(1499);
+  await checkPitch(0, 50);
+  await page.clock.runFor(1);
+  await checkPitch(1, 54);
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await tempo.fill('240');
+  await expect(page.locator('#replay-tempo-value')).toHaveText('240 BPM');
+  await page.getByRole('button', { name: 'Noten öffnen' }).click();
+  await page.clock.runFor(1500);
+  await checkPitch(2, 54);
+  await page.clock.runFor(249);
+  await checkPitch(2, 54);
+  await page.clock.runFor(1);
+  await checkPitch(3, 43);
+  await page.clock.runFor(250);
+  await expect(page.locator('#audio-status')).toHaveText('Tonfolge abgespielt');
+  await expect(page.locator('.staff-note.playing')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Tonfolge abspielen' })).toBeEnabled();
+
+  // Stop, manual playing, and confirmed clearing must invalidate all future beats.
+  await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '9');
+  await page.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await page.clock.runFor(2000);
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '9');
+  await expect(notes).toHaveCount(4);
+  await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '10');
+  await page.locator('.piano-key[data-midi="57"]').click();
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '11');
+  await page.clock.runFor(2000);
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '11');
+  await expect(notes).toHaveCount(5);
+  await expect(page.locator('.staff-note.playing')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '12');
+  await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+  await page.getByRole('button', { name: 'Abbrechen' }).click();
+  await expect(notes).toHaveCount(5);
+  await expect(page.getByRole('button', { name: 'Tonfolge stoppen' })).toBeVisible();
+  await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+  await page.getByRole('button', { name: 'Ja, leeren' }).click();
+  await page.clock.runFor(2000);
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '12');
+  await expect(notes).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Tonfolge abspielen' })).toBeDisabled();
+});
+
+test('clearing while sequence samples load cannot start stale replay after the load finishes', async ({
+  page,
+}) => {
+  await recordAudioPlayback(page);
+  const gate = deferred();
+  await page.route('**/audio/43.mp3', async (route) => {
+    const response = await route.fetch();
+    await gate.promise;
+    await route.fulfill({ response });
+  });
+  await page.goto('/');
+  await page.locator('.piano-key[data-midi="43"]').click();
+  await page.locator('.piano-key[data-midi="50"]').click();
+  await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
+  await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+  await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await expect(page.locator('#audio-status')).toHaveText('Tonfolge wird geladen …');
+  await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+  await page.getByRole('button', { name: 'Ja, leeren' }).click();
+  gate.resolve();
+  await expect(page.locator('html')).toHaveAttribute('data-audio-decodes', '2');
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '1');
+  await expect(page.locator('.sequence-scroll .staff-note')).toHaveCount(0);
+  await expect(page.locator('#audio-status')).toHaveText('Wiedergabe gestoppt');
+});
+
 test('corner notation can be moved and stays within the board after resizing', async ({ page }) => {
   await page.goto('/');
   const widget = page.locator('#notation-display');

@@ -34,6 +34,9 @@ export class App {
   private readonly resizeObserver: ResizeObserver;
   private readonly sequenceObserver: ResizeObserver;
   private playbackRequest = 0;
+  private replayIndex: number | null = null;
+  private replayTimer: number | null = null;
+  private tempo = 120;
 
   constructor(root: HTMLElement) {
     mountLayout(root);
@@ -48,10 +51,17 @@ export class App {
     this.piano.element.id = 'piano';
     requireElement('.footer', HTMLElement, root).before(this.piano.element);
     this.bindPiano(root);
-    this.sequence = new PitchSequenceView(() => {
-      this.pitches.length = 0;
-      this.sequence.render(this.pitches, this.model.board.key);
-    });
+    this.sequence = new PitchSequenceView(
+      () => {
+        this.stopReplay();
+        this.pitches.length = 0;
+        this.sequence.render(this.pitches, this.model.board.key);
+      },
+      () => {
+        if (this.replayIndex !== null) this.stopReplay();
+        else void this.startReplay();
+      },
+    );
     this.sequence.element.id = 'pitch-sequence';
     this.sequence.element.hidden = true;
     this.piano.element.before(this.sequence.element);
@@ -85,6 +95,7 @@ export class App {
     this.sequenceObserver.observe(this.sequence.element);
   }
   destroy(): void {
+    this.stopReplay();
     this.events.abort();
     this.resizeObserver.disconnect();
     this.sequenceObserver.disconnect();
@@ -92,8 +103,6 @@ export class App {
     this.piano.destroy();
     this.sequence.destroy();
     this.draggableNotation.destroy();
-    this.audio.stop();
-    ++this.playbackRequest;
   }
   private renderBoard(): void {
     const key = this.model.board.key;
@@ -130,7 +139,7 @@ export class App {
     this.compact.render(this.model.selection?.note ?? null);
     this.piano.render(this.model.board, this.model.selectedPitch, this.model.dimOthers);
     this.piano.reveal(this.model.selectedPitch);
-    this.sequence.render(this.pitches, this.model.board.key);
+    this.sequence.render(this.pitches, this.model.board.key, this.replayIndex);
   }
   private bindPiano(root: HTMLElement): void {
     const toggle = requireElement('#piano-toggle', HTMLButtonElement, root);
@@ -163,6 +172,7 @@ export class App {
     );
   }
   private async playSelection(): Promise<void> {
+    this.stopReplay();
     const pitch = this.model.selectedPitch;
     if (pitch === null) return;
     this.pitches.push(pitch);
@@ -176,6 +186,59 @@ export class App {
     } catch {
       if (request === this.playbackRequest)
         this.staff.status.textContent = 'Klang konnte nicht geladen werden. Tippe erneut.';
+    }
+  }
+  private stopReplay(): void {
+    ++this.playbackRequest;
+    this.audio.stop();
+    if (this.replayTimer !== null) window.clearTimeout(this.replayTimer);
+    this.replayTimer = null;
+    const playing = this.replayIndex !== null;
+    this.replayIndex = null;
+    if (playing) {
+      this.renderSelection();
+      this.staff.status.textContent = 'Wiedergabe gestoppt';
+    }
+  }
+  private async startReplay(): Promise<void> {
+    const first = this.pitches[0];
+    if (first === undefined) return;
+    this.stopReplay();
+    const request = this.playbackRequest;
+    this.replayIndex = 0;
+    this.model.selectPiano(first);
+    this.renderSelection();
+    this.staff.status.textContent = 'Tonfolge wird geladen …';
+    try {
+      await this.audio.prepare(this.pitches);
+      if (request === this.playbackRequest) await this.playSequenceNote(0, request);
+    } catch {
+      if (request !== this.playbackRequest) return;
+      this.stopReplay();
+      this.staff.status.textContent = 'Tonfolge konnte nicht geladen werden. Tippe erneut.';
+    }
+  }
+  private async playSequenceNote(index: number, request: number): Promise<void> {
+    if (request !== this.playbackRequest) return;
+    const pitch = this.pitches[index];
+    if (pitch === undefined) {
+      this.stopReplay();
+      this.staff.status.textContent = 'Tonfolge abgespielt';
+      return;
+    }
+    try {
+      if (!(await this.audio.play(pitch)) || request !== this.playbackRequest) return;
+      this.replayIndex = index;
+      this.model.selectPiano(pitch);
+      this.renderSelection();
+      this.staff.status.textContent = `Tonfolge: Ton ${index + 1} von ${this.pitches.length}`;
+      this.replayTimer = window.setTimeout(() => {
+        void this.playSequenceNote(index + 1, request);
+      }, 60_000 / this.tempo);
+    } catch {
+      if (request !== this.playbackRequest) return;
+      this.stopReplay();
+      this.staff.status.textContent = 'Tonfolge konnte nicht abgespielt werden. Tippe erneut.';
     }
   }
   private selectWrittenNote(step: number): void {
@@ -278,8 +341,7 @@ export class App {
     requireElement('#clear-note', HTMLButtonElement).addEventListener(
       'click',
       () => {
-        ++this.playbackRequest;
-        this.audio.stop();
+        this.stopReplay();
         this.model.clearSelection();
         this.staff.status.textContent = 'Bereit';
         this.renderSelection();
@@ -383,6 +445,16 @@ export class App {
       () => {
         this.audio.setVolume(volume.valueAsNumber / 100);
         volumeValue.textContent = `${volume.value} %`;
+      },
+      options,
+    );
+    const tempo = requireElement('#replay-tempo', HTMLInputElement);
+    const tempoValue = requireElement('#replay-tempo-value', HTMLOutputElement);
+    tempo.addEventListener(
+      'input',
+      () => {
+        this.tempo = tempo.valueAsNumber;
+        tempoValue.value = `${tempo.value} BPM`;
       },
       options,
     );

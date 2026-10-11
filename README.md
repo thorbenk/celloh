@@ -122,7 +122,11 @@ With system Chromium or Chrome installed, run `npm run test:browser`. This build
 - Optional “Tonfolge” notation history above the piano (also usable with the piano hidden).
   Played notes from all three inputs appear as quarter notes, including repeated pitches;
   previews and settings changes do not add entries. It scrolls to new notes automatically,
-  can be scrolled independently by touch or keyboard, and has a separate “Leeren” button.
+  can be scrolled independently by touch or keyboard, and asks for confirmation before clearing.
+  “Abspielen” replays the quarter notes with synchronized highlighting in the history, piano,
+  fingerboard, and notation; playback never adds history entries. “Stopp”, a manual note,
+  reset, or confirmed clearing cancels replay, including pending sample loads. Settings
+  provide a 40–240 BPM quarter-note tempo (initially 120); changes apply to subsequent beats.
   History lasts for the current page session, including while hidden. The current key
   determines spelling and the bass-clef key signature; without a selected key it uses C major.
   Alterations and natural cancellations apply to the written pitch/octave until changed

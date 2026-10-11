@@ -212,6 +212,8 @@ test('optional pitch history records only played notes, follows key changes, and
   await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
   await expect(notes).toHaveCount(10);
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+  await expect(notes).toHaveCount(10);
+  await page.getByRole('button', { name: 'Ja, leeren' }).click();
   await expect(notes).toHaveCount(0);
   expect((await sequence.boundingBox())!.height).toBe(normalHeight);
   await page.getByRole('button', { name: 'Noten schließen' }).click();

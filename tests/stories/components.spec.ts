@@ -110,9 +110,22 @@ test('pitch sequence works independently, scrolls on append, and clears to its m
   expect((await svg.boundingBox())!.height).toBe(height);
   expect(await svg.evaluate((svg) => (svg as SVGSVGElement).getScreenCTM()?.a)).toBe(scale);
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+  await expect(page.getByRole('button', { name: 'Abbrechen' })).toBeFocused();
+  await expect(notes).toHaveCount(6);
+  await page.getByRole('button', { name: 'Abbrechen' }).click();
+  await expect(notes).toHaveCount(6);
+  await expect(page.getByRole('button', { name: 'Tonfolge leeren' })).toBeFocused();
+  await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('group', { name: 'Tonfolge wirklich leeren?' })).toBeHidden();
+  await expect(notes).toHaveCount(6);
+  await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+  await page.getByRole('button', { name: 'Ja, leeren' }).click();
   await expect(notes).toHaveCount(0);
+  await expect(page.locator('.sequence-scroll')).toBeFocused();
   expect((await svg.boundingBox())!.height).toBeLessThan(height);
   await expect(page.getByRole('button', { name: 'Tonfolge leeren' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Tonfolge abspielen' })).toBeDisabled();
   for (let i = 0; i < 15; i++) await page.getByRole('button', { name: 'Ton hinzufügen' }).click();
   await expect(notes).toHaveCount(15);
   expect(
@@ -125,6 +138,25 @@ test('pitch sequence works independently, scrolls on append, and clears to its m
   await expect(notes.first()).toBeInViewport({ ratio: 1 });
   await page.getByRole('button', { name: 'Ton hinzufügen' }).click();
   await expect(notes.last()).toBeInViewport({ ratio: 1 });
+});
+
+test('pitch sequence replay highlighting and stop work without the app or audio', async ({
+  page,
+}) => {
+  await page.goto('/iframe.html?id=components-pitch-sequence--long-history&viewMode=story');
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await expect(page.locator('.staff-note.playing')).toHaveAttribute('data-midi', '48');
+  await expect(page.locator('.staff-note.playing')).toBeInViewport({ ratio: 1 });
+  await page.clock.runFor(9000);
+  await expect(page.locator('.staff-note.playing')).toHaveAttribute('data-midi', '54');
+  await expect(page.locator('.staff-note.playing')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('.staff-note')).toHaveCount(40);
+  await page.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await page.clock.runFor(1000);
+  await expect(page.locator('.staff-note.playing')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Tonfolge abspielen' })).toBeEnabled();
 });
 
 test('pitch sequence uses the key signature and cancels/restores alterations per octave', async ({

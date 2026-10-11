@@ -18,10 +18,12 @@ export class PitchSequenceView {
   private readonly staff = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   private readonly label = document.createElement('span');
   private readonly clear = document.createElement('button');
+  private readonly play = document.createElement('button');
+  private readonly confirmation = document.createElement('div');
   private readonly events = new AbortController();
   private count = 0;
 
-  constructor(onClear: () => void) {
+  constructor(onClear: () => void, onReplay: () => void) {
     this.element.className = 'pitch-sequence';
     this.element.setAttribute('aria-label', 'Tonfolge');
     const heading = document.createElement('div');
@@ -29,17 +31,68 @@ export class PitchSequenceView {
     this.clear.className = 'clear-note';
     this.clear.textContent = 'Leeren';
     this.clear.setAttribute('aria-label', 'Tonfolge leeren');
-    this.clear.addEventListener('click', onClear, { signal: this.events.signal });
-    heading.append(this.label, this.clear);
+    const options = { signal: this.events.signal };
+    this.play.className = 'clear-note sequence-play';
+    this.play.addEventListener('click', onReplay, options);
+    const cancel = document.createElement('button');
+    cancel.className = 'clear-note';
+    cancel.textContent = 'Abbrechen';
+    const confirm = document.createElement('button');
+    confirm.className = 'clear-note';
+    confirm.textContent = 'Ja, leeren';
+    const question = document.createElement('span');
+    question.textContent = 'Tonfolge wirklich leeren?';
+    this.confirmation.className = 'sequence-confirm';
+    this.confirmation.hidden = true;
+    this.confirmation.setAttribute('role', 'group');
+    this.confirmation.setAttribute('aria-label', question.textContent);
+    this.confirmation.append(question, cancel, confirm);
+    const dismiss = (): void => {
+      this.confirmation.hidden = true;
+      this.clear.focus();
+    };
+    this.clear.addEventListener(
+      'click',
+      () => {
+        this.confirmation.hidden = false;
+        cancel.focus();
+      },
+      options,
+    );
+    cancel.addEventListener('click', dismiss, options);
+    confirm.addEventListener(
+      'click',
+      () => {
+        dismiss();
+        onClear();
+        this.scroll.focus();
+      },
+      options,
+    );
+    this.confirmation.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.key === 'Escape') {
+          event.stopPropagation();
+          dismiss();
+        }
+      },
+      options,
+    );
+    heading.append(this.label, this.play, this.clear);
     this.scroll.className = 'sequence-scroll';
     this.scroll.tabIndex = 0;
     this.scroll.setAttribute('aria-label', 'Tonfolge, horizontal scrollbar');
     this.staff.setAttribute('role', 'img');
     this.scroll.append(this.staff);
-    this.element.append(heading, this.scroll);
+    this.element.append(heading, this.confirmation, this.scroll);
   }
 
-  render(pitches: readonly MidiPitch[], selectedKey: KeySignature | null = null): void {
+  render(
+    pitches: readonly MidiPitch[],
+    selectedKey: KeySignature | null = null,
+    playingIndex: number | null = null,
+  ): void {
     const following =
       this.scroll.scrollLeft + this.scroll.clientWidth >= this.scroll.scrollWidth - 1;
     const key = selectedKey ?? C_MAJOR;
@@ -61,11 +114,26 @@ export class PitchSequenceView {
       `${key.name}: ${notes.length ? notes.map(writtenNoteName).join(', ') : 'noch keine Töne'}`,
     );
     this.staff.innerHTML = staffMarkup(notes, false, firstX, { width, key });
+    this.play.textContent = playingIndex === null ? '▶ Abspielen' : '■ Stopp';
+    this.play.setAttribute(
+      'aria-label',
+      playingIndex === null ? 'Tonfolge abspielen' : 'Tonfolge stoppen',
+    );
+    this.play.disabled = pitches.length === 0;
     this.label.textContent = `Tonfolge · ${key.name}`;
     this.clear.disabled = pitches.length === 0;
     const added = pitches.length > this.count;
     this.count = pitches.length;
-    if (added || following || pitches.length === 0) this.revealLatest();
+    if (playingIndex !== null) {
+      const x = firstX + playingIndex * 72;
+      this.staff.insertAdjacentHTML(
+        'afterbegin',
+        `<rect class="sequence-playhead" x="${x - 25}" y="${top}" width="50" height="${bottom - top}" rx="6"/>`,
+      );
+      const active = this.staff.querySelectorAll('.staff-note')[playingIndex];
+      active?.classList.add('playing');
+      this.scroll.scrollLeft = x * SCALE - this.scroll.clientWidth / 2;
+    } else if (added || following || pitches.length === 0) this.revealLatest();
   }
 
   revealLatest(): void {

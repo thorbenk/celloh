@@ -13,6 +13,14 @@ export class CelloAudio {
   private request = 0;
   private volume = 0.65;
 
+  /** Warm the sample cache before a sequence, resuming audio in the initiating gesture. */
+  async prepare(pitches: readonly MidiPitch[]): Promise<void> {
+    this.context ??= new AudioContext();
+    const context = this.context;
+    await context.resume();
+    await Promise.all([...new Set(pitches)].map((pitch) => this.loadBuffer(pitch, context)));
+  }
+
   async play(midi: MidiPitch): Promise<boolean> {
     if (!isPlayablePitch(midi)) throw new RangeError(`No cello recording for MIDI ${midi}`);
     const request = ++this.request;

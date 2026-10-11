@@ -333,6 +333,21 @@
       <label class="volume-label" for="volume">Lautstärke <span id="volume-value">65 %</span></label
       ><input id="volume" type="range" min="0" max="100" value="65" />
       <p class="micro">Ein echter Cello-Klang.<br />Tippe auf einen Ton, um ihn zu hören.</p>
+      <label class="volume-label" for="replay-tempo"
+        >Tonfolge-Tempo <output id="replay-tempo-value" for="replay-tempo">120 BPM</output></label
+      >
+      <input
+        id="replay-tempo"
+        type="range"
+        min="40"
+        max="240"
+        step="10"
+        value="120"
+        aria-describedby="replay-tempo-help"
+      />
+      <p class="micro" id="replay-tempo-help">
+        Viertelnoten pro Minute beim Abspielen der Tonfolge.
+      </p>
     </section>
   </div>
 </dialog>
