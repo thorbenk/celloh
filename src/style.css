@@ -394,6 +394,15 @@ main,
   -webkit-mask: var(--icon) center / contain no-repeat;
   mask: var(--icon) center / contain no-repeat;
 }
+.icon-terminal {
+  --icon: url('./assets/terminal.svg');
+}
+.icon-mic {
+  --icon: url('./assets/mic.svg');
+}
+.icon-mic-off {
+  --icon: url('./assets/mic_off.svg');
+}
 .icon-speed {
   --icon: url('./assets/speed.svg');
 }
@@ -725,6 +734,9 @@ main,
   margin: 12px 24px 0;
 }
 .settings-tabs button {
+  min-width: 0;
+  padding-inline: 6px;
+  font-size: 12px;
   min-height: 44px;
 }
 .controls {
@@ -1031,72 +1043,128 @@ main:has(.pitch-feedback) .workspace {
   display: none;
 }
 .pitch-feedback {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  column-gap: 8px;
   flex: none;
   padding: 10px 16px;
   border-top: 1px solid #ddd8ce;
   background: #f8f5ef;
   font-size: 12px;
 }
+.pitch-diagnostics-toggle {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: start;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+.pitch-diagnostics-toggle:hover,
+.pitch-diagnostics-toggle[aria-expanded='true'] {
+  background: transparent;
+  color: #354d40;
+}
 .pitch-heading,
-.pitch-labels {
+.pitch-controls,
+.pitch-summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
 }
-.pitch-heading button {
-  border: 1px solid var(--green);
-  border-radius: 7px;
-  padding: 8px;
-  background: white;
-  color: var(--green);
+.pitch-heading,
+.pitch-summary {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.pitch-controls {
+  flex-shrink: 0;
+}
+.pitch-mic {
+  min-width: 44px;
   min-height: 44px;
+  color: #24312c;
+  border: 0;
+  background: transparent;
+}
+.pitch-mic[aria-pressed='true'] {
+  color: #c53932;
+}
+.slider-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.slider-switch input {
+  position: absolute;
+  z-index: 1;
+  opacity: 0;
+  width: 36px;
+  height: 22px;
+  margin: 0;
+}
+.switch-track {
+  flex-shrink: 0;
+  width: 36px;
+  height: 22px;
+  border-radius: 11px;
+  background: #c5c8c0;
+  transition: background 150ms;
+}
+.switch-track::after {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 3px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 150ms;
+}
+.slider-switch input:checked + .switch-track {
+  background: var(--switch-color, var(--green));
+}
+.slider-switch input:checked + .switch-track::after {
+  transform: translateX(14px);
+}
+.slider-switch input:focus-visible + .switch-track {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
 }
 .pitch-status {
-  margin: 4px 0;
+  margin: 2px 0;
 }
 .pitch-reading,
 .pitch-debug {
   font-variant-numeric: tabular-nums;
 }
-.pitch-meter {
-  position: relative;
-  height: 12px;
-  margin: 8px 0 3px;
-  background: #e6e1d8;
-  border-radius: 6px;
-}
-.pitch-zero {
-  position: absolute;
-  left: 50%;
-  height: 100%;
-  border-left: 2px solid var(--green);
-}
-.pitch-marker {
-  position: absolute;
-  top: -3px;
-  width: 8px;
-  height: 18px;
-  border-radius: 4px;
-  background: #a15e24;
-  transform: translateX(-50%);
-  transition: left 80ms linear;
-}
-.pitch-marker[data-direction='tune'] {
-  background: var(--green);
-}
-.pitch-labels {
+.pitch-reading {
   color: var(--muted);
-  font-size: 10px;
 }
-.pitch-feedback details {
-  margin-top: 4px;
+.pitch-diagnostics {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 8;
+  max-width: calc(100% - 16px);
+  max-height: 55%;
+  padding: 10px 12px;
+  overflow: auto;
+  border-radius: 8px;
+  background: rgb(36 49 44 / 82%);
+  color: #fffdf8;
+}
+.pitch-diagnostics[hidden] {
+  display: none;
 }
 .pitch-debug {
-  max-height: 110px;
-  overflow: auto;
-  margin: 4px 0;
+  margin: 0;
   font-size: 11px;
+  line-height: 1.6;
 }
 @media (max-height: 600px) {
   .pitch-feedback {
@@ -1174,4 +1242,11 @@ main:has(.pitch-feedback) .workspace {
   z-index: -1;
   top: -11px;
   overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-track,
+  .switch-track::after {
+    transition: none;
+  }
 }

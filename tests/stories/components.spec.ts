@@ -184,3 +184,44 @@ test('pitch sequence uses the key signature and cancels/restores alterations per
   // C2 cancels Ces here: the natural extends below the low notehead, unlike its upward stem.
   await expect(page.locator('.staff-note .staff-accidental').first()).toBeInViewport({ ratio: 1 });
 });
+
+test('pitch feedback stories show all matching positions with a live trace and no microphone', async ({
+  page,
+}) => {
+  await page.goto('/iframe.html?id=components-pitch-feedback--in-tune&viewMode=story');
+  await expect(page.locator('.note.selected')).toHaveCount(3);
+  await expect(page.locator('.board-pitch-feedback:visible')).toHaveCount(3);
+  await expect(page.locator('.board-pitch-feedback').first()).toHaveAttribute(
+    'data-direction',
+    'tune',
+  );
+  await expect(page.locator('.pitch-trace-line').first()).not.toHaveAttribute('d', '');
+  await page.goto('/iframe.html?id=components-pitch-feedback--too-low&viewMode=story');
+  await expect(page.locator('.board-pitch-feedback').first()).toHaveAttribute(
+    'data-direction',
+    'low',
+  );
+  await page.goto('/iframe.html?id=components-pitch-feedback--listening&viewMode=story');
+  await expect(page.locator('.board-pitch-feedback').first()).toHaveAttribute(
+    'data-direction',
+    'neutral',
+  );
+});
+
+test('compact intonation panel has icon controls and hold time in settings', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto('/iframe.html?id=layout-workspace--intonation&viewMode=story');
+  const mic = page.getByRole('button', { name: 'Mikrofon starten' });
+  const automatic = page.getByRole('switch', { name: 'Ton erkennen' });
+  await expect(mic).toHaveAttribute('aria-pressed', 'false');
+  await expect(automatic).not.toBeChecked();
+  expect((await mic.boundingBox())!.y).toBe(
+    (await page.locator('.pitch-mode-switch').boundingBox())!.y,
+  );
+  expect((await page.locator('#intonation').boundingBox())!.height).toBeLessThan(130);
+  await expect(page.locator('.pitch-meter')).toHaveCount(0);
+  await expect(page.locator('#intonation input[type="range"]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Intonation', exact: true }).click();
+  await expect(page.getByRole('slider', { name: 'Haltezeit für Tonerkennung' })).toHaveValue('250');
+});

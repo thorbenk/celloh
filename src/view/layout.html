@@ -308,6 +308,15 @@
     >
       Klang
     </button>
+    <button
+      id="intonation-tab"
+      role="tab"
+      aria-selected="false"
+      aria-controls="intonation-settings"
+      tabindex="-1"
+    >
+      Intonation
+    </button>
   </div>
   <div class="controls">
     <div id="music-settings" role="tabpanel" aria-labelledby="music-tab">
@@ -404,6 +413,24 @@
       />
       <p class="micro" id="replay-tempo-help">
         Viertelnoten pro Minute beim Abspielen der Tonfolge.
+      </p>
+    </div>
+    <div id="intonation-settings" role="tabpanel" aria-labelledby="intonation-tab" hidden>
+      <label class="volume-label" for="pitch-hold-ms"
+        >Ton halten <output id="pitch-hold-value" for="pitch-hold-ms">250 ms</output></label
+      >
+      <input
+        id="pitch-hold-ms"
+        type="range"
+        min="150"
+        max="600"
+        step="50"
+        value="250"
+        aria-label="Haltezeit für Tonerkennung"
+        aria-describedby="pitch-hold-help"
+      />
+      <p id="pitch-hold-help" class="micro">
+        So lange muss ein Ton stabil erklingen, bevor „Ton erkennen“ ihn hervorhebt.
       </p>
     </div>
   </div>

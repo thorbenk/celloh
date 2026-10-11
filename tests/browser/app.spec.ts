@@ -343,6 +343,8 @@ test('settings slide over the centered board and close with Escape, button, or b
     await expect(page.getByRole('tabpanel', { name: 'Griffbrett' })).toBeVisible();
     await expect(page.getByRole('tabpanel', { name: 'Musik' })).toBeHidden();
     await page.keyboard.press('End');
+    await expect(page.getByRole('tab', { name: 'Intonation', exact: true })).toBeFocused();
+    await page.keyboard.press('ArrowLeft');
     await expect(page.getByRole('tab', { name: 'Klang' })).toBeFocused();
     await page.getByRole('slider', { name: 'Tonfolge-Tempo' }).fill('80');
     await page.keyboard.press('Escape');
@@ -352,6 +354,8 @@ test('settings slide over the centered board and close with Escape, button, or b
     await expect(page.getByRole('tab', { name: 'Klang' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('slider', { name: 'Tonfolge-Tempo' })).toHaveValue('80');
     await page.getByRole('tab', { name: 'Klang' }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Intonation', exact: true })).toBeFocused();
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Musik' })).toBeFocused();
     await expect(page.locator('#upper')).toBeChecked();

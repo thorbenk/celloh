@@ -31,6 +31,9 @@ export class BoardPitchFeedbackView {
     });
     this.render();
   }
+  resetHistory(): void {
+    this.trace.clear();
+  }
   update(cents: number | null, active: boolean, accepted: boolean): void {
     this.cents = cents;
     this.active = active;

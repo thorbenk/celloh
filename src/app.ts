@@ -23,6 +23,7 @@ import { BoardZoom } from './view/board-zoom';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
+  private automaticPitch: MidiPitch | null | undefined = undefined;
   private readonly pitchFeedback: PitchFeedbackView;
   private readonly model = new AppModel();
   private readonly audio = new CelloAudio();
@@ -58,8 +59,17 @@ export class App {
     this.pitchFeedback = new PitchFeedbackView(
       () => this.stopReplay(),
       (cents, active, accepted) => this.board.pitchFeedback.update(cents, active, accepted),
+      (pitch, automatic) => {
+        this.automaticPitch = automatic ? pitch : undefined;
+        this.board.pitchFeedback.resetHistory();
+        this.renderBoardHighlight();
+        return pitch === null
+          ? null
+          : `${noteName(pitch, this.model.board.spelling, this.model.board.key)}${octave(pitch)}`;
+      },
     );
     requireElement('main', HTMLElement, root).append(this.pitchFeedback.element);
+    requireElement('.board-scroll-wrap', HTMLElement, root).append(this.pitchFeedback.diagnostics);
     const intonationToggle = requireElement('#intonation-toggle', HTMLButtonElement, root);
     intonationToggle.addEventListener(
       'click',
@@ -164,17 +174,22 @@ export class App {
         : `${noteName(target, this.model.board.spelling, this.model.board.key)}${octave(target)}`,
       target === null ? null : frequency(target),
     );
-    this.board.highlight(
-      this.model.selectedPitch,
-      this.model.dimOthers,
-      this.model.board.key,
-      this.model.selection?.source === 'board' ? this.model.selection.location : undefined,
-    );
+    this.renderBoardHighlight();
     this.staff.renderSelection(this.model);
     this.compact.render(this.model.selection?.note ?? null);
     this.piano.render(this.model.board, this.model.selectedPitch, this.model.dimOthers);
     this.piano.reveal(this.model.selectedPitch);
     this.sequence.render(this.pitches, this.model.board.key, this.replayIndex);
+  }
+  private renderBoardHighlight(): void {
+    this.board.highlight(
+      this.automaticPitch === undefined ? this.model.selectedPitch : this.automaticPitch,
+      this.model.dimOthers,
+      this.model.board.key,
+      this.automaticPitch === undefined && this.model.selection?.source === 'board'
+        ? this.model.selection.location
+        : undefined,
+    );
   }
   private bindPiano(root: HTMLElement): void {
     const toggle = requireElement('#piano-toggle', HTMLButtonElement, root);
@@ -470,6 +485,16 @@ export class App {
       () => {
         this.model.board.extended = extension.checked;
         this.board.renderPositions(this.model.board);
+      },
+      options,
+    );
+    const hold = requireElement('#pitch-hold-ms', HTMLInputElement);
+    const holdValue = requireElement('#pitch-hold-value', HTMLOutputElement);
+    hold.addEventListener(
+      'input',
+      () => {
+        holdValue.value = `${hold.value} ms`;
+        this.pitchFeedback.setHoldMs(hold.valueAsNumber);
       },
       options,
     );
