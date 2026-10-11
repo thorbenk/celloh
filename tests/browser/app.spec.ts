@@ -165,9 +165,11 @@ test('notes, spellings, position variants, extensions, and audio', async ({ page
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.locator('input[data-position="1"]').uncheck();
   await expect(page.locator('#overlays g')).toHaveCount(3);
-  await page.locator('#upper').check();
+  await page.locator('#position-2-upper').check();
+  await page.locator('#position-3-upper').check();
   await expect(page.locator('.position-overlay')).toHaveCount(5);
-  await page.locator('#lower').uncheck();
+  await page.locator('#position-2-lower').uncheck();
+  await page.locator('#position-3-lower').uncheck();
   await expect(page.locator('.position-overlay')).toHaveCount(3);
   await page.locator('#extension').check();
   await expect(page.locator('.extension-bracket')).toHaveCount(3);
@@ -205,7 +207,7 @@ test('mobile layout stays within viewport and brackets align with notes', async 
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.getByRole('tab', { name: 'Griffbrett' }).click();
-  for (const id of ['highlight-toggle', 'zoom-fit', 'zoom-width', 'zoom-reset']) {
+  for (const id of ['zoom-fit', 'zoom-width', 'zoom-reset']) {
     await page.locator(`#${id}`).scrollIntoViewIfNeeded();
     await expect(page.locator(`#${id}`)).toBeInViewport({ ratio: 1 });
     expect((await page.locator(`#${id}`).boundingBox())!.height).toBeGreaterThanOrEqual(44);
@@ -294,7 +296,8 @@ test('note colors match across strings and spelling, with clear nut and bracket 
   expect(geometry.startError).toBeLessThan(1);
   expect(geometry.endError).toBeLessThan(1);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.locator('#upper').check();
+  await page.locator('#position-2-upper').check();
+  await page.locator('#position-3-upper').check();
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await expect(page.locator('.position-overlay')).toHaveCount(6);
   await expect(page.locator('.finger-marker')).toHaveCount(24);
@@ -336,7 +339,8 @@ test('settings slide over the centered board and close with Escape, button, or b
       }),
     ).toBe(true);
     await expect(piano).toBeInViewport({ ratio: 1 });
-    await page.locator('#upper').check();
+    await page.locator('#position-2-upper').check();
+    await page.locator('#position-3-upper').check();
     await page.getByRole('tab', { name: 'Musik' }).focus();
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Griffbrett' })).toBeFocused();
@@ -358,7 +362,7 @@ test('settings slide over the centered board and close with Escape, button, or b
     await expect(page.getByRole('tab', { name: 'Intonation', exact: true })).toBeFocused();
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Musik' })).toBeFocused();
-    await expect(page.locator('#upper')).toBeChecked();
+    await expect(page.locator('#position-2-upper')).toBeChecked();
     await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
     await expect(panel).not.toBeVisible();
     if (width === 1280) {
@@ -449,7 +453,7 @@ test('to-scale spacing preserves cello proportions, declutters notes, and restor
     await page.getByRole('tab', { name: 'Griffbrett' }).click();
     const spread = page.getByRole('slider', { name: 'Spreizung' });
     await expect(spread).not.toBeVisible();
-    await page.getByRole('checkbox', { name: 'Wie auf dem Cello' }).check();
+    await page.getByRole('switch', { name: 'Wie auf dem Cello' }).check();
     const scaled = await centers();
     const firstGap = scaled[2]! - scaled[1]!;
     expect((scaled[14]! - scaled[13]!) / firstGap).toBeCloseTo(0.5, 2);
@@ -459,7 +463,8 @@ test('to-scale spacing preserves cello proportions, declutters notes, and restor
     expect((compact[2]! - compact[1]!) / firstGap).toBeCloseTo(0.6, 2);
     await expect(page.locator('#spread-value')).toHaveText('60 %');
     await page.getByRole('tab', { name: 'Musik' }).click();
-    await page.locator('#upper').check();
+    await page.locator('#position-2-upper').check();
+    await page.locator('#position-3-upper').check();
     await page.locator('#extension').check();
     await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
     const note = page.locator('.note[data-string="0"][data-offset="24"]');
@@ -496,7 +501,7 @@ test('to-scale spacing preserves cello proportions, declutters notes, and restor
     expect((expanded[2]! - expanded[1]!) / firstGap).toBeCloseTo(1.8, 2);
     await expect(note).toHaveText('C');
     await expect(note).toHaveAttribute('aria-pressed', 'true');
-    await page.getByRole('checkbox', { name: 'Wie auf dem Cello' }).uncheck();
+    await page.getByRole('switch', { name: 'Wie auf dem Cello' }).uncheck();
     await expect(spread).not.toBeVisible();
     const restored = await centers();
     expect(restored[2]! - restored[1]!).toBeCloseTo(58);
@@ -620,11 +625,11 @@ test('phone taps select notes in the note panel', async ({ browser }) => {
 
 test('quick dimming toggle preserves selection and compact notation', async ({ page }) => {
   await page.goto('/');
-  const toggle = page.getByRole('button', { name: 'Andere Töne dimmen' });
+  const toggle = page.getByRole('switch', { name: 'Andere Töne dimmen' });
   const compact = page.locator('#compact-staff');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.getByRole('tab', { name: 'Griffbrett' }).click();
-  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(toggle).toBeChecked();
   await page.locator('.note[data-string="1"][data-offset="0"]').click();
   await expect(compact).toHaveAttribute('aria-label', 'G2, Bassschlüssel');
   await expect(compact.locator('.staff-note')).toHaveAttribute('data-midi', '43');
@@ -633,7 +638,7 @@ test('quick dimming toggle preserves selection and compact notation', async ({ p
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.getByRole('tab', { name: 'Griffbrett' }).click();
   await toggle.click();
-  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(toggle).not.toBeChecked();
   expect(await unmatched.evaluate((note) => getComputedStyle(note).opacity)).toBe('1');
   await expect(page.locator('.note.selected')).toHaveCount(2);
   await page.locator('.note[data-string="0"][data-offset="0"]').click();
@@ -711,10 +716,10 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await expect(inside).toHaveCSS('opacity', '1');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.getByRole('tab', { name: 'Griffbrett' }).click();
-  await page.getByRole('button', { name: 'Andere Töne dimmen' }).click();
+  await page.getByRole('switch', { name: 'Andere Töne dimmen' }).click();
   await expect(inside).toHaveCSS('opacity', '1');
   await expect(higherE).toHaveCSS('opacity', '0.22');
-  await page.getByRole('button', { name: 'Andere Töne dimmen' }).click();
+  await page.getByRole('switch', { name: 'Andere Töne dimmen' }).click();
   await page.getByRole('button', { name: 'Noten öffnen' }).click();
   await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
   await page.getByRole('button', { name: 'Noten schließen' }).click();
@@ -1126,4 +1131,22 @@ test('corner notation can be moved and stays within the board after resizing', a
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(canvas.x + canvas.width);
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(canvas.y + canvas.height);
   }).toPass();
+});
+
+test('position switches keep second and third position variants independent', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#position-controls [role="switch"]')).toHaveCount(6);
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('switch', { name: '2. Lage oben', exact: true }).check();
+  await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(2);
+  await expect(page.locator('.position-overlay[data-position="3"]')).toHaveCount(1);
+  await page.getByRole('switch', { name: '3. Lage unten', exact: true }).uncheck();
+  await expect(page.locator('.position-overlay[data-position="3"]')).toHaveCount(0);
+  await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(2);
+  await page.getByRole('switch', { name: '2. Lage unten', exact: true }).uncheck();
+  await page.getByRole('switch', { name: '2. Lage oben', exact: true }).uncheck();
+  await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(0);
+  await page.getByRole('switch', { name: '2. Lage unten', exact: true }).check();
+  await page.getByRole('switch', { name: '2. Lage oben', exact: true }).check();
+  await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(2);
 });

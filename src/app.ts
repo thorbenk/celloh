@@ -313,12 +313,11 @@ export class App {
       },
       options,
     );
-    const dimToggle = requireElement('#highlight-toggle', HTMLButtonElement);
+    const dimToggle = requireElement('#highlight-toggle', HTMLInputElement);
     dimToggle.addEventListener(
-      'click',
+      'change',
       () => {
-        this.model.dimOthers = !this.model.dimOthers;
-        dimToggle.setAttribute('aria-pressed', String(this.model.dimOthers));
+        this.model.dimOthers = dimToggle.checked;
         this.renderSelection();
       },
       options,
@@ -455,6 +454,7 @@ export class App {
       );
     }
     for (const position of POSITIONS) {
+      if (position.id === 2 || position.id === 3) continue;
       const input = requireElement(`input[data-position="${position.id}"]`, HTMLInputElement);
       input.addEventListener(
         'change',
@@ -467,17 +467,19 @@ export class App {
       );
     }
     const variants: readonly PositionVariant[] = ['lower', 'upper'];
-    for (const variant of variants) {
-      const input = requireElement(`#${variant}`, HTMLInputElement);
-      input.addEventListener(
-        'change',
-        () => {
-          if (input.checked) this.model.board.variants.add(variant);
-          else this.model.board.variants.delete(variant);
-          this.board.renderPositions(this.model.board);
-        },
-        options,
-      );
+    for (const position of [2, 3] as const) {
+      for (const variant of variants) {
+        const input = requireElement(`#position-${position}-${variant}`, HTMLInputElement);
+        input.addEventListener(
+          'change',
+          () => {
+            if (input.checked) this.model.board.variants[position].add(variant);
+            else this.model.board.variants[position].delete(variant);
+            this.board.renderPositions(this.model.board);
+          },
+          options,
+        );
+      }
     }
     const extension = requireElement('#extension', HTMLInputElement);
     extension.addEventListener(

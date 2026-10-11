@@ -20,15 +20,19 @@ export function mountLayout(root: HTMLElement): void {
   }
   const controls = requireElement('#position-controls', HTMLDivElement, root);
   for (const position of POSITIONS) {
-    const label = document.createElement('label');
-    label.className = 'position-choice';
-    label.style.setProperty('--position', position.color);
-    label.innerHTML = `
-      <input type="checkbox" data-position="${position.id}" checked>
-      <span class="position-dot"></span>
-      <span>${position.id}. Lage</span>
-      <span class="position-side">${position.side === 'left' ? 'links' : 'rechts'}</span>
-    `;
-    controls.append(label);
+    const row = document.createElement('div');
+    row.className = 'position-choice-row';
+    row.style.setProperty('--switch-color', position.color);
+    row.innerHTML = `<label class="position-choice slider-switch" title="${position.side === 'left' ? 'links' : 'rechts'} am Griffbrett"><input type="checkbox" role="switch" data-position="${position.id}" aria-label="${position.id}. Lage anzeigen" checked /><span class="switch-track" aria-hidden="true"></span><span>${position.id}. Lage</span></label>`;
+    if (position.id === 2 || position.id === 3) {
+      row.replaceChildren();
+      for (const variant of ['lower', 'upper'] as const) {
+        const label = document.createElement('label');
+        label.className = 'position-variant slider-switch';
+        label.innerHTML = `<input id="position-${position.id}-${variant}" type="checkbox" role="switch" aria-label="${position.id}. Lage ${variant === 'lower' ? 'unten' : 'oben'}" ${variant === 'lower' ? 'checked' : ''} /><span class="switch-track" aria-hidden="true"></span><span>${variant === 'lower' ? `${position.id}. Lage unten` : 'oben'}</span>`;
+        row.append(label);
+      }
+    }
+    controls.append(row);
   }
 }

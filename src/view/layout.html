@@ -349,25 +349,24 @@
         <h2>Die Lagen</h2>
         <p class="hint">Zeige die Wege für deine Finger.</p>
         <div id="position-controls" class="position-controls"></div>
-        <fieldset class="variant-controls">
-          <legend>2. & 3. Lage</legend>
-          <label><input id="lower" type="checkbox" checked /> Untere Lage</label
-          ><label><input id="upper" type="checkbox" /> Obere Lage</label>
-        </fieldset>
-        <label class="extension"
-          ><input id="extension" type="checkbox" /><span
-            >1. Finger nach hinten strecken <small>↑ Richtung Schnecke</small></span
-          ></label
+        <label class="extension slider-switch"
+          ><input id="extension" type="checkbox" role="switch" /><span
+            class="switch-track"
+            aria-hidden="true"
+          ></span
+          ><span>1. Finger nach hinten strecken <small>↑ Richtung Schnecke</small></span></label
         >
       </section>
     </div>
     <div id="board-settings" role="tabpanel" aria-labelledby="board-tab" hidden>
       <section>
         <h2>Abstände</h2>
-        <label class="extension"
-          ><input id="to-scale" type="checkbox" aria-describedby="scale-help" /><span
-            >Wie auf dem Cello <small>Abstände maßstabsgetreu anzeigen</small></span
-          ></label
+        <label class="extension slider-switch"
+          ><input id="to-scale" type="checkbox" role="switch" aria-describedby="scale-help" /><span
+            class="switch-track"
+            aria-hidden="true"
+          ></span
+          ><span>Wie auf dem Cello <small>Abstände maßstabsgetreu anzeigen</small></span></label
         >
         <p id="scale-help" class="micro">
           Je höher der Ton, desto enger die Abstände. Dichte Töne erscheinen als Punkte ohne Namen.
@@ -383,7 +382,13 @@
       <section>
         <h2>Hervorhebung</h2>
         <div class="panel-actions">
-          <button id="highlight-toggle" aria-pressed="true">Andere Töne dimmen</button>
+          <label class="slider-switch settings-switch"
+            ><input id="highlight-toggle" type="checkbox" role="switch" checked /><span
+              class="switch-track"
+              aria-hidden="true"
+            ></span
+            ><span>Andere Töne dimmen</span></label
+          >
         </div>
       </section>
       <section>

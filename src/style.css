@@ -777,70 +777,31 @@ main,
   color: var(--muted);
   margin-bottom: 0;
 }
-.position-choice {
-  display: flex;
+.position-choice-row {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
   align-items: center;
-  gap: 9px;
-  padding: 9px 0;
-  font-size: 12px;
-  cursor: pointer;
+  gap: 6px;
+  font-size: 11px;
 }
-.position-choice input {
-  accent-color: var(--position);
-  width: 16px;
-  height: 16px;
-  margin: 0;
+.position-choice,
+.position-variant {
+  min-width: 0;
 }
-.position-dot {
-  height: 7px;
-  width: 7px;
-  border-radius: 50%;
-  background: var(--position);
+.position-choice-row .slider-switch {
+  gap: 4px;
 }
-.position-side {
-  margin-left: auto;
-  color: #92958c;
-  font-size: 10px;
-}
-.variant-controls {
-  border: 0;
-  padding: 0;
-  margin: 18px 0 0;
-}
-.variant-controls legend {
-  font-size: 10px;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-.variant-controls label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  padding: 7px 0;
-  cursor: pointer;
-}
-.variant-controls input {
-  accent-color: var(--green);
-  width: 16px;
-  height: 16px;
-  margin: 0;
+.position-choice-row .switch-track {
+  flex-shrink: 0;
 }
 .extension {
   display: flex;
   gap: 9px;
   margin-top: 18px;
-  align-items: flex-start;
+  align-items: center;
   font-size: 11px;
   line-height: 1.6;
   cursor: pointer;
-}
-.extension input {
-  accent-color: var(--green);
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  margin: 2px 0;
 }
 .extension small {
   display: block;
@@ -1249,4 +1210,9 @@ main:has(.pitch-feedback) .workspace {
   .switch-track::after {
     transition: none;
   }
+}
+
+.settings-switch {
+  font-size: 11px;
+  line-height: 1.6;
 }

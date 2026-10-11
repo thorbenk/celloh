@@ -18,7 +18,7 @@ const BRACKET_STROKE_WIDTH = 2;
 
 function variantsFor(position: Position, settings: BoardSettings): readonly BracketVariant[] {
   if (position.id === 1 || position.id === 4) return ['standard'];
-  return [...settings.variants];
+  return [...settings.variants[position.id]];
 }
 
 /** Each bracket gets a separate lane: three on either side of the strings. */
