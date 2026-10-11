@@ -7,11 +7,12 @@ interface Args {
   width: number;
   height: number;
   key: string;
+  piano: boolean;
 }
 
 const meta = {
   title: 'Layout/Workspace',
-  args: { width: 390, height: 700, key: '' },
+  args: { width: 390, height: 700, key: '', piano: false },
   argTypes: {
     width: { control: { type: 'range', min: 280, max: 1280, step: 10 } },
     height: { control: { type: 'range', min: 400, max: 900, step: 10 } },
@@ -25,6 +26,8 @@ const meta = {
     root.style.height = `${args.height}px`;
     useEffect(() => {
       const app = new App(root);
+      const toggle = requireElement('#piano-toggle', HTMLButtonElement, root);
+      if ((toggle.getAttribute('aria-expanded') === 'true') !== args.piano) toggle.click();
       if (args.key) {
         const select = requireElement('#key', HTMLSelectElement, root);
         select.value = args.key;
@@ -42,3 +45,8 @@ export const Portrait: Story = {};
 export const ShortPortrait: Story = { args: { height: 500 } };
 export const WithKeySignature: Story = { args: { height: 500, key: 'Es-Dur' } };
 export const Desktop: Story = { args: { width: 1280, height: 800 } };
+export const WithPiano: Story = { args: { piano: true } };
+export const ShortPortraitWithPiano: Story = {
+  args: { height: 500, key: 'Es-Dur', piano: true },
+};
+export const DesktopWithPiano: Story = { args: { width: 1280, height: 800, piano: true } };

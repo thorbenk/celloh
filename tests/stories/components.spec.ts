@@ -40,3 +40,56 @@ test('short portrait workspace allocates remaining height with a key-signature r
   expect((await page.locator('#app').boundingBox())?.height).toBe(500);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
+
+test('piano mounts without other views, keeps physical key geometry, and selects both endpoints', async ({
+  page,
+}) => {
+  await page.goto('/iframe.html?id=components-piano-keyboard--black-key-selection&viewMode=story');
+  await expect(page.locator('.piano-key')).toHaveCount(46);
+  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('B3, Klaviertaste');
+  await expect(page.locator('.fingerboard, #staff, #compact-staff, .header')).toHaveCount(0);
+  expect((await page.locator('.piano-dock').boundingBox())?.height).toBe(88);
+  const geometry = await page.locator('.piano-key').evaluateAll((keys) =>
+    keys.slice(0, 13).map((key) => ({
+      black: key.classList.contains('black'),
+      left: (key as HTMLElement).offsetLeft,
+      width: (key as HTMLElement).offsetWidth,
+    })),
+  );
+  expect(geometry.map((key) => key.black)).toEqual([
+    false,
+    true,
+    false,
+    true,
+    false,
+    false,
+    true,
+    false,
+    true,
+    false,
+    true,
+    false,
+    false,
+  ]);
+  expect(geometry.slice(0, 3).map((key) => [key.left, key.width])).toEqual([
+    [0, 36],
+    [25, 22],
+    [36, 36],
+  ]);
+  await page.locator('.piano-key.selected').focus();
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('C2, Klaviertaste');
+  await page.keyboard.press('End');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('A5, Klaviertaste');
+});
+
+test('short workspace reserves the dock below the board and above the footer', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto('/iframe.html?id=layout-workspace--short-portrait-with-piano&viewMode=story');
+  await expect(page.locator('.piano-key')).toHaveCount(46);
+  await expect(page.locator('#active-key')).toBeVisible();
+  expect((await page.locator('.board-scroll').boundingBox())?.height).toBe(238);
+  expect((await page.locator('#app').boundingBox())?.height).toBe(500);
+});

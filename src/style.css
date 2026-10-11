@@ -13,6 +13,7 @@
   font-synthesis: none;
   --header-height: 78px;
   --footer-height: 56px;
+  --piano-height: 88px;
   --green: #287665;
   --muted: #737a70;
 }
@@ -23,10 +24,14 @@ body {
   margin: 0;
 }
 #app {
+  --piano-visible-height: 0px;
   height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: var(--header-height) minmax(0, 1fr) var(--footer-height);
+  grid-template-rows: var(--header-height) minmax(0, 1fr) auto var(--footer-height);
+}
+#app:has(#piano:not([hidden])) {
+  --piano-visible-height: var(--piano-height);
 }
 button,
 input,
@@ -195,12 +200,104 @@ main,
   height: 100%;
 }
 .footer {
+  grid-row: 4;
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 10px;
   padding: 6px 24px;
   border-top: 1px solid #e5e3d9;
+}
+.piano-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  padding: 0 12px;
+  margin-right: auto;
+  font-size: 12px;
+}
+
+/* Piano: the shell reserves its height; only this component scrolls horizontally. */
+.piano-dock {
+  height: var(--piano-height);
+  min-width: 0;
+  border-top: 1px solid #d9d4c4;
+  background: #f8f5ef;
+}
+.piano-dock[hidden] {
+  display: none;
+}
+.piano-scroll {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cbcbb9 transparent;
+}
+.piano-keys {
+  position: relative;
+  height: 100%;
+  margin-inline: auto;
+}
+.piano-key {
+  position: absolute;
+  top: 0;
+  width: var(--white-key-width);
+  height: 100%;
+  padding: 0 0 7px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border: 1px solid #ccc8bb;
+  border-top: 0;
+  border-radius: 0 0 4px 4px;
+  color: #354d40;
+  background: #fffdf8;
+  font-size: 11px;
+  touch-action: pan-x;
+}
+.piano-key.black {
+  z-index: 1;
+  width: var(--black-key-width);
+  height: 58%;
+  border-color: #24312c;
+  background: #35413b;
+  color: #fffdf8;
+  font-size: 10px;
+}
+.piano-key.selected {
+  background: hsl(var(--note-hue) 72% 76%);
+  color: #24312c;
+  box-shadow: inset 0 0 0 2px #243d32;
+}
+.piano-key:focus-visible {
+  outline-offset: -3px;
+  z-index: 2;
+}
+.piano-key .piano-label {
+  pointer-events: none;
+}
+.piano-key.black.selected .piano-label {
+  position: absolute;
+  top: calc(100% + 5px);
+  padding: 2px;
+  background: #fffdf8;
+  border-radius: 3px;
+}
+.piano-key.dimmed .piano-label {
+  opacity: 0.45;
+}
+.piano-key.outside-key:not(.selected)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #f8f5ef99;
+  pointer-events: none;
+}
+.piano-key.outside-key:focus-visible::after {
+  display: none;
 }
 .panel-copy {
   padding: 12px 24px 24px;
@@ -451,11 +548,15 @@ main,
 /* Both panels slide below the toolbar, without disabling board interaction. */
 .settings-panel {
   position: fixed;
-  inset: var(--header-height) 0 var(--footer-height) auto;
+  inset: var(--header-height) 0 calc(var(--footer-height) + var(--piano-visible-height, 0px)) auto;
   margin: 0;
   width: min(360px, 100%);
-  height: calc(100dvh - var(--header-height) - var(--footer-height));
-  max-height: calc(100dvh - var(--header-height) - var(--footer-height));
+  height: calc(
+    100dvh - var(--header-height) - var(--footer-height) - var(--piano-visible-height, 0px)
+  );
+  max-height: calc(
+    100dvh - var(--header-height) - var(--footer-height) - var(--piano-visible-height, 0px)
+  );
   max-width: 100%;
   z-index: 10;
   border: 0;

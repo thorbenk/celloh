@@ -28,9 +28,9 @@ npm run test:stories
 
 Storybook uses the existing vanilla TypeScript views and production HTML/CSS, not
 copies or a second UI framework. The fingerboard, compact notation, and note picker
-mount without the application shell. Controls vary their container width/height,
+and piano keyboard mount without the application shell. Controls vary their container width/height,
 pitch, key signature, and spacing. Workspace stories cover portrait, short portrait,
-and desktop layouts, including the extra key-signature row. View observers and
+and desktop layouts, including the extra key-signature row and hidden/open piano dock. View observers and
 event handlers are disposed when a story or its controls change.
 
 `test:stories` builds Storybook and runs isolated Chromium checks against that build.
@@ -110,6 +110,14 @@ With system Chromium or Chrome installed, run `npm run test:browser`. This build
 - Optional backward first-finger extensions, shown with dashed brackets.
 - Click, tap, or keyboard activation to play Ethan Winer cello samples; volume control.
 - Responsive layout with a scrollable fingerboard and accessible note buttons.
+- A compact, independently scrollable C2–A5 piano dock above the footer. The “Klaviatur”
+  button shows/hides it without resizing notes or resetting fingerboard scrolling.
+  Hidden initially on phones, shown on desktop; the choice is remembered locally.
+  Natural keys are labelled in German, C keys show octaves, and the selected key
+  shows its full name. Piano taps play the same cello recordings and share exact-pitch
+  highlighting with the board and notation. Left/right arrows navigate keys; Enter/Space
+  plays, Home/End move to the range limits. Selected off-screen keys are brought into
+  view without interrupting an active pointer gesture or wheel scroll.
 - Note-icon panel with an interactive bass staff, quarter note, and ledger lines; hover previews, click or tap plays, and arrow keys / Enter work too.
 - Exact-pitch matches are highlighted across all strings; a toolbar toggle enables or disables dimming of other pitches without clearing the selection. Reset clears the selection.
 - Read-only bass-clef notation in the fingerboard’s upper-left corner always shows the selected pitch, including when the note panel is closed. It reserves a fixed C2–A5 range so the staff and note scale remain stable as ledger lines appear.

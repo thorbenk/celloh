@@ -15,7 +15,7 @@ import { clampPickerStep, naturalMidi, notePitch, staffNote, type StaffNote } fr
 /** A selection always has a written note. Its sounding pitch is derived, never stored separately. */
 export type Selection =
   | { readonly source: 'board'; readonly note: StaffNote; readonly location: BoardLocation }
-  | { readonly source: 'staff'; readonly note: StaffNote };
+  | { readonly source: 'staff' | 'piano'; readonly note: StaffNote };
 export interface BoardSettings {
   spelling: Spelling;
   key: KeySignature | null;
@@ -69,6 +69,14 @@ export class AppModel {
       note: staffNote(note.midi, this.board.spelling, this.board.key),
       location: note.location,
     });
+  }
+  selectPiano(pitch: MidiPitch): boolean {
+    if (!isPlayablePitch(pitch)) return false;
+    this.commitSelection({
+      source: 'piano',
+      note: staffNote(pitch, this.board.spelling, this.board.key),
+    });
+    return true;
   }
   selectWritten(step: number, accidental: Accidental = this.picker.accidental): boolean {
     if (!isPlayablePitch(naturalMidi(step) + accidental)) return false;

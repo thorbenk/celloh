@@ -13,6 +13,7 @@ export class PanelController {
   private readonly toolbar = requireElement('.header-actions', HTMLDivElement);
   private readonly footer = requireElement('.footer', HTMLElement);
   private readonly board = requireElement('.board-card', HTMLElement);
+  private readonly piano = requireElement('#piano', HTMLElement);
 
   constructor(onNotationClose: () => void) {
     this.panels = [
@@ -31,7 +32,13 @@ export class PanelController {
           if (panel.dialog.id === 'notation-panel') onNotationClose();
           // close events are queued; a panel may already have reopened by this point.
           panel.button.setAttribute('aria-expanded', String(panel.dialog.open));
-          if (!this.panels.some((other) => other.dialog.open)) panel.button.focus();
+          // Do not steal focus if the user has already moved to a piano key or another control.
+          if (
+            !this.panels.some((other) => other.dialog.open) &&
+            (document.activeElement === document.body ||
+              panel.dialog.contains(document.activeElement))
+          )
+            panel.button.focus();
         },
         options,
       );
@@ -61,7 +68,11 @@ export class PanelController {
           this.footer.contains(target)
         )
           return;
-        if (active.dialog.id === 'notation-panel' && this.board.contains(target)) return;
+        if (
+          active.dialog.id === 'notation-panel' &&
+          (this.board.contains(target) || this.piano.contains(target))
+        )
+          return;
         this.close(active);
       },
       options,

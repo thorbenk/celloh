@@ -14,6 +14,7 @@ import { mountLayout } from './view/layout';
 import { PanelController } from './view/panels';
 import { CompactStaffView, StaffView } from './view/staff';
 import { DraggableNotation } from './view/draggable-notation';
+import { PianoKeyboardView } from './view/piano';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
@@ -23,6 +24,7 @@ export class App {
   private readonly board: FingerboardView;
   private readonly staff: StaffView;
   private readonly compact: CompactStaffView;
+  private readonly piano: PianoKeyboardView;
   private readonly panels: PanelController;
   private readonly draggableNotation: DraggableNotation;
   private readonly resizeObserver: ResizeObserver;
@@ -33,6 +35,14 @@ export class App {
     this.board = new FingerboardView(root);
     this.staff = new StaffView(root);
     this.compact = new CompactStaffView(root);
+    this.piano = new PianoKeyboardView((pitch) => {
+      if (!this.model.selectPiano(pitch)) return;
+      this.renderSelection();
+      void this.playSelection();
+    });
+    this.piano.element.id = 'piano';
+    requireElement('.footer', HTMLElement, root).before(this.piano.element);
+    this.bindPiano(root);
     this.draggableNotation = new DraggableNotation(root);
     this.panels = new PanelController(() => {
       this.model.clearPreview();
@@ -48,6 +58,7 @@ export class App {
     this.events.abort();
     this.resizeObserver.disconnect();
     this.panels.destroy();
+    this.piano.destroy();
     this.draggableNotation.destroy();
     this.audio.stop();
     ++this.playbackRequest;
@@ -85,6 +96,38 @@ export class App {
     this.board.highlight(this.model.selectedPitch, this.model.dimOthers, this.model.board.key);
     this.staff.renderSelection(this.model);
     this.compact.render(this.model.selection?.note ?? null);
+    this.piano.render(this.model.board, this.model.selectedPitch, this.model.dimOthers);
+    this.piano.reveal(this.model.selectedPitch);
+  }
+  private bindPiano(root: HTMLElement): void {
+    const toggle = requireElement('#piano-toggle', HTMLButtonElement, root);
+    let visible = matchMedia('(min-width: 701px)').matches;
+    try {
+      const saved = localStorage.getItem('celloh.piano-visible');
+      if (saved !== null) visible = saved === 'true';
+    } catch {
+      /* Storage may be unavailable; the toggle still works for this session. */
+    }
+    const update = (): void => {
+      this.piano.element.hidden = !visible;
+      toggle.setAttribute('aria-expanded', String(visible));
+      toggle.title = visible ? 'Klaviatur ausblenden' : 'Klaviatur anzeigen';
+      this.piano.reveal(this.model.selectedPitch);
+    };
+    update();
+    toggle.addEventListener(
+      'click',
+      () => {
+        visible = !visible;
+        update();
+        try {
+          localStorage.setItem('celloh.piano-visible', String(visible));
+        } catch {
+          /* Keep the in-memory choice when browser storage is blocked. */
+        }
+      },
+      { signal: this.events.signal },
+    );
   }
   private async playSelection(): Promise<void> {
     const pitch = this.model.selectedPitch;
@@ -128,7 +171,7 @@ export class App {
       () => {
         this.model.dimOthers = !this.model.dimOthers;
         dimToggle.setAttribute('aria-pressed', String(this.model.dimOthers));
-        this.board.highlight(this.model.selectedPitch, this.model.dimOthers, this.model.board.key);
+        this.renderSelection();
       },
       options,
     );
