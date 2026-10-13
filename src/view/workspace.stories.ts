@@ -9,7 +9,6 @@ interface Args {
   key: string;
   piano: boolean;
   intonation: boolean;
-  automatic: boolean;
   diagnostics: boolean;
 }
 
@@ -21,7 +20,6 @@ const meta = {
     key: '',
     piano: false,
     intonation: false,
-    automatic: false,
     diagnostics: false,
   },
   argTypes: {
@@ -42,7 +40,6 @@ const meta = {
       if (args.intonation) requireElement('#intonation-toggle', HTMLButtonElement, root).click();
       if (args.diagnostics)
         requireElement('.pitch-diagnostics-toggle', HTMLButtonElement, root).click();
-      if (args.automatic) requireElement('.pitch-auto-toggle', HTMLInputElement, root).click();
       if (args.key) {
         const select = requireElement('#key', HTMLSelectElement, root);
         select.value = args.key;
@@ -67,6 +64,5 @@ export const ShortPortraitWithPiano: Story = {
 export const DesktopWithPiano: Story = { args: { width: 1280, height: 800, piano: true } };
 
 export const Intonation: Story = { args: { intonation: true } };
-export const AutomaticRecognition: Story = { args: { intonation: true, automatic: true } };
 
 export const IntonationDiagnostics: Story = { args: { intonation: true, diagnostics: true } };

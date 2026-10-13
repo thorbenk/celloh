@@ -102,26 +102,30 @@ export class FingerboardView {
     this.overlays.innerHTML = positionMarkup(settings, this.fingerboard.clientWidth);
   }
   highlight(
-    pitch: MidiPitch | null,
+    selectedPitch: MidiPitch | null,
     dimOthers: boolean,
     key: KeySignature | null,
     location?: BoardLocation,
+    playedPitch?: MidiPitch | null,
   ): void {
     const anchors: HTMLButtonElement[] = [];
-    this.notes.classList.toggle('has-selection', dimOthers && pitch !== null);
+    const highlightedPitch = playedPitch === undefined ? selectedPitch : playedPitch;
+    this.notes.classList.toggle('has-selection', dimOthers && highlightedPitch !== null);
     this.notes.classList.toggle('has-key', key !== null);
     for (const [button, note] of this.buttons) {
-      const matches = note.midi === pitch;
+      const selected = note.midi === selectedPitch;
+      const playing = playedPitch !== undefined && note.midi === playedPitch;
       if (
-        matches &&
+        note.midi === highlightedPitch &&
         (!location ||
           (location.stringId === note.location.stringId &&
             location.offset === note.location.offset))
       )
         anchors.push(button);
-      button.classList.toggle('selected', matches);
+      button.classList.toggle('selected', selected);
+      button.classList.toggle('playing', playing);
       button.classList.toggle('outside-key', key !== null && keyLetter(note.midi, key) === -1);
-      button.setAttribute('aria-pressed', String(matches));
+      button.setAttribute('aria-pressed', String(selected));
     }
     this.pitchFeedback.setAnchors(anchors);
   }

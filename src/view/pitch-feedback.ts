@@ -38,8 +38,9 @@ export class PitchFeedbackView {
     this.element.id = 'intonation';
     this.element.hidden = true;
     this.element.setAttribute('aria-label', 'Intonation');
-    this.element.innerHTML = `<div class="pitch-heading"><div class="pitch-controls"><button class="pitch-mic icon-button" type="button" aria-label="Mikrofon starten" title="Mikrofon starten" aria-pressed="false"><span class="material-icon icon-mic-off" aria-hidden="true"></span></button><label class="pitch-mode-switch slider-switch"><input class="pitch-auto-toggle" type="checkbox" role="switch" /><span class="switch-track" aria-hidden="true"></span><span>Ton erkennen</span></label></div><strong class="pitch-target">Ton wählen</strong></div>
-      <div class="pitch-summary"><div class="pitch-status" role="status">Wähle einen Ton auf dem Griffbrett.</div><div class="pitch-reading">— Hz · — Cent</div></div>
+    this.element.innerHTML = `<button class="pitch-mic icon-button" type="button" aria-label="Mikrofon starten" title="Mikrofon starten" aria-pressed="false"><span class="material-icon icon-mic-off" aria-hidden="true"></span></button>
+      <strong class="pitch-target">Ton erkennen …</strong>
+      <div class="pitch-reading">— Cent</div><div class="pitch-status" role="status">Wähle einen Ton auf dem Griffbrett.</div>
       <button class="icon-button pitch-diagnostics-toggle" type="button" aria-label="Diagnose anzeigen" title="Diagnose anzeigen" aria-expanded="false" aria-controls="pitch-diagnostics"><span class="material-icon icon-terminal" aria-hidden="true"></span></button>`;
     this.diagnostics.id = 'pitch-diagnostics';
     this.diagnostics.className = 'pitch-diagnostics';
@@ -63,16 +64,6 @@ export class PitchFeedbackView {
     this.service = new PitchDetectionService(
       (measurement, rate) => this.render(measurement, rate),
       (state, error) => this.setState(state, error),
-    );
-    const automatic = requireElement('.pitch-auto-toggle', HTMLInputElement, this.element);
-    automatic.addEventListener(
-      'change',
-      () => {
-        this.automatic = automatic.checked;
-        this.resetRecognition();
-        this.clear();
-      },
-      { signal: this.events.signal },
     );
     this.button.addEventListener(
       'click',
@@ -128,7 +119,7 @@ export class PitchFeedbackView {
   }
   private clear(): void {
     this.onFeedback(null, this.state === 'listening' && !this.element.hidden, false);
-    this.reading.textContent = '— Hz · — Cent';
+    this.reading.textContent = '— Cent';
     this.debug.textContent = 'Noch keine Messung';
     this.status.textContent =
       !this.hasTarget() && !this.automatic
@@ -175,14 +166,14 @@ export class PitchFeedbackView {
     this.debug.textContent = `Roh: ${hz(m.rawHz)} Hz\nGefiltert: ${hz(m.filteredHz)} Hz\nAbweichung: ${hz(m.cents)} Cent\nKlarheit: ${m.clarity.toFixed(3)}\nFrame: ${m.accepted ? 'akzeptiert' : 'verworfen'}\nAbtastrate: ${rate} Hz`;
     this.onFeedback(m.cents, this.state === 'listening' && !this.element.hidden, m.accepted);
     if (m.filteredHz === null || m.cents === null) {
-      this.reading.textContent = '— Hz · — Cent';
+      this.reading.textContent = '— Cent';
       this.status.textContent =
         !this.hasTarget() && !this.automatic ? 'Wähle einen Ton auf dem Griffbrett.' : 'Listening…';
       return;
     }
     if (!m.accepted) return;
     const direction = pitchDirection(m.cents);
-    this.reading.textContent = `${m.filteredHz.toFixed(1)} Hz · ${m.cents > 0 ? '+' : ''}${m.cents.toFixed(1)} Cent`;
+    this.reading.textContent = `${m.cents > 0 ? '+' : ''}${m.cents.toFixed(1)} Cent`;
     const octaveError = Math.abs(m.cents) > 1150 ? ' · Oktave prüfen' : '';
     const message =
       direction === 'low'
@@ -214,6 +205,10 @@ export class PitchFeedbackView {
   }
   setVisible(visible: boolean): void {
     this.element.hidden = !visible;
+    if (this.automatic === visible) return;
+    this.automatic = visible;
+    this.resetRecognition();
+    this.clear();
     if (!visible) {
       this.setDiagnosticsVisible(false);
       this.service.stop();

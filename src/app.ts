@@ -44,6 +44,7 @@ export class App {
   private playbackRequest = 0;
   private replayIndex: number | null = null;
   private replayTimer: number | null = null;
+  private intonationActive = false;
   private referenceA = 440;
   private tempo = 120;
 
@@ -78,7 +79,9 @@ export class App {
       'click',
       () => {
         const visible = this.pitchFeedback.element.hidden;
+        this.intonationActive = visible;
         this.pitchFeedback.setVisible(visible);
+        this.renderBoardHighlight();
         this.settings.set('intonationVisible', visible);
         intonationToggle.setAttribute('aria-expanded', String(visible));
       },
@@ -189,12 +192,13 @@ export class App {
   }
   private renderBoardHighlight(): void {
     this.board.highlight(
-      this.automaticPitch === undefined ? this.model.selectedPitch : this.automaticPitch,
+      this.intonationActive ? null : this.model.selectedPitch,
       this.model.dimOthers,
       this.model.board.key,
-      this.automaticPitch === undefined && this.model.selection?.source === 'board'
+      !this.intonationActive && this.model.selection?.source === 'board'
         ? this.model.selection.location
         : undefined,
+      this.automaticPitch,
     );
   }
   private bindPiano(root: HTMLElement): void {
@@ -220,14 +224,14 @@ export class App {
   private restoreSettings(root: HTMLElement): void {
     this.model.setSpelling(this.settings.choice('spelling', 'sharp', ['sharp', 'flat']));
     const inputs = root.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-      '#settings input, #settings select, .pitch-auto-toggle',
+      '#settings input, #settings select',
     );
     for (const input of inputs) {
       const key =
         input.id ||
         (input instanceof HTMLInputElement && input.dataset.position
           ? `position-${input.dataset.position}`
-          : 'automaticPitch');
+          : '');
       if (input instanceof HTMLSelectElement) {
         input.value = this.settings.choice(
           key,
@@ -267,6 +271,7 @@ export class App {
       );
     }
     const intonationVisible = this.settings.boolean('intonationVisible', false);
+    this.intonationActive = intonationVisible;
     this.pitchFeedback.setVisible(intonationVisible);
     requireElement('#intonation-toggle', HTMLButtonElement, root).setAttribute(
       'aria-expanded',
