@@ -212,13 +212,8 @@ test('compact intonation panel has icon controls and hold time in settings', asy
   await page.setViewportSize({ width: 390, height: 700 });
   await page.goto('/iframe.html?id=layout-workspace--intonation&viewMode=story');
   const mic = page.getByRole('button', { name: 'Mikrofon starten' });
-  const automatic = page.getByRole('switch', { name: 'Ton erkennen' });
   await expect(mic).toHaveAttribute('aria-pressed', 'false');
-  await expect(automatic).not.toBeChecked();
-  expect((await mic.boundingBox())!.y).toBe(
-    (await page.locator('.pitch-mode-switch').boundingBox())!.y,
-  );
-  expect((await page.locator('#intonation').boundingBox())!.height).toBeLessThan(130);
+  expect((await page.locator('#intonation').boundingBox())!.height).toBeLessThanOrEqual(61);
   await expect(page.locator('.pitch-meter')).toHaveCount(0);
   await expect(page.locator('#intonation input[type="range"]')).toHaveCount(0);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();

@@ -20,7 +20,6 @@ test('preferences survive reload and preserve manual spelling when a key is clea
   await page.locator('#pitch-hold-ms').fill('450');
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await page.locator('#intonation-toggle').click();
-  await page.locator('.pitch-auto-toggle').check();
   await page.locator('#sequence-toggle').click();
   await page.reload();
   await expect(page.locator('#key')).toHaveValue('G-Dur');
@@ -36,7 +35,6 @@ test('preferences survive reload and preserve manual spelling when a key is clea
   ] as const) {
     await expect(page.locator(`#${id}`)).toHaveValue(value);
   }
-  await expect(page.locator('.pitch-auto-toggle')).toBeChecked();
   await expect(page.locator('#intonation')).toBeVisible();
   await expect(page.locator('#pitch-sequence')).toBeVisible();
   await expect(page.locator('.pitch-mic')).toHaveAttribute('aria-pressed', 'false');
@@ -126,19 +124,19 @@ test('reference A retunes samples and intonation and persists across reloads', a
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await page.locator('#intonation-toggle').click();
   await page.locator('.note[data-string="3"][data-offset="12"]').click();
-  await expect(page.locator('.pitch-target')).toHaveText('A4 · 442.0 Hz');
+  await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
   await expect
     .poll(async () => Number(await page.locator('html').getAttribute('data-playback-rate')))
     .toBeCloseTo(442 / 440);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.locator('#sound-tab').click();
   await page.locator('#reference-a').fill('444');
-  await expect(page.locator('.pitch-target')).toHaveText('A4 · 444.0 Hz');
+  await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
   await page.reload();
   await expect(page.locator('#reference-a')).toHaveValue('444');
   await expect(page.locator('#reference-a-value')).toHaveText('444 Hz');
   await page.locator('.note[data-string="3"][data-offset="12"]').click();
-  await expect(page.locator('.pitch-target')).toHaveText('A4 · 444.0 Hz');
+  await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
   await expect
     .poll(async () => Number(await page.locator('html').getAttribute('data-playback-rate')))
     .toBeCloseTo(444 / 440);

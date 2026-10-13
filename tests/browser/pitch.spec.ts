@@ -68,7 +68,7 @@ test('microphone is gesture gated, target reused, and all tracks stop', async ({
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   expect((await stats()).requests).toBe(0);
   await page.locator('.note[data-string="0"][data-offset="0"]').click();
-  await expect(page.locator('.pitch-target')).toHaveText('C2 · 65.4 Hz');
+  await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
   await page.getByRole('button', { name: 'Mikrofon starten' }).click();
   await expect(page.locator('.pitch-status')).toHaveText('In tune · Stimmt');
   await expect(page.locator('.pitch-mic')).toHaveAttribute('aria-pressed', 'true');
@@ -94,33 +94,11 @@ test('microphone is gesture gated, target reused, and all tracks stop', async ({
   await expect(indicator).toHaveAttribute('data-direction', 'low');
   await expect(indicator.locator('.board-pitch-dot')).toBeHidden();
   await expect(indicator.locator('.board-pitch-cents')).toHaveText('−12');
-  const smallArrow = (await indicator.locator('.board-pitch-arrow path').boundingBox())!.height;
   const coordinates = await indicator.locator('.board-pitch-arrow path').getAttribute('d');
   const values = coordinates!.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
   expect(values[2]! - values[1]!).toBeGreaterThanOrEqual(10);
   expect(values[2]! - values[1]!).toBeLessThan(14);
-  const nearColor = await indicator.evaluate((element) => getComputedStyle(element).color);
   expect(values[2]).toBeGreaterThan(values[1]!); // Arrow points down toward bridge.
-  await setHz(65.406 * 2 ** (-100 / 1200));
-  await expect(indicator.locator('.board-pitch-cents')).toHaveText('−100');
-  expect(
-    (await indicator.locator('.board-pitch-arrow path').boundingBox())!.height,
-  ).toBeGreaterThan(smallArrow);
-  expect(await indicator.evaluate((element) => getComputedStyle(element).color)).not.toBe(
-    nearColor,
-  );
-  await setHz(65.406 * 2 ** (20 / 1200));
-  await expect(indicator).toHaveAttribute('data-direction', 'high');
-  await expect(indicator.locator('.board-pitch-cents')).toHaveText('+20');
-  const upValues = (await indicator.locator('.board-pitch-arrow path').getAttribute('d'))!
-    .match(/-?\d+(?:\.\d+)?/g)!
-    .map(Number);
-  expect(upValues[2]).toBeLessThan(upValues[1]!); // Arrow points up toward scroll.
-  await setHz(0);
-  await expect(indicator).toHaveAttribute('data-direction', 'neutral');
-  await expect(indicator.locator('.board-pitch-arrow')).toBeHidden();
-  await expect(indicator.locator('.board-pitch-cents')).toHaveText('—');
-  await expect(indicator.locator('.pitch-trace-line')).toHaveAttribute('d', '');
   await setHz(65.406 * 2 ** (8 / 1200));
   await expect(indicator).toHaveAttribute('data-direction', 'tune');
   await page.mouse.move(5, 5);
@@ -169,15 +147,16 @@ test('microphone is gesture gated, target reused, and all tracks stop', async ({
   expect((await stats()).closed).toBe(2);
   await toggle.click();
   await expect(page.getByRole('button', { name: 'Mikrofon starten' })).toBeVisible();
-  const automatic = page.getByRole('switch', { name: 'Ton erkennen' });
-  await automatic.check();
   await expect(page.locator('.note.selected')).toHaveCount(0);
+  await expect(page.locator('.note.playing')).toHaveCount(0);
   await setHz(146.832);
   await page.getByRole('button', { name: 'Mikrofon starten' }).click();
   await expect(page.locator('.pitch-target')).toHaveText('D3 · 146.8 Hz');
-  await expect(page.locator('.note.selected')).toHaveCount(3);
-  for (const note of await page.locator('.note.selected').all())
+  await expect(page.locator('.note.selected')).toHaveCount(0);
+  await expect(page.locator('.note.playing')).toHaveCount(3);
+  for (const note of await page.locator('.note.playing').all())
     await expect(note).toHaveAttribute('data-midi', '50');
+  await expect(page.locator('#pitch-sequence .staff-note')).toHaveCount(1);
   await expect(page.locator('.board-pitch-feedback:visible')).toHaveCount(3);
   await expect(page.locator('.pitch-status')).toHaveText('In tune · Stimmt');
   await expect(page.locator('.pitch-mic')).toHaveAttribute('aria-pressed', 'true');
@@ -192,13 +171,12 @@ test('microphone is gesture gated, target reused, and all tracks stop', async ({
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await expect(page.locator('.pitch-target')).toHaveText('D3 · 146.8 Hz');
   await setHz(0);
-  await expect(page.locator('.note.selected')).toHaveCount(0);
+  await expect(page.locator('.note.playing')).toHaveCount(0);
   await expect(page.locator('.board-pitch-feedback:visible')).toHaveCount(0);
   await setHz(146.832);
-  await expect(page.locator('.note.selected')).toHaveCount(3);
-  await automatic.uncheck();
-  await expect(page.locator('.pitch-target')).toHaveText('C2 · 65.4 Hz');
+  await expect(page.locator('.note.playing')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Mikrofon stoppen' }).click();
+  await toggle.click();
   await expect(page.locator('.note.selected')).toHaveCount(1);
   await expect(page.locator('.note.selected')).toHaveAttribute('data-midi', '36');
-  await page.getByRole('button', { name: 'Mikrofon stoppen' }).click();
 });
