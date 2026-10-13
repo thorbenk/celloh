@@ -16,6 +16,7 @@ import {
   type KeySignature,
   type LetterIndex,
 } from './music';
+import type { NoteDuration } from './rhythm';
 
 export const ACCIDENTALS = [-1, 0, 1] as const satisfies readonly Accidental[];
 export const PICKER_MIN = 0; // C2
@@ -34,6 +35,8 @@ export interface StaffNote {
   readonly step: number;
   readonly accidental: Accidental;
   readonly showNatural?: boolean;
+  /** Pitch-only views draw a quarter note when no rhythmic value is supplied. */
+  readonly duration?: NoteDuration;
 }
 export function naturalMidi(step: number): MidiPitch {
   return midiPitch(36 + Math.floor(step / 7) * 12 + NATURALS[letterIndex(step)]);

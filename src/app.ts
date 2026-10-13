@@ -22,6 +22,8 @@ import { DraggableNotation } from './view/draggable-notation';
 import { PianoKeyboardView } from './view/piano';
 import { PitchSequenceView } from './view/pitch-sequence';
 import { BoardZoom } from './view/board-zoom';
+import { SequenceModel } from './sequence';
+import { quarterBeats } from './rhythm';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
@@ -36,7 +38,7 @@ export class App {
   private readonly compact: CompactStaffView;
   private readonly piano: PianoKeyboardView;
   private readonly sequence: PitchSequenceView;
-  private readonly pitches: MidiPitch[] = [];
+  private readonly sequenceModel = new SequenceModel();
   private readonly panels: PanelController;
   private readonly draggableNotation: DraggableNotation;
   private readonly zoom: BoardZoom;
@@ -98,16 +100,12 @@ export class App {
     );
     this.bindPiano(root);
     this.sequence = new PitchSequenceView(
-      () => {
+      (action) => {
         this.stopReplay();
-        this.pitches.length = 0;
-        this.sequence.render(
-          this.pitches,
-          this.model.board.key,
-          null,
-          this.model.noteDisplay,
-          this.model.board.spelling,
-        );
+        this.sequenceModel.dispatch(action);
+        const selected = this.sequenceModel.selectedNote;
+        if (selected) this.model.selectPiano(selected.pitch);
+        this.renderSelection();
       },
       () => {
         if (this.replayIndex !== null) this.stopReplay();
@@ -123,6 +121,10 @@ export class App {
       () => {
         const visible = this.sequence.element.hidden;
         this.sequence.element.hidden = !visible;
+        if (!visible) {
+          this.sequenceModel.dispatch({ type: 'done' });
+          this.renderSequence();
+        }
         this.settings.set('sequenceVisible', visible);
         sequenceToggle.setAttribute('aria-expanded', String(visible));
         this.sequence.revealLatest();
@@ -218,8 +220,11 @@ export class App {
       this.model.noteDisplay,
     );
     this.piano.reveal(this.model.selectedPitch);
+    this.renderSequence();
+  }
+  private renderSequence(): void {
     this.sequence.render(
-      this.pitches,
+      this.sequenceModel,
       this.model.board.key,
       this.replayIndex,
       this.model.noteDisplay,
@@ -365,14 +370,8 @@ export class App {
     this.stopReplay();
     const pitch = this.model.selectedPitch;
     if (pitch === null) return;
-    this.pitches.push(pitch);
-    this.sequence.render(
-      this.pitches,
-      this.model.board.key,
-      null,
-      this.model.noteDisplay,
-      this.model.board.spelling,
-    );
+    this.sequenceModel.input(pitch);
+    this.renderSequence();
     const request = ++this.playbackRequest;
     this.staff.status.textContent = 'Klang wird geladen …';
     try {
@@ -397,16 +396,17 @@ export class App {
     }
   }
   private async startReplay(): Promise<void> {
-    const first = this.pitches[0];
+    const first = this.sequenceModel.notes[0];
     if (first === undefined) return;
     this.stopReplay();
+    this.sequenceModel.dispatch({ type: 'cancel' });
     const request = this.playbackRequest;
     this.replayIndex = 0;
-    this.model.selectPiano(first);
+    this.model.selectPiano(first.pitch);
     this.renderSelection();
     this.staff.status.textContent = 'Tonfolge wird geladen …';
     try {
-      await this.audio.prepare(this.pitches);
+      await this.audio.prepare(this.sequenceModel.notes.map((note) => note.pitch));
       if (request === this.playbackRequest) await this.playSequenceNote(0, request);
     } catch {
       if (request !== this.playbackRequest) return;
@@ -416,21 +416,24 @@ export class App {
   }
   private async playSequenceNote(index: number, request: number): Promise<void> {
     if (request !== this.playbackRequest) return;
-    const pitch = this.pitches[index];
-    if (pitch === undefined) {
+    const note = this.sequenceModel.notes[index];
+    if (note === undefined) {
       this.stopReplay();
       this.staff.status.textContent = 'Tonfolge abgespielt';
       return;
     }
     try {
-      if (!(await this.audio.play(pitch)) || request !== this.playbackRequest) return;
+      if (!(await this.audio.play(note.pitch)) || request !== this.playbackRequest) return;
       this.replayIndex = index;
-      this.model.selectPiano(pitch);
+      this.model.selectPiano(note.pitch);
       this.renderSelection();
-      this.staff.status.textContent = `Tonfolge: Ton ${index + 1} von ${this.pitches.length}`;
-      this.replayTimer = window.setTimeout(() => {
-        void this.playSequenceNote(index + 1, request);
-      }, 60_000 / this.tempo);
+      this.staff.status.textContent = `Tonfolge: Ton ${index + 1} von ${this.sequenceModel.notes.length}`;
+      this.replayTimer = window.setTimeout(
+        () => {
+          void this.playSequenceNote(index + 1, request);
+        },
+        (60_000 / this.tempo) * quarterBeats(note.duration),
+      );
     } catch {
       if (request !== this.playbackRequest) return;
       this.stopReplay();

@@ -839,13 +839,9 @@ test('corner notation reserves a fixed range and divider clears it', async ({ pa
     expect(await compact.boundingBox()).toEqual(before);
     const inside = await compact.evaluate((svg) => {
       const element = svg as SVGSVGElement;
-      const head = element.querySelector('.notehead') as SVGEllipseElement;
-      const point = element.createSVGPoint();
-      point.x = Number(head.getAttribute('cx'));
-      point.y = Number(head.getAttribute('cy'));
-      const screen = point.matrixTransform(element.getScreenCTM()!);
+      const head = element.querySelector('.notehead')!.getBoundingClientRect();
       const bounds = element.getBoundingClientRect();
-      return screen.y > bounds.top + 8 && screen.y < bounds.bottom - 8;
+      return head.top > bounds.top + 8 && head.bottom < bounds.bottom - 8;
     });
     expect(inside).toBe(true);
   }
@@ -997,6 +993,167 @@ test('playback uses volume changes made while the sample is loading', async ({ p
   await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '1');
   const gain = Number(await page.locator('html').getAttribute('data-audio-gain'));
   expect(gain).toBeCloseTo(0.2);
+});
+
+test('sequence editing changes rhythm, replaces once, inserts in order, and resumes normal capture', async ({
+  page,
+}) => {
+  await recordAudioPlayback(page);
+  await page.goto('/');
+  for (const pitch of [48, 50, 52, 53]) {
+    await page.locator(`.piano-key[data-midi="${pitch}"]`).click();
+    await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
+  }
+  await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+  const sequence = page.locator('#pitch-sequence');
+  const notes = sequence.locator('.sequence-scroll .staff-note');
+  const editor = sequence.locator('.sequence-editor');
+  await expect(editor).toBeHidden();
+  await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
+  await expect(notes.last()).toHaveAttribute('aria-pressed', 'true');
+  await sequence.getByRole('button', { name: 'Note 3: E3, Viertel', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Ganze (1/1)', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Punktierung', exact: true }).click();
+  await expect(notes.nth(2)).toHaveAccessibleName('Note 3: E3, Ganze, punktiert');
+  await expect(notes.nth(2).locator('.note-stem')).toHaveCount(0);
+  await expect(notes.nth(2).locator('.note-dot')).toHaveCount(1);
+  await sequence.getByRole('button', { name: 'Ton ersetzen', exact: true }).click();
+  await expect(sequence.locator('.sequence-hint')).toContainText('Ersatzton');
+  await page.locator('.note[data-string="1"][data-offset="0"]').click();
+  await expect(notes.nth(2)).toHaveAccessibleName('Note 3: G2, Ganze, punktiert');
+  await page.locator('.piano-key[data-midi="57"]').click();
+  await expect(notes).toHaveCount(4);
+  await expect(notes.nth(2)).toHaveAttribute('data-midi', '43');
+  await sequence.getByRole('button', { name: 'Vor der Note einfügen' }).click();
+  await sequence.getByRole('button', { name: 'Sechzehntel (1/16)', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Punktierung', exact: true }).click();
+  await page.locator('.piano-key[data-midi="55"]').click();
+  await page.locator('.piano-key[data-midi="59"]').click();
+  expect(
+    await notes.evaluateAll((notes) => notes.map((note) => Number(note.getAttribute('data-midi')))),
+  ).toEqual([48, 50, 55, 59, 43, 53]);
+  await expect(notes.nth(2)).toHaveAttribute('data-value', '16');
+  await expect(notes.nth(2)).toHaveAttribute('data-dotted', 'false');
+  await expect(notes.nth(2).locator('.note-flag')).toBeVisible();
+  await expect(sequence.locator('.sequence-summary')).toContainText('vor Note 5');
+  await sequence.getByRole('button', { name: 'Einfügen beenden', exact: true }).click();
+  await expect(notes.nth(4)).toHaveAttribute('aria-pressed', 'true');
+  await sequence.getByRole('button', { name: 'Ausgewählte Note löschen' }).click();
+  await expect(notes.nth(4)).toHaveAccessibleName('Note 5: F3, Viertel');
+  await expect(notes.nth(4)).toHaveAttribute('aria-pressed', 'true');
+  await sequence.getByRole('button', { name: 'Rückgängig' }).click();
+  await expect(notes.nth(4)).toHaveAccessibleName('Note 5: G2, Ganze, punktiert');
+  await notes.nth(4).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(notes.nth(5)).toBeFocused();
+  await page.keyboard.press('Delete');
+  await expect(notes.nth(4)).toBeFocused();
+  await expect(notes).toHaveCount(5);
+  await page.keyboard.press('Escape');
+  await expect(editor).toBeHidden();
+  await page.locator('.piano-key[data-midi="60"]').click();
+  await expect(notes).toHaveCount(6);
+  await expect(notes.last()).toHaveAttribute('data-midi', '60');
+});
+
+test('sequence editor supports touch targets and empty insertion on tablet and narrow screens', async ({
+  browser,
+}) => {
+  for (const width of [320, 834]) {
+    const context = await browser.newContext({
+      viewport: { width, height: 900 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    try {
+      const page = await context.newPage();
+      await page.goto('http://127.0.0.1:4173');
+      expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true);
+      if (width === 320) await page.getByRole('button', { name: 'Klaviatur', exact: true }).tap();
+      await page.getByRole('button', { name: 'Tonfolge', exact: true }).tap();
+      const sequence = page.locator('#pitch-sequence');
+      await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).tap();
+      await expect(
+        sequence.getByRole('button', { name: 'Ton ersetzen', exact: true }),
+      ).toBeDisabled();
+      await sequence.getByRole('button', { name: 'Vor der Note einfügen' }).tap();
+      await sequence.getByRole('button', { name: 'Halbe (1/2)', exact: true }).tap();
+      await page.locator('.piano-key[data-midi="50"]').tap();
+      await expect(sequence.locator('.sequence-scroll .staff-note')).toHaveAttribute(
+        'data-value',
+        '2',
+      );
+      await sequence.getByRole('button', { name: 'Einfügen beenden', exact: true }).tap();
+      await sequence.locator('.sequence-note-target').tap({ position: { x: 4, y: 4 } });
+      await expect(sequence.locator('.sequence-scroll .staff-note')).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      for (const control of await sequence.locator('.sequence-control:visible').all()) {
+        const box = (await control.boundingBox())!;
+        expect(box.width).toBeGreaterThanOrEqual(44);
+        expect(box.height).toBeGreaterThanOrEqual(44);
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(width);
+      }
+      const target = (await sequence.locator('.sequence-note-target').boundingBox())!;
+      expect(target.width).toBeGreaterThanOrEqual(44);
+      await sequence.getByRole('button', { name: 'Ausgewählte Note löschen' }).tap();
+      await expect(sequence.locator('.sequence-scroll .staff-note')).toHaveCount(0);
+      await expect(sequence.locator('.sequence-editor')).toBeVisible();
+      await sequence.getByRole('button', { name: 'Rückgängig' }).tap();
+      await expect(sequence.locator('.sequence-scroll .staff-note')).toHaveCount(1);
+      await sequence.getByRole('button', { name: 'Ton ersetzen', exact: true }).tap();
+      await page.getByRole('button', { name: 'Tonfolge', exact: true }).tap();
+      await page.locator('.piano-key[data-midi="55"]').tap();
+      await page.getByRole('button', { name: 'Tonfolge', exact: true }).tap();
+      await expect(sequence.locator('.sequence-editor')).toBeHidden();
+      await expect(sequence.locator('.sequence-scroll .staff-note')).toHaveCount(2);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+test('sequence replay honors dotted whole, dotted eighth, and sixteenth durations without recording', async ({
+  page,
+}) => {
+  await recordAudioPlayback(page);
+  await page.goto('/');
+  for (const pitch of [48, 50, 52]) {
+    await page.locator(`.piano-key[data-midi="${pitch}"]`).click();
+    await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
+  }
+  await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+  const sequence = page.locator('#pitch-sequence');
+  await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
+  const notes = sequence.locator('.sequence-scroll .staff-note');
+  await notes.nth(0).click();
+  await sequence.getByRole('button', { name: 'Ganze (1/1)', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Punktierung', exact: true }).click();
+  await notes.nth(1).click();
+  await sequence.getByRole('button', { name: 'Achtel (1/8)', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Punktierung', exact: true }).click();
+  await notes.nth(2).click();
+  await sequence.getByRole('button', { name: 'Sechzehntel (1/16)', exact: true }).click();
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await expect(notes.nth(0)).toHaveClass(/playing/);
+  await page.clock.runFor(2999);
+  await expect(notes.nth(0)).toHaveClass(/playing/);
+  await page.clock.runFor(1);
+  await expect(notes.nth(1)).toHaveClass(/playing/);
+  await page.clock.runFor(374);
+  await expect(notes.nth(1)).toHaveClass(/playing/);
+  await page.clock.runFor(1);
+  await expect(notes.nth(2)).toHaveClass(/playing/);
+  await page.clock.runFor(124);
+  await expect(notes.nth(2)).toHaveClass(/playing/);
+  await page.clock.runFor(1);
+  await expect(page.locator('#audio-status')).toHaveText('Tonfolge abgespielt');
+  await expect(notes).toHaveCount(3);
+  await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '6');
 });
 
 test('sequence replay keeps every pitch view in sync, honors tempo, and never records itself', async ({

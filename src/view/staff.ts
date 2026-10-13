@@ -25,9 +25,13 @@ import {
   notePitch,
 } from '../notation';
 import type { AppModel } from '../model';
+import { QUARTER_NOTE, type NoteDuration } from '../rhythm';
+import { MUSIC_GLYPHS } from '../assets/music-glyphs';
 import { requireElement } from './dom';
 
-const NOTE_LEDGER_HALF_WIDTH = 19;
+export const NOTE_STEM_LENGTH = 70; // 3.5 staff spaces.
+const STEM_WIDTH = 2.4;
+const NOTE_LEDGER_HALF_WIDTH = 20;
 const COMPACT_CONTROL_CLEARANCE = 6; // CSS pixels between the note's ledger lines and resize button.
 
 const ACCIDENTAL_SYMBOLS = { [-1]: '♭', 0: '♮', 1: '♯' } as const;
@@ -42,41 +46,60 @@ function accidentalMarkup(accidental: Accidental, x: number, y: number): string 
   return `<g class="staff-accidental" data-accidental="${accidental}" transform="translate(${x} ${y})" fill="currentColor"><title>${ACCIDENTAL_SYMBOLS[accidental]}</title>${paths[accidental]}</g>`;
 }
 
-function quarterNoteMarkup(
-  note: StaffNote,
-  preview: boolean,
-  x: number,
-  showAccidental: boolean,
-): string {
+/** Font-independent glyph shared by notation and duration controls. Inherits its ink color. */
+export function noteGlyphMarkup(note: StaffNote, x: number, showAccidental = false): string {
+  const duration: NoteDuration = note.duration ?? QUARTER_NOTE;
   const y = staffY(note.step);
-  const color = preview ? '#287665' : '#26382b';
   const stemDown = note.step >= 8; // Middle staff line and above: stem on the left, pointing down.
-  const stemX = x + (stemDown ? -9 : 9);
-  const stemEnd = y + (stemDown ? 55 : -55);
+  const stemmedHead = duration.value === 2 ? MUSIC_GLYPHS.noteheadHalf : MUSIC_GLYPHS.noteheadBlack;
+  const head = duration.value === 1 ? MUSIC_GLYPHS.noteheadWhole : stemmedHead;
+  const [anchorX, anchorY] = stemDown ? stemmedHead.stemDown : stemmedHead.stemUp;
+  const stemX = x + anchorX + (stemDown ? STEM_WIDTH / 2 : -STEM_WIDTH / 2);
+  const stemEnd = y + (stemDown ? NOTE_STEM_LENGTH : -NOTE_STEM_LENGTH);
+  const ledgerHalfWidth = head.width / 2 + 8;
   const ledgers = ledgerSteps(note.step)
     .map(
       (step) => `
-    <line class="ledger-line" x1="${x - NOTE_LEDGER_HALF_WIDTH}" x2="${x + NOTE_LEDGER_HALF_WIDTH}" y1="${staffY(step)}" y2="${staffY(step)}" stroke="currentColor" stroke-width="1.5"/>
+    <line class="ledger-line" x1="${x - ledgerHalfWidth}" x2="${x + ledgerHalfWidth}" y1="${staffY(step)}" y2="${staffY(step)}" stroke="currentColor" stroke-width="1.5"/>
   `,
     )
     .join('');
   const accidental = showAccidental ? accidentalMarkup(note.accidental, x - 32, y) : '';
-  return `
-    <g class="staff-note ${preview ? 'preview-note' : ''}" data-step="${note.step}" data-midi="${notePitch(note)}" fill="${color}" color="${color}">
-      ${ledgers}
-      ${accidental}
-      <ellipse class="notehead" cx="${x}" cy="${y}" rx="10" ry="7" transform="rotate(-18 ${x} ${y})"/>
-      <line class="note-stem" x1="${stemX}" x2="${stemX}" y1="${y}" y2="${stemEnd}" stroke="${color}" stroke-width="2"/>
-    </g>
-  `;
+  const hollow = duration.value === 1 || duration.value === 2;
+  const headMarkup = `<g transform="translate(${x} ${y})">
+    ${hollow ? `<path d="${head.outline}" fill="var(--staff-paper, #fffdf8)"/>` : ''}
+    <path class="notehead" d="${head.path}"/>
+  </g>`;
+  const stem =
+    duration.value === 1
+      ? ''
+      : `<line class="note-stem" x1="${stemX}" x2="${stemX}" y1="${y + anchorY}" y2="${stemEnd}" stroke="currentColor" stroke-width="${STEM_WIDTH}"/>`;
+  const flag =
+    duration.value === 8
+      ? stemDown
+        ? MUSIC_GLYPHS.flag8thDown
+        : MUSIC_GLYPHS.flag8thUp
+      : duration.value === 16
+        ? stemDown
+          ? MUSIC_GLYPHS.flag16thDown
+          : MUSIC_GLYPHS.flag16thUp
+        : null;
+  const flagMarkup = flag
+    ? `<path class="note-flag" transform="translate(${stemX - STEM_WIDTH / 2} ${stemEnd})" d="${flag.path}"/>`
+    : '';
+  const dotX = x + head.width / 2 + (flag && !stemDown ? 22 : 10);
+  const dot = duration.dotted
+    ? `<circle class="note-dot" cx="${dotX}" cy="${y - (note.step % 2 === 0 ? 10 : 0)}" r="3.5"/>`
+    : '';
+  return `${ledgers}${accidental}${headMarkup}${stem}${flagMarkup}${dot}`;
 }
 
-/** Shared single/multiple-quarter-note drawing for the picker and read-only notation. */
+/** Shared notation drawing; the pitch picker defaults to quarter notes. */
 export function staffMarkup(
   note: StaffNote | readonly StaffNote[] | undefined,
   preview = false,
   noteX = 152,
-  options: { width?: number; key?: KeySignature } = {},
+  options: { width?: number; key?: KeySignature; spacing?: number } = {},
 ): string {
   const key = options.key;
   const signatureSteps = key && key.fifths < 0 ? [6, 9, 5, 8, 4, 7, 3] : [10, 7, 11, 8, 5, 9, 6];
@@ -89,6 +112,7 @@ export function staffMarkup(
   const notes = note === undefined ? [] : 'step' in note ? [note] : note;
   // No barlines: an explicit alteration remains in force for this written pitch until changed.
   const alterations = new Map<number, Accidental>();
+  const color = preview ? '#287665' : '#26382b';
   const quarters = notes
     .map((current, index) => {
       const previous =
@@ -98,7 +122,10 @@ export function staffMarkup(
       const show = key
         ? current.accidental !== previous
         : current.accidental !== 0 || !!current.showNatural;
-      return quarterNoteMarkup(current, preview, noteX + index * 72, show);
+      const duration = current.duration ?? QUARTER_NOTE;
+      return `<g class="staff-note ${preview ? 'preview-note' : ''}" data-step="${current.step}" data-midi="${notePitch(current)}" data-value="${duration.value}" data-dotted="${duration.dotted}" fill="${color}" color="${color}">
+        ${noteGlyphMarkup(current, noteX + index * (options.spacing ?? 72), show)}
+      </g>`;
     })
     .join('');
   const lines = STAFF_LINES.map(
