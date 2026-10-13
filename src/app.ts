@@ -54,11 +54,17 @@ export class App {
     this.board = new FingerboardView(root);
     this.staff = new StaffView(root);
     this.compact = new CompactStaffView(root);
-    this.piano = new PianoKeyboardView((pitch) => {
-      if (!this.model.selectPiano(pitch)) return;
-      this.renderSelection();
-      void this.playSelection();
-    });
+    this.piano = new PianoKeyboardView(
+      (pitch) => {
+        if (!this.model.selectPiano(pitch)) return;
+        this.renderSelection();
+        void this.playSelection();
+      },
+      (height) => {
+        if (height === null) root.style.removeProperty('--piano-height');
+        else root.style.setProperty('--piano-height', `${height}px`);
+      },
+    );
     this.piano.element.id = 'piano';
     requireElement('.footer', HTMLElement, root).before(this.piano.element);
     this.pitchFeedback = new PitchFeedbackView(

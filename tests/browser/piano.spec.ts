@@ -107,7 +107,7 @@ test('board, piano, and staff share exact pitch, spelling, highlighting, reset, 
   await expect(key(81)).toBeInViewport({ ratio: 1 });
 });
 
-test('touch selection and horizontal keyboard scrolling do not move the fingerboard', async ({
+test('touch resizing preserves key proportions, resets, and scrolling does not move the fingerboard', async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -129,6 +129,61 @@ test('touch selection and horizontal keyboard scrolling do not move the fingerbo
   await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   const dock = (await page.locator('#piano').boundingBox())!;
   const touch = await context.newCDPSession(page);
+  const handle = page.getByRole('separator', { name: 'Klaviaturhöhe' });
+  const grip = (await handle.boundingBox())!;
+  const boardHeight = (await page.locator('.board-scroll').boundingBox())!.height;
+  const white = page.locator('.piano-key[data-midi="36"]');
+  const black = page.locator('.piano-key[data-midi="37"]');
+  const originalWhite = (await white.boundingBox())!;
+  const originalBlack = (await black.boundingBox())!;
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }],
+  });
+  for (const delta of [20, 50, 90]) {
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 - delta }],
+    });
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+  }
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(handle).toHaveAttribute('aria-valuenow', '178');
+  expect((await page.locator('#piano').boundingBox())!.height).toBe(178);
+  expect((await page.locator('.board-scroll').boundingBox())!.height).toBe(boardHeight - 90);
+  const enlargedWhite = (await white.boundingBox())!;
+  const enlargedBlack = (await black.boundingBox())!;
+  expect(enlargedWhite.width / enlargedWhite.height).toBeCloseTo(
+    originalWhite.width / originalWhite.height,
+    2,
+  );
+  expect(enlargedBlack.width / enlargedBlack.height).toBeCloseTo(
+    originalBlack.width / originalBlack.height,
+    2,
+  );
+  await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Cis2, Bassschlüssel');
+  expect(
+    await page.locator('.board-scroll').evaluate((board) => [board.scrollLeft, board.scrollTop]),
+  ).toEqual([0, 0]);
+  // Chromium suppresses a synthetic tap immediately after the CDP drag gesture.
+  await page.waitForTimeout(600);
+  await page.getByRole('button', { name: 'Klaviaturhöhe zurücksetzen' }).tap();
+  await expect(page.getByRole('button', { name: 'Klaviaturhöhe zurücksetzen' })).toBeHidden();
+  expect((await page.locator('#piano').boundingBox())!.height).toBe(88);
+  expect((await white.boundingBox())!.width).toBe(originalWhite.width);
+  expect((await black.boundingBox())!.width).toBe(originalBlack.width);
+  await handle.focus();
+  await page.keyboard.press('ArrowUp');
+  await expect(handle).toHaveAttribute('aria-valuenow', '104');
+  await page.keyboard.press('End');
+  await expect(handle).toHaveAttribute('aria-valuenow', '315');
+  await page.setViewportSize({ width: 320, height: 500 });
+  await expect(handle).toHaveAttribute('aria-valuenow', '225');
+  await expect(page.locator('#piano')).toBeInViewport({ ratio: 1 });
+  await page.keyboard.press('Home');
+  await page.keyboard.press('ArrowDown');
+  await expect(handle).toHaveAttribute('aria-valuenow', '88');
+  await page.setViewportSize({ width: 390, height: 700 });
   await touch.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
     touchPoints: [{ x: 340, y: dock.y + 65 }],

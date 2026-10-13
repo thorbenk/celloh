@@ -14,9 +14,11 @@ import { staffNote, writtenNoteName } from '../notation';
 const WHITE_KEY_WIDTH = 36;
 const BLACK_KEY_WIDTH = 22;
 
-/** Fixed key geometry inside any container; pitch, spelling, and selection come from the caller. */
+/** Proportional key geometry; pitch, spelling, and selection come from the caller. */
 export class PianoKeyboardView {
   readonly element = document.createElement('section');
+  private readonly resizeHandle = document.createElement('div');
+  private readonly resetSize = document.createElement('button');
   private readonly scroll = document.createElement('div');
   private readonly keys = document.createElement('div');
   private readonly events = new AbortController();
@@ -25,8 +27,13 @@ export class PianoKeyboardView {
   private selectedPitch: MidiPitch | null = null;
   private dragging = false;
   private manualScrollUntil = 0;
+  private resizeDrag: { pointer: number; y: number; height: number } | null = null;
+  private customHeight: number | null = null;
 
-  constructor(onSelect: (pitch: MidiPitch) => void) {
+  constructor(
+    onSelect: (pitch: MidiPitch) => void,
+    private readonly onHeightChange?: (height: number | null) => void,
+  ) {
     this.element.className = 'piano-dock';
     this.element.setAttribute('aria-label', 'Klaviatur, C2 bis A5');
     this.element.style.setProperty('--white-key-width', `${WHITE_KEY_WIDTH}px`);
@@ -34,14 +41,32 @@ export class PianoKeyboardView {
     this.scroll.className = 'piano-scroll';
     this.keys.className = 'piano-keys';
     this.scroll.append(this.keys);
-    this.element.append(this.scroll);
+    const controls = document.createElement('div');
+    controls.className = 'piano-size-controls';
+    this.resizeHandle.className = 'piano-resize-handle';
+    this.resizeHandle.tabIndex = 0;
+    this.resizeHandle.setAttribute('role', 'separator');
+    this.resizeHandle.setAttribute('aria-orientation', 'horizontal');
+    this.resizeHandle.setAttribute('aria-label', 'Klaviaturhöhe');
+    this.resizeHandle.setAttribute('aria-valuemin', '88');
+    this.resizeHandle.setAttribute('aria-valuenow', '88');
+    this.resizeHandle.setAttribute('aria-valuemax', String(this.maxHeight()));
+    this.resizeHandle.title = 'Klaviatur vergrößern: nach oben ziehen';
+    this.resetSize.className = 'piano-size-reset';
+    this.resetSize.type = 'button';
+    this.resetSize.textContent = '↺';
+    this.resetSize.title = 'Klaviaturhöhe zurücksetzen';
+    this.resetSize.setAttribute('aria-label', this.resetSize.title);
+    this.resetSize.hidden = true;
+    controls.append(this.resizeHandle, this.resetSize);
+    this.element.append(controls, this.scroll);
     let whites = 0;
     for (const pitch of ALL_PITCHES) {
       const black = !NATURALS.some((natural) => natural === pitchClass(pitch));
       const button = document.createElement('button');
       button.className = black ? 'piano-key black' : 'piano-key';
       button.dataset.midi = String(pitch);
-      button.style.left = `${whites * WHITE_KEY_WIDTH - (black ? BLACK_KEY_WIDTH / 2 : 0)}px`;
+      button.style.left = `calc(${whites} * var(--white-key-width)${black ? ' - var(--black-key-width) / 2' : ''})`;
       button.style.setProperty('--note-hue', String(noteHue(pitch)));
       button.tabIndex = pitch === ALL_PITCHES[0] ? 0 : -1;
       const label = document.createElement('span');
@@ -51,10 +76,69 @@ export class PianoKeyboardView {
       this.buttons.set(button, pitch);
       if (!black) ++whites;
     }
-    this.keys.style.width = `${whites * WHITE_KEY_WIDTH}px`;
+    this.keys.style.width = `calc(${whites} * var(--white-key-width))`;
     this.observer = new ResizeObserver(() => this.reveal(this.selectedPitch));
     this.observer.observe(this.scroll);
     const options = { signal: this.events.signal };
+    this.resizeHandle.addEventListener(
+      'pointerdown',
+      (event) => {
+        if (!event.isPrimary || event.button !== 0) return;
+        this.resizeHandle.focus({ preventScroll: true });
+        this.resizeHandle.setPointerCapture(event.pointerId);
+        this.resizeDrag = {
+          pointer: event.pointerId,
+          y: event.clientY,
+          height: this.element.getBoundingClientRect().height,
+        };
+      },
+      options,
+    );
+    this.resizeHandle.addEventListener(
+      'pointermove',
+      (event) => {
+        if (this.resizeDrag?.pointer !== event.pointerId) return;
+        this.setHeight(this.resizeDrag.height + this.resizeDrag.y - event.clientY);
+      },
+      options,
+    );
+    this.resizeHandle.addEventListener(
+      'lostpointercapture',
+      () => (this.resizeDrag = null),
+      options,
+    );
+    this.resizeHandle.addEventListener(
+      'keydown',
+      (event) => {
+        const height = this.element.getBoundingClientRect().height;
+        const next = {
+          ArrowUp: height + 16,
+          ArrowDown: height - 16,
+          Home: 88,
+          End: this.maxHeight(),
+        }[event.key];
+        if (next === undefined) return;
+        event.preventDefault();
+        this.setHeight(next);
+      },
+      options,
+    );
+    this.resetSize.addEventListener(
+      'click',
+      () => {
+        this.setHeight(88);
+        this.resizeHandle.focus({ preventScroll: true });
+      },
+      options,
+    );
+    window.addEventListener(
+      'resize',
+      () => {
+        if (this.customHeight !== null) this.setHeight(this.customHeight);
+        else this.resizeHandle.setAttribute('aria-valuemax', String(this.maxHeight()));
+      },
+      options,
+    );
     this.keys.addEventListener(
       'click',
       (event) => {
@@ -170,6 +254,27 @@ export class PianoKeyboardView {
   destroy(): void {
     this.events.abort();
     this.observer.disconnect();
+    this.onHeightChange?.(null);
+  }
+
+  private maxHeight(): number {
+    const available = this.element.closest('#app')?.clientHeight ?? window.innerHeight;
+    return Math.max(88, Math.floor(Math.min(320, available * 0.45)));
+  }
+
+  private setHeight(height: number): void {
+    const next = Math.round(Math.max(88, Math.min(this.maxHeight(), height)));
+    this.customHeight = next === 88 ? null : next;
+    if (this.customHeight === null) this.element.style.removeProperty('--piano-height');
+    else this.element.style.setProperty('--piano-height', `${next}px`);
+    // The dock's top border takes one pixel; scale from the original 87px key area.
+    const scale = (next - 1) / 87;
+    this.element.style.setProperty('--white-key-width', `${WHITE_KEY_WIDTH * scale}px`);
+    this.element.style.setProperty('--black-key-width', `${BLACK_KEY_WIDTH * scale}px`);
+    this.onHeightChange?.(this.customHeight);
+    this.resizeHandle.setAttribute('aria-valuenow', String(next));
+    this.resizeHandle.setAttribute('aria-valuemax', String(this.maxHeight()));
+    this.resetSize.hidden = this.customHeight === null;
   }
 
   private buttonForTarget(target: EventTarget | null): HTMLButtonElement | null {

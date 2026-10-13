@@ -297,6 +297,7 @@ main,
 
 /* Piano: the shell reserves its height; only this component scrolls horizontally. */
 .piano-dock {
+  position: relative;
   grid-row: 4;
   height: var(--piano-height);
   min-width: 0;
@@ -305,6 +306,74 @@ main,
 }
 .piano-dock[hidden] {
   display: none;
+}
+.piano-size-controls {
+  position: absolute;
+  bottom: calc(100% - 12px);
+  inset-inline: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+.piano-resize-handle,
+.piano-size-reset {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #737a70;
+  pointer-events: auto;
+}
+.piano-resize-handle {
+  position: relative;
+  height: 44px;
+  width: 72px;
+  display: grid;
+  place-items: center;
+  cursor: ns-resize;
+  touch-action: none;
+  user-select: none;
+}
+.piano-resize-handle::before {
+  content: '';
+  position: absolute;
+  bottom: 22px;
+  width: 56px;
+  height: 12px;
+  border: 1px solid #d9d4c4;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: #f8f5ef;
+}
+.piano-resize-handle::after {
+  content: '';
+  position: relative;
+  transform: translateY(-5px);
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: #9b9f91;
+}
+.piano-resize-handle:hover::after {
+  background: var(--green);
+}
+.piano-size-reset:hover {
+  color: var(--green);
+}
+.piano-resize-handle:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: -3px;
+}
+.piano-size-reset {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  height: 44px;
+  width: 44px;
+  font-size: 18px;
+  touch-action: manipulation;
 }
 .piano-scroll {
   height: 100%;
