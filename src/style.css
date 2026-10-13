@@ -615,10 +615,10 @@ main,
 .notes.has-selection .note:not(.selected):not(.playing):focus-visible {
   opacity: 0.75;
 }
-.notes.has-key .note:not(.selected):hover,
-.notes.has-key .note:not(.selected):focus-visible,
-.notes.has-key.has-selection .note:not(.selected):hover,
-.notes.has-key.has-selection .note:not(.selected):focus-visible {
+.notes.has-key .note:not(.selected):not(.playing):hover,
+.notes.has-key .note:not(.selected):not(.playing):focus-visible,
+.notes.has-key.has-selection .note:not(.selected):not(.playing):hover,
+.notes.has-key.has-selection .note:not(.selected):not(.playing):focus-visible {
   opacity: 1;
 }
 .overlays {
