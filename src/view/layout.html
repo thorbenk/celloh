@@ -323,12 +323,29 @@
       <section>
         <h2>Die Töne</h2>
         <p class="hint">Wie möchtest du die Töne lesen?</p>
-        <div class="segmented" aria-label="Notennamen">
+        <div class="key-control note-display-control">
+          <label for="note-naming">Notennamen</label>
+          <select id="note-naming" aria-describedby="note-naming-help">
+            <option value="german">Deutsch · H, B, Fis</option>
+            <option value="international">International · B, B♭, F♯</option>
+          </select>
+        </div>
+        <p id="note-naming-help" class="micro">Deutsche Notennamen: H = B natural, B = B flat.</p>
+        <div class="key-control note-display-control">
+          <label for="octave-notation">Oktavbezeichnung</label>
+          <select id="octave-notation" aria-describedby="octave-notation-help">
+            <option value="helmholtz">Helmholtz · C, c, c′</option>
+            <option value="scientific">Zahlen · C2, C3, C4</option>
+          </select>
+        </div>
+        <p id="octave-notation-help" class="micro">
+          Mittleres C: C4 = c′. Gilt für alle Tonanzeigen.
+        </p>
+        <div class="segmented" aria-label="Enharmonische Schreibweise">
           <button id="sharp" aria-pressed="true">Kreuze ♯</button
           ><button id="flat" aria-pressed="false">Be ♭</button>
         </div>
         <p id="spelling-help" class="micro" hidden>Die Tonart bestimmt die Schreibweise.</p>
-        <p class="micro">Deutsche Notennamen: H = B natural,<br />B = B flat.</p>
         <div class="key-control">
           <label for="key">Tonart</label>
           <select id="key" aria-describedby="key-notes key-help">
@@ -359,6 +376,24 @@
       </section>
     </div>
     <div id="board-settings" role="tabpanel" aria-labelledby="board-tab" hidden>
+      <section>
+        <h2>Notennamen</h2>
+        <label class="slider-switch settings-switch">
+          <input
+            id="show-octaves"
+            type="checkbox"
+            role="switch"
+            checked
+            aria-describedby="show-octaves-help"
+          />
+          <span class="switch-track" aria-hidden="true"></span>
+          <span>Oktaven anzeigen</span>
+        </label>
+        <p id="show-octaves-help" class="micro">
+          Aus: einfache Namen wie D und Fis, auch auf leeren Saiten. Vollständige Töne bleiben im
+          Tooltip erhalten.
+        </p>
+      </section>
       <section>
         <h2>Abstände</h2>
         <label class="extension slider-switch"

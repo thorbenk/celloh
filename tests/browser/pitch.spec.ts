@@ -1,5 +1,14 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'celloh.settings',
+      JSON.stringify({ version: 1, values: { 'octave-notation': 'scientific' } }),
+    );
+  });
+});
+
 test('microphone is gesture gated, target reused, and all tracks stop', async ({ page }) => {
   await page.addInitScript(() => {
     const stats = { requests: 0, stopped: 0, closed: 0, constraints: null as unknown, hz: 65.406 };
@@ -162,6 +171,13 @@ test('microphone is gesture gated, target reused, and all tracks stop', async ({
   await expect(page.locator('.pitch-mic')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.pitch-mic .material-icon')).toHaveClass(/icon-mic$/);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.getByRole('tab', { name: 'Musik', exact: true }).click();
+  await page.locator('#octave-notation').selectOption('helmholtz');
+  await expect(page.locator('.pitch-target')).toHaveText('d · 146.8 Hz');
+  await expect(page.locator('.note.playing')).toHaveCount(3);
+  expect((await stats()).requests).toBe(3);
+  await page.locator('#octave-notation').selectOption('scientific');
+  await expect(page.locator('.pitch-target')).toHaveText('D3 · 146.8 Hz');
   await page.getByRole('tab', { name: 'Intonation', exact: true }).click();
   const hold = page.getByRole('slider', { name: 'Haltezeit für Tonerkennung' });
   await expect(hold).toHaveValue('250');

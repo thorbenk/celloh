@@ -5,6 +5,8 @@ import {
   STRINGS,
   frequency,
   keyAccidental,
+  DEFAULT_NOTE_DISPLAY,
+  type NoteDisplaySettings,
   type Accidental,
   type KeySignature,
   type LetterIndex,
@@ -133,13 +135,20 @@ export class StaffView {
   renderSelection(model: AppModel): void {
     const selection = model.selection;
     const pitch = model.selectedPitch;
-    this.name.textContent = selection ? writtenNoteName(selection.note) : 'Noch kein Ton gewählt';
+    this.name.textContent = selection
+      ? writtenNoteName(selection.note, model.noteDisplay)
+      : 'Noch kein Ton gewählt';
     if (selection && pitch !== null) {
       const matches = matchingBoardNotes(pitch).length;
       const origin =
         selection.source === 'board' ? `${STRINGS[selection.location.stringId].name}-Saite · ` : '';
       this.detail.textContent = `${origin}${matches} Griff${matches === 1 ? '' : 'e'} · ${frequency(pitch).toFixed(1).replace('.', ',')} Hz`;
-    } else this.detail.textContent = 'C2–G4 auswählen';
+    } else
+      this.detail.textContent = `${writtenNoteName({ step: 0, accidental: 0 }, model.noteDisplay)}–${writtenNoteName({ step: PICKER_MAX, accidental: 0 }, model.noteDisplay)} auswählen`;
+    this.staff.setAttribute(
+      'aria-label',
+      `Note wählen: ${writtenNoteName({ step: 0, accidental: 0 }, model.noteDisplay)} bis ${writtenNoteName({ step: PICKER_MAX, accidental: 0 }, model.noteDisplay)}. Pfeiltasten ändern den Ton, Eingabetaste spielt ihn.`,
+    );
     this.renderPicker(model);
   }
 
@@ -178,11 +187,16 @@ export class CompactStaffView {
     this.sizeToggle = requireElement('#notation-size-toggle', HTMLButtonElement, root);
   }
 
-  render(note: StaffNote | null): void {
+  render(
+    note: StaffNote | null,
+    display: Readonly<NoteDisplaySettings> = DEFAULT_NOTE_DISPLAY,
+  ): void {
     this.compact.setAttribute('viewBox', COMPACT_VIEW_BOX);
     this.compact.setAttribute(
       'aria-label',
-      note ? `${writtenNoteName(note)}, Bassschlüssel` : 'Bassschlüssel, noch kein Ton gewählt',
+      note
+        ? `${writtenNoteName(note, display)}, Bassschlüssel`
+        : 'Bassschlüssel, noch kein Ton gewählt',
     );
     this.compact.innerHTML = staffMarkup(note ?? undefined, false, this.compactNoteX());
   }

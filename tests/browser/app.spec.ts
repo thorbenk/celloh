@@ -1,5 +1,17 @@
 import { test, expect, type Page } from '@playwright/test';
 
+// Exercise the number-style preference; default Helmholtz and mode changes are covered in settings.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('celloh.settings')) {
+      localStorage.setItem(
+        'celloh.settings',
+        JSON.stringify({ version: 1, values: { 'octave-notation': 'scientific' } }),
+      );
+    }
+  });
+});
+
 test('help actions open information panels and return focus to the visible opener', async ({
   page,
 }) => {
@@ -152,12 +164,12 @@ test('notes, spellings, position variants, extensions, and audio', async ({ page
   await page.goto('/');
   await expect(page.locator('.note')).toHaveCount(100);
   const firstStep = page.locator('.note[data-string="3"][data-offset="1"]');
-  await expect(firstStep).toHaveText('Ais');
+  await expect(firstStep).toHaveText('Ais3');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.getByRole('button', { name: 'Be ♭', exact: true }).click();
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
-  await expect(firstStep).toHaveText('B');
-  await expect(page.locator('.note[data-string="3"][data-offset="2"]')).toHaveText('H');
+  await expect(firstStep).toHaveText('B3');
+  await expect(page.locator('.note[data-string="3"][data-offset="2"]')).toHaveText('H3');
   await firstStep.click();
   await expect(page.locator('#selected-note')).toHaveText('B3');
   await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
@@ -475,9 +487,9 @@ test('to-scale spacing preserves cello proportions, declutters notes, and restor
     await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
     const note = page.locator('.note[data-string="0"][data-offset="24"]');
     await expect(note).toHaveText('');
-    await expect(note).toHaveAccessibleName('C, Oktave 4, C-Saite, Halbtonschritt 24');
+    await expect(note).toHaveAccessibleName('c′, C-Saite, Halbtonschritt 24');
     await note.click();
-    await expect(page.locator('#selected-note')).toHaveText('C4');
+    await expect(page.locator('#selected-note')).toHaveText('c′');
     await expect(note).toHaveAttribute('aria-pressed', 'true');
     const clearance = await page.locator('.note[data-string="0"]').evaluateAll((notes) =>
       notes.slice(1).map((note, index) => {
@@ -505,14 +517,14 @@ test('to-scale spacing preserves cello proportions, declutters notes, and restor
     await spread.fill('180');
     const expanded = await centers();
     expect((expanded[2]! - expanded[1]!) / firstGap).toBeCloseTo(1.8, 2);
-    await expect(note).toHaveText('C');
+    await expect(note).toHaveText('c′');
     await expect(note).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('switch', { name: 'Wie auf dem Cello' }).uncheck();
     await expect(spread).not.toBeVisible();
     const restored = await centers();
     expect(restored[2]! - restored[1]!).toBeCloseTo(58);
     expect(restored[24]! - restored[23]!).toBeCloseTo(58);
-    await expect(note).toHaveText('C');
+    await expect(note).toHaveText('c′');
   }
 });
 
@@ -620,7 +632,7 @@ test('phone taps select notes in the note panel', async ({ browser }) => {
   await page.getByRole('button', { name: 'Noten öffnen' }).tap();
   const point = await staffPoint(page, 12); // A3
   await page.touchscreen.tap(point.x, point.y);
-  await expect(page.locator('#selected-note')).toHaveText('A3');
+  await expect(page.locator('#selected-note')).toHaveText('a');
   await expect(page.locator('.note.selected')).toHaveCount(4);
   await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   await page.screenshot({ path: '/tmp/celloh-note-mobile.png', fullPage: true });
@@ -685,7 +697,7 @@ test('key shading combines with pitch focus without disabling notes or changing 
   const positions = await page.locator('#overlays').innerHTML();
   await expect(page.locator('#active-key')).toBeHidden();
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.getByLabel('Tonart', { exact: true }).selectOption('Es-Dur');
+  await page.getByLabel('Tonart', { exact: true }).selectOption({ label: 'Es-Dur' });
   await expect(page.locator('#key-notes')).toHaveText('Es · F · G · As · B · C · D');
   await expect(page.getByRole('button', { name: 'Be ♭', exact: true })).toHaveAttribute(
     'aria-pressed',
@@ -707,7 +719,7 @@ test('key shading combines with pitch focus without disabling notes or changing 
   const outside = page.locator('.note[data-string="0"][data-offset="4"]'); // E2
   const inside = page.locator('.note[data-string="0"][data-offset="3"]'); // Es2
   const higherE = page.locator('.note[data-string="2"][data-offset="2"]'); // E3
-  await expect(inside).toHaveText('Es');
+  await expect(inside).toHaveText('Es2');
   await page.keyboard.press('Tab');
   await outside.focus();
   await expect(outside).toHaveCSS('opacity', '1');
@@ -765,7 +777,7 @@ test('Dur and natural Moll lock spelling and restore the manual preference when 
   await expect(page.locator('#spelling-help')).toBeHidden();
   await expect(key.locator('optgroup')).toHaveCount(2);
   await expect(key.locator('optgroup[label="Moll"] option')).toHaveCount(15);
-  await key.selectOption('D-Dur');
+  await key.selectOption({ label: 'D-Dur' });
   await expect(sharp).toBeDisabled();
   await expect(flat).toBeDisabled();
   await expect(sharp).toHaveAttribute('aria-pressed', 'true');
@@ -774,7 +786,7 @@ test('Dur and natural Moll lock spelling and restore the manual preference when 
   await expect(sharp).toHaveAccessibleDescription('Die Tonart bestimmt die Schreibweise.');
   await expect(key).not.toHaveAccessibleDescription(/Natürliches Moll/);
   await expect(page.locator('#minor-help')).toBeHidden();
-  await key.selectOption('c-Moll');
+  await key.selectOption({ label: 'c-Moll' });
   await expect(flat).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#key-notes')).toHaveText('C · D · Es · F · G · As · B');
   await expect(page.locator('#minor-help')).toBeVisible();
@@ -788,7 +800,7 @@ test('Dur and natural Moll lock spelling and restore the manual preference when 
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'H2, Bassschlüssel');
   await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await key.selectOption('a-Moll');
+  await key.selectOption({ label: 'a-Moll' });
   await expect(sharp).toBeDisabled();
   await expect(flat).toBeDisabled();
   await expect(sharp).toHaveAttribute('aria-pressed', 'true');
@@ -800,7 +812,7 @@ test('Dur and natural Moll lock spelling and restore the manual preference when 
   await expect(page.locator('#spelling-help')).toBeHidden();
   await expect(flat).toHaveAccessibleDescription('');
   await expect(page.locator('#minor-help')).toBeHidden();
-  await key.selectOption('fis-Moll');
+  await key.selectOption({ label: 'fis-Moll' });
   await expect(sharp).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#key-notes')).toHaveText('Fis · Gis · A · H · Cis · D · E');
   await page.getByRole('button', { name: 'fis-Moll: Tonart aufheben' }).click();

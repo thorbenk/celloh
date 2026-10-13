@@ -3,8 +3,9 @@ import {
   NATURALS,
   keyLetter,
   noteHue,
-  noteName,
   pitchClass,
+  DEFAULT_NOTE_DISPLAY,
+  type NoteDisplaySettings,
   type MidiPitch,
 } from '../music';
 import type { BoardSettings } from '../model';
@@ -111,12 +112,20 @@ export class PianoKeyboardView {
     );
   }
 
-  render(settings: BoardSettings, selected: MidiPitch | null, dimOthers: boolean): void {
+  render(
+    settings: BoardSettings,
+    selected: MidiPitch | null,
+    dimOthers: boolean,
+    display: Readonly<NoteDisplaySettings> = DEFAULT_NOTE_DISPLAY,
+  ): void {
     this.selectedPitch = selected;
+    this.element.setAttribute(
+      'aria-label',
+      `Klaviatur, ${writtenNoteName({ step: 0, accidental: 0 }, display)} bis ${writtenNoteName({ step: 26, accidental: 0 }, display)}`,
+    );
     for (const [button, pitch] of this.buttons) {
       const active = pitch === selected;
-      const name = noteName(pitch, settings.spelling, settings.key);
-      const fullName = writtenNoteName(staffNote(pitch, settings.spelling, settings.key));
+      const fullName = writtenNoteName(staffNote(pitch, settings.spelling, settings.key), display);
       button.setAttribute('aria-label', `${fullName}, Klaviertaste`);
       button.setAttribute('aria-pressed', String(active));
       button.title = fullName;
@@ -127,13 +136,7 @@ export class PianoKeyboardView {
         settings.key !== null && keyLetter(pitch, settings.key) === -1,
       );
       const label = button.firstElementChild;
-      if (label)
-        label.textContent =
-          active || pitchClass(pitch) === 0
-            ? fullName
-            : button.classList.contains('black')
-              ? ''
-              : name;
+      if (label) label.textContent = active || !button.classList.contains('black') ? fullName : '';
     }
     // Keep one tab stop, using the selected pitch unless a key currently owns keyboard focus.
     if (!this.keys.contains(document.activeElement)) {

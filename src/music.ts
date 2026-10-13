@@ -1,5 +1,20 @@
 /** Cello tuning, pitch names, and closed-hand fingering. No browser dependencies. */
 export type Spelling = 'sharp' | 'flat';
+export const NOTE_NAMINGS = ['german', 'international'] as const;
+export type NoteNaming = (typeof NOTE_NAMINGS)[number];
+export const OCTAVE_NOTATIONS = ['scientific', 'helmholtz'] as const;
+export type OctaveNotation = (typeof OCTAVE_NOTATIONS)[number];
+export interface NoteDisplaySettings {
+  naming: NoteNaming;
+  octaveNotation: OctaveNotation;
+}
+export const DEFAULT_NOTE_DISPLAY: Readonly<NoteDisplaySettings> = {
+  naming: 'german',
+  octaveNotation: 'helmholtz',
+};
+export type KeyMode = 'major' | 'minor';
+export type Fifths = -7 | -6 | -5 | -4 | -3 | -2 | -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type KeyId = `${KeyMode}:${Fifths}`;
 export type StringId = 0 | 1 | 2 | 3;
 export type PositionNumber = 1 | 2 | 3 | 4;
 export type PositionVariant = 'lower' | 'upper';
@@ -31,8 +46,8 @@ export interface CelloString {
 export const STRINGS = [
   { id: 0, name: 'C', numeral: 'IV', midi: midiPitch(36) },
   { id: 1, name: 'G', numeral: 'III', midi: midiPitch(43) },
-  { id: 2, name: 'd', numeral: 'II', midi: midiPitch(50) },
-  { id: 3, name: 'a', numeral: 'I', midi: midiPitch(57) },
+  { id: 2, name: 'D', numeral: 'II', midi: midiPitch(50) },
+  { id: 3, name: 'A', numeral: 'I', midi: midiPitch(57) },
 ] as const satisfies readonly CelloString[];
 export const MAX_STRING_OFFSET = 24;
 export const MIN_PLAYABLE_PITCH = midiPitch(36);
@@ -64,10 +79,8 @@ export function matchingBoardNotes(midi: MidiPitch): readonly BoardNote[] {
   return BOARD_NOTES.filter((note) => note.midi === midi);
 }
 
-const LABELS = {
-  sharp: ['C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'Ais', 'H'],
-  flat: ['C', 'Des', 'D', 'Es', 'E', 'F', 'Ges', 'G', 'As', 'A', 'B', 'H'],
-} as const;
+export const SHARP_LETTERS = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6] as const;
+export const FLAT_LETTERS = [0, 1, 1, 2, 2, 3, 4, 4, 5, 5, 6, 6] as const;
 export const NATURALS = [0, 2, 4, 5, 7, 9, 11] as const;
 export const WRITTEN_NAMES = {
   flat: ['Ces', 'Des', 'Es', 'Fes', 'Ges', 'As', 'B'],
@@ -75,12 +88,14 @@ export const WRITTEN_NAMES = {
   sharp: ['Cis', 'Dis', 'Eis', 'Fis', 'Gis', 'Ais', 'His'],
 } as const;
 export interface KeySignature {
+  readonly id: KeyId;
+  /** Legacy German name, retained for saved-preference migration. */
   readonly name: string;
   readonly tonic: PitchClass;
   readonly spelling: Spelling;
-  readonly mode: 'major' | 'minor';
+  readonly mode: KeyMode;
   /** Signed number of key-signature accidentals: negative for flats. */
-  readonly fifths: number;
+  readonly fifths: Fifths;
 }
 export const MAJOR_KEYS: readonly KeySignature[] = (
   [
@@ -99,8 +114,9 @@ export const MAJOR_KEYS: readonly KeySignature[] = (
     ['H-Dur', 11, 5],
     ['Fis-Dur', 6, 6],
     ['Cis-Dur', 1, 7],
-  ] satisfies [string, PitchClass, number][]
+  ] satisfies [string, PitchClass, Fifths][]
 ).map(([name, tonic, fifths]) => ({
+  id: `major:${fifths}`,
   name,
   tonic,
   spelling: fifths < 0 ? 'flat' : 'sharp',
@@ -111,7 +127,8 @@ export const MINOR_KEYS: readonly KeySignature[] = MAJOR_KEYS.map((major) => {
   const tonic = ((major.tonic + 9) % 12) as PitchClass;
   return {
     ...major,
-    name: `${noteName(midiPitch(tonic), major.spelling, major).toLowerCase()}-Moll`,
+    id: `minor:${major.fifths}`,
+    name: `${pitchClassName(midiPitch(tonic), major.spelling, major).toLowerCase()}-Moll`,
     tonic,
     mode: 'minor',
   };
@@ -127,22 +144,45 @@ export function keyLetter(midi: MidiPitch, key: KeySignature): LetterIndex | -1 
       (natural + keyAccidental(key, letter as LetterIndex) + 12) % 12 === pitchClass(midi),
   ) as LetterIndex | -1;
 }
-export function keyNoteNames(key: KeySignature): readonly string[] {
+export function keyName(key: KeySignature, naming: NoteNaming): string {
+  const tonic = pitchClassName(midiPitch(key.tonic), key.spelling, key, naming);
+  return key.mode === 'major' ? `${tonic}-Dur` : `${tonic.toLowerCase()}-Moll`;
+}
+export function keyNoteNames(key: KeySignature, naming: NoteNaming = 'german'): readonly string[] {
   const intervals = key.mode === 'minor' ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
-  return intervals.map((offset) => noteName(midiPitch(key.tonic + offset), key.spelling, key));
+  return intervals.map((offset) =>
+    pitchClassName(midiPitch(key.tonic + offset), key.spelling, key, naming),
+  );
+}
+export function noteLetterName(
+  letter: LetterIndex,
+  accidental: Accidental,
+  naming: NoteNaming,
+): string {
+  if (naming === 'international') {
+    return `${['C', 'D', 'E', 'F', 'G', 'A', 'B'][letter]}${accidental < 0 ? '♭' : accidental > 0 ? '♯' : ''}`;
+  }
+  return WRITTEN_NAMES[accidental < 0 ? 'flat' : accidental > 0 ? 'sharp' : 'natural'][letter];
 }
 const NOTE_HUES = [5, 30, 52, 80, 115, 150, 180, 205, 230, 265, 295, 330] as const;
-export function noteName(
+export function pitchClassName(
   midi: MidiPitch,
   spelling: Spelling,
   key: KeySignature | null = null,
+  naming: NoteNaming = 'german',
 ): string {
   const letter = key ? keyLetter(midi, key) : -1;
   if (key && letter !== -1) {
     const accidental = keyAccidental(key, letter);
-    return WRITTEN_NAMES[accidental < 0 ? 'flat' : accidental > 0 ? 'sharp' : 'natural'][letter];
+    return noteLetterName(letter, accidental, naming);
   }
-  return LABELS[spelling][pitchClass(midi)];
+  const index = pitchClass(midi);
+  const fallback = (spelling === 'sharp' ? SHARP_LETTERS : FLAT_LETTERS)[index];
+  return noteLetterName(
+    fallback,
+    index === NATURALS[fallback] ? 0 : spelling === 'sharp' ? 1 : -1,
+    naming,
+  );
 }
 export function noteHue(midi: MidiPitch): number {
   return NOTE_HUES[pitchClass(midi)];

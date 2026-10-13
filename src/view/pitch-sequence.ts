@@ -1,9 +1,17 @@
-import { type KeySignature, type MidiPitch } from '../music';
+import {
+  DEFAULT_NOTE_DISPLAY,
+  keyName,
+  type NoteDisplaySettings,
+  type KeySignature,
+  type MidiPitch,
+  type Spelling,
+} from '../music';
 import { staffNote, staffY, writtenNoteName } from '../notation';
 import { staffMarkup } from './staff';
 
 const SCALE = 0.55; // Stable note/staff size; ledger lines grow the viewport, never shrink the music.
 const C_MAJOR: KeySignature = {
+  id: 'major:0',
   name: 'C-Dur',
   tonic: 0,
   fifths: 0,
@@ -92,11 +100,15 @@ export class PitchSequenceView {
     pitches: readonly MidiPitch[],
     selectedKey: KeySignature | null = null,
     playingIndex: number | null = null,
+    display: Readonly<NoteDisplaySettings> = DEFAULT_NOTE_DISPLAY,
+    spelling: Spelling = 'sharp',
   ): void {
     const following =
       this.scroll.scrollLeft + this.scroll.clientWidth >= this.scroll.scrollWidth - 1;
     const key = selectedKey ?? C_MAJOR;
-    const notes = pitches.map((pitch) => staffNote(pitch, key.spelling, key));
+    const notes = pitches.map((pitch) =>
+      staffNote(pitch, selectedKey?.spelling ?? spelling, selectedKey),
+    );
     const firstX = 140 + Math.abs(key.fifths) * 22;
     const width = Math.max(240, firstX + Math.max(0, notes.length - 1) * 72 + 40);
     let top = 40;
@@ -111,7 +123,7 @@ export class PitchSequenceView {
     this.staff.style.height = `${(bottom - top) * SCALE}px`;
     this.staff.setAttribute(
       'aria-label',
-      `${key.name}: ${notes.length ? notes.map(writtenNoteName).join(', ') : 'noch keine Töne'}`,
+      `${keyName(key, display.naming)}: ${notes.length ? notes.map((note) => writtenNoteName(note, display)).join(', ') : 'noch keine Töne'}`,
     );
     this.staff.innerHTML = staffMarkup(notes, false, firstX, { width, key });
     this.play.textContent = playingIndex === null ? '▶ Abspielen' : '■ Stopp';
@@ -120,7 +132,7 @@ export class PitchSequenceView {
       playingIndex === null ? 'Tonfolge abspielen' : 'Tonfolge stoppen',
     );
     this.play.disabled = pitches.length === 0;
-    this.label.textContent = `Tonfolge · ${key.name}`;
+    this.label.textContent = `Tonfolge · ${keyName(key, display.naming)}`;
     this.clear.disabled = pitches.length === 0;
     const added = pitches.length > this.count;
     this.count = pitches.length;

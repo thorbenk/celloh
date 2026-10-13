@@ -15,7 +15,7 @@ export function mountLayout(root: HTMLElement): void {
   ] as const) {
     const group = document.createElement('optgroup');
     group.label = label;
-    for (const key of keys) group.append(new Option(key.name, key.name));
+    for (const key of keys) group.append(new Option(key.name, key.id));
     keySelect.append(group);
   }
   const controls = requireElement('#position-controls', HTMLDivElement, root);

@@ -3,16 +3,17 @@ import {
   BOARD_NOTES,
   MAX_STRING_OFFSET,
   STRINGS,
-  noteName,
   noteHue,
   keyLetter,
+  DEFAULT_NOTE_DISPLAY,
+  type NoteDisplaySettings,
   type BoardNote,
   type BoardLocation,
   type MidiPitch,
   type KeySignature,
 } from '../music';
 import type { BoardSettings } from '../model';
-import { staffNote, writtenNoteName } from '../notation';
+import { noteName, staffNote, writtenNoteName } from '../notation';
 import { requireElement } from './dom';
 import {
   boardHeight,
@@ -42,7 +43,10 @@ export class FingerboardView {
     this.fingerboard.style.setProperty('--row-height', `${ROW_HEIGHT}px`);
     this.fingerboard.style.setProperty('--nut-y', `${NUT_Y}px`);
   }
-  renderNotes(settings: BoardSettings): void {
+  renderNotes(
+    settings: BoardSettings,
+    display: Readonly<NoteDisplaySettings> = DEFAULT_NOTE_DISPLAY,
+  ): void {
     const { spelling, key } = settings;
     this.fingerboard.style.setProperty('--board-height', `${boardHeight(settings)}px`);
     this.buttons.clear();
@@ -64,13 +68,14 @@ export class FingerboardView {
       button.dataset.midi = String(note.midi);
       button.setAttribute('aria-pressed', 'false');
       const written = staffNote(note.midi, spelling, key);
-      const name = noteName(note.midi, spelling, key);
+      const name = noteName(written, display.naming);
+      const fullName = writtenNoteName(written, display);
       button.setAttribute(
         'aria-label',
-        `${name}, Oktave ${2 + Math.floor(written.step / 7)}, ${string.name}-Saite, ${offset === 0 ? 'leere Saite' : `Halbtonschritt ${offset}`}`,
+        `${fullName}, ${string.name}-Saite, ${offset === 0 ? 'leere Saite' : `Halbtonschritt ${offset}`}`,
       );
       button.style.setProperty('--note-hue', String(noteHue(note.midi)));
-      const label = offset === 0 ? string.name : name;
+      const label = settings.showOctaves ? fullName : name;
       const gap = rowGap(offset, settings);
       const crowded = gap < NOTE_DIAMETER;
       button.classList.toggle('crowded', crowded);
@@ -79,7 +84,7 @@ export class FingerboardView {
         `${crowded ? gap - NOTE_CLEARANCE : NOTE_DIAMETER}px`,
       );
       button.textContent = crowded ? '' : label;
-      button.title = `${writtenNoteName(written)} · ${string.name}-Saite`;
+      button.title = `${fullName} · ${string.name}-Saite`;
       cell.append(button);
       if (offset === 0) {
         const numeral = document.createElement('span');

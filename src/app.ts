@@ -1,6 +1,7 @@
-import { SettingsStore } from './settings';
+import { SettingsStore, type Preferences } from './settings';
 import { PitchFeedbackView } from './view/pitch-feedback';
-import { frequency, noteName, octave } from './music';
+import { frequency, keyName, NOTE_NAMINGS, OCTAVE_NOTATIONS } from './music';
+import { staffNote, writtenNoteName } from './notation';
 import { CelloAudio } from './audio';
 import { AppModel } from './model';
 import {
@@ -67,10 +68,12 @@ export class App {
         this.automaticPitch = automatic ? pitch : undefined;
         this.board.pitchFeedback.resetHistory();
         this.renderBoardHighlight();
-        return pitch === null
-          ? null
-          : `${noteName(pitch, this.model.board.spelling, this.model.board.key)}${octave(pitch)}`;
       },
+      (pitch) =>
+        writtenNoteName(
+          staffNote(pitch, this.model.board.spelling, this.model.board.key),
+          this.model.noteDisplay,
+        ),
     );
     requireElement('main', HTMLElement, root).append(this.pitchFeedback.element);
     requireElement('.board-scroll-wrap', HTMLElement, root).append(this.pitchFeedback.diagnostics);
@@ -92,7 +95,13 @@ export class App {
       () => {
         this.stopReplay();
         this.pitches.length = 0;
-        this.sequence.render(this.pitches, this.model.board.key);
+        this.sequence.render(
+          this.pitches,
+          this.model.board.key,
+          null,
+          this.model.noteDisplay,
+          this.model.board.spelling,
+        );
       },
       () => {
         if (this.replayIndex !== null) this.stopReplay();
@@ -148,19 +157,29 @@ export class App {
   }
   private renderBoard(): void {
     const key = this.model.board.key;
+    const naming = this.model.noteDisplay.naming;
+    const name = key ? keyName(key, naming) : '';
     const chip = requireElement('#active-key', HTMLButtonElement);
     chip.hidden = key === null;
-    chip.setAttribute('aria-label', key ? `${key.name}: Tonart aufheben` : 'Tonart aufheben');
-    requireElement('#active-key-name', HTMLSpanElement).textContent = key?.name ?? '';
+    chip.setAttribute('aria-label', key ? `${name}: Tonart aufheben` : 'Tonart aufheben');
+    requireElement('#active-key-name', HTMLSpanElement).textContent = name;
     const keySelect = requireElement('#key', HTMLSelectElement);
-    keySelect.value = key?.name ?? '';
+    for (const signature of [...MAJOR_KEYS, ...MINOR_KEYS]) {
+      const option = Array.from(keySelect.options).find((option) => option.value === signature.id);
+      if (option) option.textContent = keyName(signature, naming);
+    }
+    keySelect.value = key?.id ?? '';
+    requireElement('#note-naming-help', HTMLParagraphElement).textContent =
+      naming === 'german'
+        ? 'Deutsche Notennamen: H = B natural, B = B flat.'
+        : 'Internationale Notennamen: B = deutsches H, B♭ = deutsches B.';
     keySelect.setAttribute(
       'aria-describedby',
       key?.mode === 'minor' ? 'key-notes key-help minor-help' : 'key-notes key-help',
     );
     const notes = requireElement('#key-notes', HTMLParagraphElement);
     notes.hidden = key === null;
-    notes.textContent = key ? keyNoteNames(key).join(' · ') : '';
+    notes.textContent = key ? keyNoteNames(key, naming).join(' · ') : '';
     requireElement('#spelling-help', HTMLParagraphElement).hidden = key === null;
     requireElement('#minor-help', HTMLParagraphElement).hidden = key?.mode !== 'minor';
     requireElement('.header', HTMLElement).classList.toggle('has-key', key !== null);
@@ -171,24 +190,35 @@ export class App {
       else button.removeAttribute('aria-describedby');
       button.setAttribute('aria-pressed', String(spelling === this.model.board.spelling));
     }
-    this.board.renderNotes(this.model.board);
+    this.board.renderNotes(this.model.board, this.model.noteDisplay);
     this.board.renderPositions(this.model.board);
     this.renderSelection();
   }
   private renderSelection(): void {
     const target = this.model.selectedPitch;
     this.pitchFeedback.setTarget(
-      target === null
+      this.model.selection === null
         ? null
-        : `${noteName(target, this.model.board.spelling, this.model.board.key)}${octave(target)}`,
+        : writtenNoteName(this.model.selection.note, this.model.noteDisplay),
       target === null ? null : frequency(target, this.referenceA),
     );
     this.renderBoardHighlight();
     this.staff.renderSelection(this.model);
-    this.compact.render(this.model.selection?.note ?? null);
-    this.piano.render(this.model.board, this.model.selectedPitch, this.model.dimOthers);
+    this.compact.render(this.model.selection?.note ?? null, this.model.noteDisplay);
+    this.piano.render(
+      this.model.board,
+      this.model.selectedPitch,
+      this.model.dimOthers,
+      this.model.noteDisplay,
+    );
     this.piano.reveal(this.model.selectedPitch);
-    this.sequence.render(this.pitches, this.model.board.key, this.replayIndex);
+    this.sequence.render(
+      this.pitches,
+      this.model.board.key,
+      this.replayIndex,
+      this.model.noteDisplay,
+      this.model.board.spelling,
+    );
   }
   private renderBoardHighlight(): void {
     this.board.highlight(
@@ -223,52 +253,70 @@ export class App {
   }
   private restoreSettings(root: HTMLElement): void {
     this.model.setSpelling(this.settings.choice('spelling', 'sharp', ['sharp', 'flat']));
-    const inputs = root.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-      '#settings input, #settings select',
+    this.bindChoice('note-naming', this.model.noteDisplay.naming, NOTE_NAMINGS, (naming) => {
+      this.model.noteDisplay.naming = naming;
+    });
+    this.bindChoice(
+      'octave-notation',
+      this.model.noteDisplay.octaveNotation,
+      OCTAVE_NOTATIONS,
+      (notation) => {
+        this.model.noteDisplay.octaveNotation = notation;
+      },
     );
-    for (const input of inputs) {
-      const key =
-        input.id ||
-        (input instanceof HTMLInputElement && input.dataset.position
-          ? `position-${input.dataset.position}`
-          : '');
-      if (input instanceof HTMLSelectElement) {
-        input.value = this.settings.choice(
-          key,
-          input.value,
-          Array.from(input.options, (option) => option.value),
-        );
-      } else if (input.type === 'checkbox') {
-        input.checked = this.settings.boolean(key, input.checked);
-      } else {
-        const value = this.settings.number(
-          key,
-          input.valueAsNumber,
-          Number(input.min),
-          Number(input.max),
-        );
-        const step = Number(input.step || 1);
-        input.value = String(
-          Number(input.min) + Math.round((value - Number(input.min)) / step) * step,
-        );
-      }
-      const event =
-        input instanceof HTMLInputElement && input.type === 'range' ? 'input' : 'change';
-      input.dispatchEvent(new Event(event));
-      input.addEventListener(
-        event,
-        () => {
-          this.settings.set(
-            key,
-            input instanceof HTMLSelectElement
-              ? input.value
-              : input.type === 'checkbox'
-                ? input.checked
-                : input.valueAsNumber,
-          );
-        },
-        { signal: this.events.signal },
+    this.bindChoice(
+      'key',
+      '',
+      ['', ...MAJOR_KEYS.map((key) => key.id), ...MINOR_KEYS.map((key) => key.id)],
+      (id) => {
+        this.model.setKey([...MAJOR_KEYS, ...MINOR_KEYS].find((key) => key.id === id) ?? null);
+      },
+    );
+    for (const key of [
+      'extension',
+      'to-scale',
+      'highlight-toggle',
+      'show-octaves',
+      'position-1',
+      'position-4',
+      'position-2-lower',
+      'position-2-upper',
+      'position-3-lower',
+      'position-3-upper',
+    ] as const) {
+      const selector =
+        key === 'position-1' || key === 'position-4'
+          ? `input[data-position="${key.slice(-1)}"]`
+          : `#${key}`;
+      const input = requireElement(selector, HTMLInputElement, root);
+      input.checked = this.settings.boolean(key, input.checked);
+      input.dispatchEvent(new Event('change'));
+      input.addEventListener('change', () => this.settings.set(key, input.checked), {
+        signal: this.events.signal,
+      });
+    }
+    for (const key of [
+      'spread',
+      'reference-a',
+      'volume',
+      'replay-tempo',
+      'pitch-hold-ms',
+    ] as const) {
+      const input = requireElement(`#${key}`, HTMLInputElement, root);
+      const value = this.settings.number(
+        key,
+        input.valueAsNumber,
+        Number(input.min),
+        Number(input.max),
       );
+      const step = Number(input.step || 1);
+      input.value = String(
+        Number(input.min) + Math.round((value - Number(input.min)) / step) * step,
+      );
+      input.dispatchEvent(new Event('input'));
+      input.addEventListener('input', () => this.settings.set(key, input.valueAsNumber), {
+        signal: this.events.signal,
+      });
     }
     const intonationVisible = this.settings.boolean('intonationVisible', false);
     this.intonationActive = intonationVisible;
@@ -284,12 +332,41 @@ export class App {
       String(sequenceVisible),
     );
   }
+  /** Validate DOM strings against domain choices before they reach model or storage. */
+  private bindChoice<K extends 'note-naming' | 'octave-notation' | 'key'>(
+    key: K,
+    fallback: Preferences[K],
+    choices: readonly Preferences[K][],
+    apply: (value: Preferences[K]) => void,
+  ): void {
+    const select = requireElement(`#${key}`, HTMLSelectElement);
+    const restored = this.settings.choice(key, fallback, choices);
+    select.value = restored;
+    apply(restored);
+    select.addEventListener(
+      'change',
+      () => {
+        const value = choices.find((choice) => choice === select.value);
+        if (value === undefined) return;
+        apply(value);
+        this.settings.set(key, value);
+        this.renderBoard();
+      },
+      { signal: this.events.signal },
+    );
+  }
   private async playSelection(): Promise<void> {
     this.stopReplay();
     const pitch = this.model.selectedPitch;
     if (pitch === null) return;
     this.pitches.push(pitch);
-    this.sequence.render(this.pitches, this.model.board.key);
+    this.sequence.render(
+      this.pitches,
+      this.model.board.key,
+      null,
+      this.model.noteDisplay,
+      this.model.board.spelling,
+    );
     const request = ++this.playbackRequest;
     this.staff.status.textContent = 'Klang wird geladen …';
     try {
@@ -463,13 +540,11 @@ export class App {
   }
   private bindSettings(): void {
     const options = { signal: this.events.signal };
-    const keySelect = requireElement('#key', HTMLSelectElement);
-    keySelect.addEventListener(
+    const showOctaves = requireElement('#show-octaves', HTMLInputElement);
+    showOctaves.addEventListener(
       'change',
       () => {
-        this.model.setKey(
-          [...MAJOR_KEYS, ...MINOR_KEYS].find((key) => key.name === keySelect.value) ?? null,
-        );
+        this.model.board.showOctaves = showOctaves.checked;
         this.renderBoard();
       },
       options,

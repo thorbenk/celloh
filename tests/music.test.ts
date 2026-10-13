@@ -4,7 +4,7 @@ import {
   midiPitch,
   STRINGS,
   ALL_PITCHES,
-  noteName,
+  pitchClassName,
   octave,
   frequency,
   fingerOffsets,
@@ -27,20 +27,20 @@ void test('cello tuning and two-octave range', () => {
   assert.equal(frequency(midiPitch(69)), 440);
 });
 void test('German spelling distinguishes H from B and preserves pitch', () => {
-  assert.equal(noteName(midiPitch(59), 'sharp'), 'H');
-  assert.equal(noteName(midiPitch(59), 'flat'), 'H');
-  assert.equal(noteName(midiPitch(58), 'flat'), 'B');
-  assert.equal(noteName(midiPitch(58), 'sharp'), 'Ais');
+  assert.equal(pitchClassName(midiPitch(59), 'sharp'), 'H');
+  assert.equal(pitchClassName(midiPitch(59), 'flat'), 'H');
+  assert.equal(pitchClassName(midiPitch(58), 'flat'), 'B');
+  assert.equal(pitchClassName(midiPitch(58), 'sharp'), 'Ais');
   assert.deepEqual(
-    STRINGS.map((string) => noteName(midiPitch(string.midi + 1), 'sharp')),
+    STRINGS.map((string) => pitchClassName(midiPitch(string.midi + 1), 'sharp')),
     ['Cis', 'Gis', 'Dis', 'Ais'],
   );
   assert.deepEqual(
-    STRINGS.map((string) => noteName(midiPitch(string.midi + 1), 'flat')),
+    STRINGS.map((string) => pitchClassName(midiPitch(string.midi + 1), 'flat')),
     ['Des', 'As', 'Es', 'B'],
   );
   assert.deepEqual(
-    STRINGS.map((string) => noteName(midiPitch(string.midi + 2), 'sharp')),
+    STRINGS.map((string) => pitchClassName(midiPitch(string.midi + 2), 'sharp')),
     ['D', 'A', 'E', 'H'],
   );
 });

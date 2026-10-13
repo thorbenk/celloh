@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html-vite';
 import { useEffect } from 'storybook/preview-api';
 import { App } from '../app';
+import { MAJOR_KEYS } from '../music';
 import { requireElement } from './dom';
 
 interface Args {
@@ -42,7 +43,7 @@ const meta = {
         requireElement('.pitch-diagnostics-toggle', HTMLButtonElement, root).click();
       if (args.key) {
         const select = requireElement('#key', HTMLSelectElement, root);
-        select.value = args.key;
+        select.value = MAJOR_KEYS.find((key) => key.name === args.key)?.id ?? '';
         select.dispatchEvent(new Event('change'));
       }
       return () => app.destroy();

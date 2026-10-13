@@ -1,5 +1,16 @@
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() => {
+    if (!localStorage.getItem('celloh.settings')) {
+      localStorage.setItem(
+        'celloh.settings',
+        JSON.stringify({ version: 1, values: { 'octave-notation': 'scientific' } }),
+      );
+    }
+  });
+});
+
 test('piano dock preserves board geometry and scroll, remembers visibility, and fits short portraits', async ({
   page,
 }) => {
@@ -24,7 +35,7 @@ test('piano dock preserves board geometry and scroll, remembers visibility, and 
   await page.reload();
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.getByLabel('Tonart', { exact: true }).selectOption('Es-Dur');
+  await page.getByLabel('Tonart', { exact: true }).selectOption({ label: 'Es-Dur' });
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await page.setViewportSize({ width: 320, height: 500 });
   expect((await page.locator('.board-scroll').boundingBox())!.height).toBe(238);
@@ -105,6 +116,12 @@ test('touch selection and horizontal keyboard scrolling do not move the fingerbo
     isMobile: true,
   });
   const page = await context.newPage();
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'celloh.settings',
+      JSON.stringify({ version: 1, values: { 'octave-notation': 'scientific' } }),
+    );
+  });
   await page.goto('http://127.0.0.1:4173');
   await page.getByRole('button', { name: 'Klaviatur', exact: true }).tap();
   await page.locator('.piano-key[data-midi="37"]').tap();
@@ -187,7 +204,7 @@ test('optional pitch history records only played notes, follows key changes, and
   const pianoBounds = (await page.locator('#piano').boundingBox())!;
   expect((await sequence.boundingBox())!.y + grownHeight).toBe(pianoBounds.y);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.getByLabel('Tonart', { exact: true }).selectOption('D-Dur');
+  await page.getByLabel('Tonart', { exact: true }).selectOption({ label: 'D-Dur' });
   await expect(sequence.locator('svg')).toHaveAccessibleName(
     'D-Dur: D3, Fis3, Fis3, A5, D3, F3, Fis3, A3',
   );

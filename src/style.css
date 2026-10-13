@@ -785,6 +785,11 @@ main,
   background: #fffdf8;
   color: var(--green);
 }
+.note-display-control {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
 .key-notes {
   font-size: 12px;
   line-height: 1.8;

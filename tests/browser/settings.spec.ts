@@ -6,7 +6,7 @@ test('preferences survive reload and preserve manual spelling when a key is clea
   await page.goto('/');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.locator('#flat').click();
-  await page.locator('#key').selectOption('G-Dur');
+  await page.locator('#key').selectOption({ label: 'G-Dur' });
   await page.locator('#extension').check();
   await page.locator('#position-2-upper').check();
   await page.locator('#board-tab').click();
@@ -22,7 +22,7 @@ test('preferences survive reload and preserve manual spelling when a key is clea
   await page.locator('#intonation-toggle').click();
   await page.locator('#sequence-toggle').click();
   await page.reload();
-  await expect(page.locator('#key')).toHaveValue('G-Dur');
+  await expect(page.locator('#key')).toHaveValue('major:1');
   for (const id of ['extension', 'position-2-upper', 'to-scale']) {
     await expect(page.locator(`#${id}`)).toBeChecked();
   }
@@ -55,6 +55,97 @@ test('malformed preferences fall back to defaults and migrate piano visibility',
   await expect(page.locator('#key')).toHaveValue('');
   await expect(page.locator('#volume')).toHaveValue('65');
   await expect(page.locator('#piano')).toBeVisible();
+});
+
+test('note displays update globally while simplified fingerboard names retain full accessible pitches', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const note = page.locator('.note[data-string="3"][data-offset="1"]');
+  await expect(page.locator('#note-naming')).toHaveValue('german');
+  await expect(page.locator('#octave-notation')).toHaveValue('helmholtz');
+  await expect(note).toHaveText('ais');
+  await expect(page.locator('.open-row .note')).toHaveText(['C', 'G', 'd', 'a']);
+  await note.click();
+  await page.locator('#sequence-toggle').click();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.locator('#flat').click();
+  const naming = page.getByLabel('Notennamen', { exact: true });
+  const octaves = page.getByLabel('Oktavbezeichnung');
+  for (const [names, octaveStyle, expected] of [
+    ['german', 'scientific', 'B3'],
+    ['german', 'helmholtz', 'b'],
+    ['international', 'helmholtz', 'b♭'],
+    ['international', 'scientific', 'B♭3'],
+  ] as const) {
+    await naming.selectOption(names);
+    await octaves.selectOption(octaveStyle);
+    await expect(note).toHaveText(expected);
+    await expect(page.locator('#selected-note')).toHaveText(expected);
+    await expect(page.locator('#compact-staff')).toHaveAccessibleName(`${expected}, Bassschlüssel`);
+    await expect(page.locator('.piano-key[data-midi="58"]')).toHaveAccessibleName(
+      `${expected}, Klaviertaste`,
+    );
+    await expect(page.locator('.piano-key[data-midi="58"]')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.locator('#pitch-sequence svg')).toHaveAccessibleName(`C-Dur: ${expected}`);
+  }
+  await page.locator('#key').selectOption({ label: 'B-Dur' });
+  await expect(page.locator('#active-key-name')).toHaveText('B-Dur');
+  await naming.selectOption('german');
+  await expect(page.locator('#active-key-name')).toHaveText('H-Dur');
+  await naming.selectOption('international');
+  await octaves.selectOption('helmholtz');
+  await page.locator('#board-tab').click();
+  await page.getByRole('switch', { name: 'Oktaven anzeigen' }).uncheck();
+  await expect(page.locator('.open-row .note')).toHaveText(['C', 'G', 'D', 'A']);
+  await expect(note).toHaveText('A♯'); // Chromatic spelling follows this sharp key.
+  await expect(note).toHaveAccessibleName('a♯, A-Saite, Halbtonschritt 1');
+  await expect(note).toHaveAttribute('title', 'a♯ · A-Saite');
+  await expect(page.locator('.piano-key[data-midi="58"]')).toHaveText('a♯');
+  await expect(page.locator('#selected-note')).toHaveText('a♯');
+  await page.reload();
+  await expect(naming).toHaveValue('international');
+  await expect(octaves).toHaveValue('helmholtz');
+  await expect(page.locator('#key')).toHaveValue('major:5');
+  await expect(page.locator('#show-octaves')).not.toBeChecked();
+  await expect(note).toHaveText('A♯');
+});
+
+test('legacy key names migrate independently of notation and invalid display preferences fall back', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'celloh.settings',
+      JSON.stringify({
+        version: 1,
+        values: {
+          key: 'Ges-Dur',
+          'note-naming': 'helmholtz',
+          'octave-notation': 4,
+          'show-octaves': 'false',
+        },
+      }),
+    );
+  });
+  await page.goto('/');
+  await expect(page.locator('#key')).toHaveValue('major:-6');
+  await expect(page.locator('#note-naming')).toHaveValue('german');
+  await expect(page.locator('#octave-notation')).toHaveValue('helmholtz');
+  await expect(page.locator('#show-octaves')).toBeChecked();
+  const ces = page.locator('.note[data-string="3"][data-offset="2"]');
+  await expect(ces).toHaveText('ces′');
+  await ces.click();
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.locator('#note-naming').selectOption('international');
+  await page.locator('#octave-notation').selectOption('helmholtz');
+  await expect(ces).toHaveText('c♭′');
+  await expect(page.locator('#selected-note')).toHaveText('c♭′');
+  await expect(page.locator('#key')).toHaveValue('major:-6');
+  await expect(page.locator('#active-key-name')).toHaveText('G♭-Dur');
 });
 
 test('blocked storage leaves settings usable', async ({ page }) => {

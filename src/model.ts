@@ -1,6 +1,8 @@
 import {
   POSITIONS,
+  DEFAULT_NOTE_DISPLAY,
   isPlayablePitch,
+  type NoteDisplaySettings,
   type Accidental,
   type BoardNote,
   type BoardLocation,
@@ -24,6 +26,7 @@ export interface BoardSettings {
   extended: boolean;
   toScale: boolean;
   spread: number;
+  showOctaves: boolean;
 }
 export interface PickerState {
   step: number;
@@ -33,6 +36,7 @@ export interface PickerState {
 
 /** Browser-independent application state and musical selection rules. */
 export class AppModel {
+  readonly noteDisplay: NoteDisplaySettings = { ...DEFAULT_NOTE_DISPLAY };
   readonly board: BoardSettings = {
     spelling: 'sharp',
     key: null,
@@ -41,6 +45,7 @@ export class AppModel {
     extended: false,
     toScale: false,
     spread: 1,
+    showOctaves: true,
   };
   readonly picker: PickerState = { step: 7, accidental: 0, previewStep: null };
   dimOthers = true;

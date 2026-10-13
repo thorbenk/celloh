@@ -46,7 +46,7 @@ test('piano mounts without other views, keeps physical key geometry, and selects
 }) => {
   await page.goto('/iframe.html?id=components-piano-keyboard--black-key-selection&viewMode=story');
   await expect(page.locator('.piano-key')).toHaveCount(46);
-  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('B3, Klaviertaste');
+  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('b, Klaviertaste');
   await expect(page.locator('.fingerboard, #staff, #compact-staff, .header')).toHaveCount(0);
   expect((await page.locator('.piano-dock').boundingBox())?.height).toBe(88);
   const geometry = await page.locator('.piano-key').evaluateAll((keys) =>
@@ -79,10 +79,10 @@ test('piano mounts without other views, keeps physical key geometry, and selects
   await page.locator('.piano-key.selected').focus();
   await page.keyboard.press('Home');
   await page.keyboard.press('Enter');
-  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('C2, Klaviertaste');
+  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('C, Klaviertaste');
   await page.keyboard.press('End');
   await page.keyboard.press('Enter');
-  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('A5, Klaviertaste');
+  await expect(page.locator('.piano-key.selected')).toHaveAccessibleName('a′′, Klaviertaste');
 });
 
 test('short workspace reserves the dock below the board and above the footer', async ({ page }) => {
@@ -163,8 +163,8 @@ test('pitch sequence uses the key signature and cancels/restores alterations per
   page,
 }) => {
   for (const [story, label, signs] of [
-    ['sharp-key', 'D-Dur: Fis3, F3, F3, Fis3, Fis4, F4, Fis4', ['', '♮', '', '♯', '', '♮', '♯']],
-    ['flat-key', 'Es-Dur: Es3, E3, E3, Es3, B3, H3, B3', ['', '♮', '', '♭', '', '♮', '♭']],
+    ['sharp-key', 'D-Dur: fis, f, f, fis, fis′, f′, fis′', ['', '♮', '', '♯', '', '♮', '♯']],
+    ['flat-key', 'Es-Dur: es, e, e, es, b, h, b', ['', '♮', '', '♭', '', '♮', '♭']],
   ] as const) {
     await page.goto(`/iframe.html?id=components-pitch-sequence--${story}&viewMode=story`);
     await expect(page.locator('.sequence-scroll svg')).toHaveAccessibleName(label);

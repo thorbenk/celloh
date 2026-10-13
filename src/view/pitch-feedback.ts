@@ -23,16 +23,13 @@ export class PitchFeedbackView {
   private readonly recognizer = new HeldPitchRecognizer();
   private automatic = false;
   private detectedPitch: MidiPitch | null = null;
-  private detectedName: string | null = null;
   private targetName: string | null = null;
   private targetHz: number | null = null;
   constructor(
     onStart: () => void,
     private readonly onFeedback: (cents: number | null, active: boolean, accepted: boolean) => void,
-    private readonly onAutomaticPitch: (
-      pitch: MidiPitch | null,
-      automatic: boolean,
-    ) => string | null,
+    private readonly onAutomaticPitch: (pitch: MidiPitch | null, automatic: boolean) => void,
+    private readonly formatPitch: (pitch: MidiPitch) => string,
   ) {
     this.element.className = 'pitch-feedback';
     this.element.id = 'intonation';
@@ -97,7 +94,7 @@ export class PitchFeedbackView {
   private resetRecognition(): void {
     this.recognizer.reset();
     this.detectedPitch = null;
-    this.detectedName = this.onAutomaticPitch(null, this.automatic);
+    this.onAutomaticPitch(null, this.automatic);
     this.renderTarget();
   }
   private renderTarget(): void {
@@ -106,7 +103,11 @@ export class PitchFeedbackView {
         ? null
         : frequency(this.detectedPitch, this.recognizer.referenceA)
       : this.targetHz;
-    const name = this.automatic ? this.detectedName : this.targetName;
+    const name = this.automatic
+      ? this.detectedPitch === null
+        ? null
+        : this.formatPitch(this.detectedPitch)
+      : this.targetName;
     requireElement('.pitch-target', HTMLElement, this.element).textContent =
       name && hz
         ? `${name} · ${hz.toFixed(1)} Hz`
@@ -148,7 +149,7 @@ export class PitchFeedbackView {
       const pitch = this.recognizer.measure(m.rawHz, m.accepted, performance.now());
       if (pitch !== this.detectedPitch) {
         this.detectedPitch = pitch;
-        this.detectedName = this.onAutomaticPitch(pitch, true);
+        this.onAutomaticPitch(pitch, true);
         // A newly recognized note starts its own cents trace, without restarting audio.
         this.onFeedback(null, this.state === 'listening' && !this.element.hidden, false);
         this.renderTarget();
