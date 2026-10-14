@@ -498,13 +498,18 @@ export class App {
     if (this.model.selection?.note.step === step) {
       const cycle = [0, -1, 1] as const;
       const index = cycle.indexOf(this.model.selection.note.accidental);
-      accidental = [1, 2, 3]
-        .map((offset) => cycle[(index + offset) % cycle.length]!)
-        .find((value) => isPlayablePitch(naturalMidi(step) + value))!;
+      for (const offset of [1, 2, 3]) {
+        const candidate = cycle[(index + offset) % cycle.length];
+        if (candidate !== undefined && isPlayablePitch(naturalMidi(step) + candidate)) {
+          accidental = candidate;
+          break;
+        }
+      }
     }
     if (!this.model.selectWritten(step, accidental)) return;
     this.renderSelection();
-    void this.auditionPitch(this.model.selectedPitch!);
+    const pitch = this.model.selectedPitch;
+    if (pitch !== null) void this.auditionPitch(pitch);
   }
   private bindBoard(): void {
     const options = { signal: this.events.signal };
@@ -588,7 +593,8 @@ export class App {
         () => {
           const shouldPlay = this.model.changeAccidental(accidental);
           this.renderSelection();
-          if (shouldPlay) void this.auditionPitch(this.model.selectedPitch!);
+          const pitch = this.model.selectedPitch;
+          if (shouldPlay && pitch !== null) void this.auditionPitch(pitch);
         },
         options,
       );
