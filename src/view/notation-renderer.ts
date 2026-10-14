@@ -180,16 +180,15 @@ export function renderStaff(
     signature.querySelectorAll('path').forEach((path) => path.classList.add('staff-accidental'));
   });
   const notes = note === undefined ? [] : 'step' in note ? [note] : note;
-  const alterations = new Map<number, StaffNote['accidental']>();
   // Draw editor groups outside the scaled stave group: their hit targets use app coordinates.
   context.closeGroup();
   notes.forEach((current, index) => {
-    const previous =
-      alterations.get(current.step) ??
-      (options.key ? keyAccidental(options.key, (((current.step % 7) + 7) % 7) as LetterIndex) : 0);
-    alterations.set(current.step, current.accidental);
+    const keyAlteration = options.key
+      ? keyAccidental(options.key, (((current.step % 7) + 7) % 7) as LetterIndex)
+      : 0;
+    // The unbarred practice sequence spells each note independently.
     const show = options.key
-      ? current.accidental !== previous
+      ? current.accidental !== keyAlteration
       : current.accidental !== 0 || !!current.showNatural;
     const duration = current.duration ?? QUARTER_NOTE;
     const group = context.openGroup();

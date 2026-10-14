@@ -1538,3 +1538,26 @@ test('compact note picker cycles accidentals and adds only on request', async ({
   await expect(page.locator('.sequence-scroll .staff-note')).toHaveCount(1);
   await expect(page.locator('.sequence-scroll .staff-note')).toHaveAttribute('data-midi', '54');
 });
+
+test('unbarred sequence repeats accidentals on each note outside the key', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#settings-open').click();
+  await page.locator('#key').selectOption({ label: 'C-Dur' });
+  await page.locator('#settings-close').click();
+  await page.locator('#notation-open').click();
+  const point = await staffPoint(page, 11); // G3
+  await page.mouse.click(point.x, point.y);
+  await page.getByRole('button', { name: 'Kreuz', exact: true }).click();
+  for (let index = 0; index < 2; index++) await page.locator('#add-note').click();
+  await page.locator('#sequence-toggle').click();
+  const notes = page.locator('.sequence-scroll .staff-note');
+  await expect(notes).toHaveCount(2);
+  for (const note of await notes.all()) {
+    await expect(note).toHaveAttribute('data-midi', '56');
+    await expect(note.locator('.staff-accidental')).toHaveText('♯');
+  }
+  await page.locator('#settings-open').click();
+  await page.locator('#key').selectOption({ label: 'A-Dur' });
+  await page.locator('#settings-close').click();
+  await expect(page.locator('.sequence-scroll .staff-note .staff-accidental')).toHaveCount(0);
+});
