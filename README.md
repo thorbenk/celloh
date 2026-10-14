@@ -235,3 +235,24 @@ The service in `src/pitch.ts` uses [Pitchy](https://github.com/ianprime0509/pitc
 Enable **Ton erkennen** in Intonation to recognize a held note without choosing a target. After an initial 250 ms of stable, reliable pitch, all playable positions of that exact note/octave are highlighted with the correction indicator and trace. **Einstellungen → Intonation → Ton halten** adjusts the hold time from 150–600 ms for real cello testing. Silence clears the recognized note after 500 ms; switching the mode off restores the selected exercise target. Recognition does not play samples or change the exercise selection. `RECOGNITION_CONFIG` in `src/pitch-recognition.ts` controls the initial hold, nearest-note tolerance (40 cents), permitted variation (30 cents), and timing gaps. Try changing notes, brief bow transients, vibrato, quiet passages, and octave changes when tuning these experimental values.
 
 Storybook now includes **Components/Pitch feedback** (in tune, low, high, large error, silence, and mobile previews with generated measurements) and **Layout/Workspace → Intonation / Automatic Recognition** for the panel controls. Component previews do not request microphone access.
+
+### Experimental SoundFont playback
+
+In **Einstellungen → Klang → Klangerzeugung**, select **SoundFont (experimentell)**
+to compare live SpessaSynth playback with the default recordings. The choice is saved.
+The live engine loads the same Ethan Winer cello bank on first playback, sustains
+notes for their edited duration, and uses the bank's release envelopes between notes.
+Volume, reference A, reset, and switching engines also apply to live playback.
+Loading errors remain errors; playback never silently substitutes the other engine.
+
+`npm run audio:soundfont` stages the checksum-pinned SF2 (about 4.6 MB), reusing
+`references/cello_solo.sf2` if available, otherwise downloading the pinned archive.
+Normal `dev` and `build` commands run this automatically. Both the worklet and bank
+are hosted with the app; no synthesis server or runtime CDN is required.
+SpessaSynth is Apache-2.0 licensed; its license is included in the static assets.
+The SoundFont retains Ethan Winer's usage terms linked above.
+
+This is a listening prototype: note transitions still follow the existing browser
+timer scheduler. It improves sustain and release control, but does not add sampled
+legato transitions or model bow changes. Compare short eighth notes, long notes,
+and repeated pitches on desktop and mobile before choosing a default engine.

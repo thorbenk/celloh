@@ -24,6 +24,7 @@ export interface Preferences {
   'position-3-upper': boolean;
   spread: number;
   volume: number;
+  'audio-backend': 'recordings' | 'soundfont';
   'reference-a': number;
   'replay-tempo': number;
   'pitch-hold-ms': number;

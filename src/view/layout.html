@@ -445,6 +445,15 @@
       </section>
     </div>
     <div id="sound-settings" role="tabpanel" aria-labelledby="sound-tab" hidden>
+      <label for="audio-backend">Klangerzeugung</label>
+      <select id="audio-backend" aria-describedby="audio-backend-help">
+        <option value="recordings">Aufnahmen (Standard)</option>
+        <option value="soundfont">SoundFont (experimentell)</option>
+      </select>
+      <p class="micro" id="audio-backend-help">
+        Vergleiche dieselbe Tonfolge mit beiden Klängen. SoundFont lädt beim ersten Abspielen ca.
+        4,6 MB und hält Töne passend zu ihrer Notenlänge.
+      </p>
       <label class="volume-label" for="reference-a"
         >Kammerton A <output id="reference-a-value" for="reference-a">440 Hz</output></label
       >

@@ -2,7 +2,7 @@ import { SettingsStore, type Preferences } from './settings';
 import { PitchFeedbackView } from './view/pitch-feedback';
 import { frequency, keyName, NOTE_NAMINGS, OCTAVE_NOTATIONS } from './music';
 import { staffNote, writtenNoteName } from './notation';
-import { CelloAudio } from './audio';
+import { AudioPlayer } from './audio-backend';
 import { AppModel } from './model';
 import {
   MAJOR_KEYS,
@@ -31,7 +31,7 @@ export class App {
   private automaticPitch: MidiPitch | null | undefined = undefined;
   private readonly pitchFeedback: PitchFeedbackView;
   private readonly model = new AppModel();
-  private readonly audio = new CelloAudio();
+  private readonly audio = new AudioPlayer();
   private readonly events = new AbortController();
   private readonly board: FingerboardView;
   private readonly staff: StaffView;
@@ -267,6 +267,10 @@ export class App {
   }
   private restoreSettings(root: HTMLElement): void {
     this.model.setSpelling(this.settings.choice('spelling', 'sharp', ['sharp', 'flat']));
+    this.bindChoice('audio-backend', 'recordings', ['recordings', 'soundfont'], (backend) => {
+      this.stopReplay();
+      this.audio.setBackend(backend);
+    });
     this.bindChoice('note-naming', this.model.noteDisplay.naming, NOTE_NAMINGS, (naming) => {
       this.model.noteDisplay.naming = naming;
     });
@@ -347,7 +351,7 @@ export class App {
     );
   }
   /** Validate DOM strings against domain choices before they reach model or storage. */
-  private bindChoice<K extends 'note-naming' | 'octave-notation' | 'key'>(
+  private bindChoice<K extends 'note-naming' | 'octave-notation' | 'key' | 'audio-backend'>(
     key: K,
     fallback: Preferences[K],
     choices: readonly Preferences[K][],
@@ -389,9 +393,9 @@ export class App {
         this.staff.status.textContent = 'Klang konnte nicht geladen werden. Tippe erneut.';
     }
   }
-  private stopReplay(): void {
+  private stopReplay(releaseTail = false): void {
     ++this.playbackRequest;
-    this.audio.stop();
+    this.audio.stop(releaseTail);
     if (this.replayTimer !== null) window.clearTimeout(this.replayTimer);
     this.replayTimer = null;
     const playing = this.replayIndex !== null;
@@ -424,12 +428,16 @@ export class App {
     if (request !== this.playbackRequest) return;
     const note = this.sequenceModel.notes[index];
     if (note === undefined) {
-      this.stopReplay();
+      this.stopReplay(true);
       this.staff.status.textContent = 'Tonfolge abgespielt';
       return;
     }
     try {
-      if (!(await this.audio.play(note.pitch)) || request !== this.playbackRequest) return;
+      if (
+        !(await this.audio.play(note.pitch, (60 / this.tempo) * quarterBeats(note.duration))) ||
+        request !== this.playbackRequest
+      )
+        return;
       this.replayIndex = index;
       this.model.selectPiano(note.pitch);
       this.renderSelection();

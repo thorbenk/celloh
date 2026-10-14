@@ -20,3 +20,5 @@ __pycache__/
 !.agents/resume
 .codex/
 .amp/portals/
+
+public/soundfont/

@@ -6,7 +6,8 @@ const executablePath =
   ['/usr/bin/chromium-browser', '/usr/bin/chromium', '/usr/bin/google-chrome'].find((path) =>
     existsSync(path),
   );
-const baseURL = 'http://127.0.0.1:4173';
+const port = process.env.PLAYWRIGHT_PORT ?? '4173';
+const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: './tests/browser',
@@ -16,7 +17,7 @@ export default defineConfig({
     launchOptions: executablePath ? { executablePath } : {},
   },
   webServer: {
-    command: 'npm run preview -- --port 4173 --strictPort',
+    command: `npm run preview -- --port ${port} --strictPort`,
     url: baseURL,
     reuseExistingServer: false,
   },

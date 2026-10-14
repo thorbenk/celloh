@@ -1,4 +1,5 @@
 import { isPlayablePitch, type MidiPitch } from './music';
+import type { AudioBackend } from './audio-backend';
 
 interface PlayingNote {
   readonly source: AudioBufferSourceNode;
@@ -6,7 +7,7 @@ interface PlayingNote {
 }
 
 /** Lazily decode each sample once. Only the most recent play request may produce sound. */
-export class CelloAudio {
+export class CelloAudio implements AudioBackend {
   private context: AudioContext | null = null;
   private readonly buffers = new Map<MidiPitch, Promise<AudioBuffer>>();
   private active: PlayingNote | null = null;
