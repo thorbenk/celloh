@@ -255,7 +255,7 @@ test('mobile layout stays within viewport and brackets align with notes', async 
   await page.screenshot({ path: '/tmp/celloh-mobile.png', fullPage: true });
 });
 
-test('note colors match across strings and spelling, with clear nut and bracket bounds', async ({
+test('note colors match across strings and spelling, with compact open-string caps and aligned bracket bounds', async ({
   page,
 }) => {
   await page.goto('/');
@@ -278,15 +278,15 @@ test('note colors match across strings and spelling, with clear nut and bracket 
       .evaluate((note) => getComputedStyle(note).backgroundColor),
   ).toBe(colors[2]);
   const geometry = await page.evaluate(() => {
-    const notes = document.querySelector('#notes')!.getBoundingClientRect();
-    const nutStyle = getComputedStyle(document.querySelector('#notes')!, '::before');
-    const nutTop = notes.top + parseFloat(nutStyle.top);
-    const nutBottom = nutTop + parseFloat(nutStyle.height);
+    const board = document.querySelector('.fingerboard')!.getBoundingClientRect();
     const open = document
       .querySelector('.note[data-string="0"][data-offset="0"]')!
       .getBoundingClientRect();
     const first = document
       .querySelector('.note[data-string="0"][data-offset="1"]')!
+      .getBoundingClientRect();
+    const second = document
+      .querySelector('.note[data-string="0"][data-offset="2"]')!
       .getBoundingClientRect();
     const path = document.querySelector('.position-bracket') as SVGPathElement;
     const matrix = path.getScreenCTM()!;
@@ -303,14 +303,16 @@ test('note colors match across strings and spelling, with clear nut and bracket 
       .querySelector('.note[data-string="0"][data-offset="5"]')!
       .getBoundingClientRect();
     return {
-      aboveNut: nutTop - open.bottom,
-      belowNut: first.top - nutBottom,
+      openTop: open.top - board.top,
+      firstGap: first.y + first.height / 2 - open.y - open.height / 2,
+      nextGap: second.y + second.height / 2 - first.y - first.height / 2,
       startError: Math.abs(top.matrixTransform(matrix).y - start.top),
       endError: Math.abs(bottom.matrixTransform(matrix).y - end.bottom),
     };
   });
-  expect(geometry.aboveNut).toBeGreaterThanOrEqual(20);
-  expect(geometry.belowNut).toBeGreaterThanOrEqual(12);
+  expect(geometry.openTop).toBeCloseTo(0);
+  expect(geometry.firstGap).toBeCloseTo(geometry.nextGap);
+  expect(geometry.firstGap).toBeCloseTo(58);
   expect(geometry.startError).toBeLessThan(1);
   expect(geometry.endError).toBeLessThan(1);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
@@ -853,10 +855,8 @@ test('corner notation reserves a fixed range and divider clears it', async ({ pa
   });
   const clearance = await page.evaluate(() => {
     const compact = document.querySelector('#compact-staff')!.getBoundingClientRect();
-    const notes = document.querySelector('#notes')!;
-    const bounds = notes.getBoundingClientRect();
-    const nut = getComputedStyle(notes, '::before');
-    return bounds.left + parseFloat(nut.left) - compact.right;
+    const open = document.querySelector('.open-row .note')!.getBoundingClientRect();
+    return open.left - compact.right;
   });
   expect(clearance).toBeGreaterThan(12);
   await page.screenshot({ path: '/tmp/celloh-fixed-corner-staff.png', fullPage: true });
@@ -1427,4 +1427,61 @@ test('position switches keep second and third position variants independent', as
     await page.locator('#position-options > summary').click();
   await page.getByRole('switch', { name: '2. Lage oben', exact: true }).check();
   await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(2);
+});
+
+test('open-string caps stay flush with the board and use the regular note spacing', async ({
+  page,
+}) => {
+  for (const width of [320, 375, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/');
+    const markers = await page.locator('.open-row .note').evaluateAll((elements) =>
+      elements.map((element) => {
+        const bounds = element.getBoundingClientRect();
+        const board = element.closest('.fingerboard')!.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const numeral = element
+          .parentElement!.querySelector('.string-numeral')!
+          .getBoundingClientRect();
+        const string = (element as HTMLElement).dataset.string;
+        const centers = [0, 1, 2].map((offset) => {
+          const rect = document
+            .querySelector(`.note[data-string="${string}"][data-offset="${offset}"]`)!
+            .getBoundingClientRect();
+          return rect.y + rect.height / 2;
+        });
+        return {
+          top: bounds.top - board.top,
+          diameter: bounds.width,
+          height: bounds.height,
+          topRadius: style.borderTopLeftRadius,
+          bottomRadius: style.borderBottomLeftRadius,
+          firstGap: centers[1]! - centers[0]!,
+          nextGap: centers[2]! - centers[1]!,
+          numeralGap: numeral.left - bounds.right,
+          numeralCenter: numeral.y + numeral.height / 2 - centers[0]!,
+          label: element.getAttribute('aria-label'),
+          title: element.getAttribute('title'),
+        };
+      }),
+    );
+    expect(markers).toHaveLength(4);
+    for (const marker of markers) {
+      expect(marker.top).toBeCloseTo(0);
+      expect(marker.height).toBe(marker.diameter);
+      expect(marker.topRadius).toBe('0px');
+      expect(marker.bottomRadius).toBe('50%');
+      expect(marker.firstGap).toBeCloseTo(marker.nextGap);
+      expect(marker.firstGap).toBeCloseTo(58);
+      expect(marker.numeralGap).toBeGreaterThanOrEqual(6);
+      expect(marker.numeralCenter).toBeCloseTo(0);
+      expect(marker.label).toContain('leere Saite');
+      expect(marker.title).toContain('Leere Saite');
+    }
+    const open = page.locator('.open-row .note').first();
+    await open.focus();
+    await page.keyboard.press('Enter');
+    await expect(open).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#selected-note')).toHaveText('C2');
+  }
 });

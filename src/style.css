@@ -756,17 +756,6 @@ main,
     transparent 25%
   );
 }
-.notes::before {
-  content: '';
-  position: absolute;
-  top: var(--nut-y);
-  left: 12.5%;
-  right: 12.5%;
-  height: 5px;
-  border-radius: 4px;
-  background: #b7aa8b;
-  box-shadow: 0 2px 0 #e9e4d4;
-}
 .note-row {
   position: absolute;
   display: grid;
@@ -822,13 +811,15 @@ main,
   box-shadow: none;
 }
 .open-row .note {
+  border-radius: 0 0 50% 50%;
   font-size: 17px;
   font-family: Georgia, serif;
 }
 .string-numeral {
   position: absolute;
-  bottom: calc(100% + 12px);
-  left: calc(50% + 10px);
+  top: 50%;
+  left: calc(50% + var(--note-diameter) / 2 + 8px);
+  transform: translateY(-50%);
   font-family: Georgia, serif;
   font-size: 15px;
   line-height: 1.2;

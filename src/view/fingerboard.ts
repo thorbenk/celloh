@@ -15,15 +15,7 @@ import {
 import type { BoardSettings } from '../model';
 import { noteName, staffNote, writtenNoteName } from '../notation';
 import { requireElement } from './dom';
-import {
-  boardHeight,
-  NOTE_DIAMETER,
-  NOTE_CLEARANCE,
-  ROW_HEIGHT,
-  NUT_Y,
-  rowY,
-  rowGap,
-} from './geometry';
+import { boardHeight, NOTE_DIAMETER, NOTE_CLEARANCE, ROW_HEIGHT, rowY, rowGap } from './geometry';
 import { positionMarkup } from './positions';
 
 export class FingerboardView {
@@ -41,7 +33,6 @@ export class FingerboardView {
     this.overlays = requireElement('#overlays', SVGSVGElement, root);
     this.fingerboard.style.setProperty('--note-diameter', `${NOTE_DIAMETER}px`);
     this.fingerboard.style.setProperty('--row-height', `${ROW_HEIGHT}px`);
-    this.fingerboard.style.setProperty('--nut-y', `${NUT_Y}px`);
   }
   renderNotes(
     settings: BoardSettings,
@@ -84,7 +75,7 @@ export class FingerboardView {
         `${crowded ? gap - NOTE_CLEARANCE : NOTE_DIAMETER}px`,
       );
       button.textContent = crowded ? '' : label;
-      button.title = `${fullName} · ${string.name}-Saite`;
+      button.title = `${fullName} · ${string.name}-Saite${offset === 0 ? ' · Leere Saite' : ''}`;
       cell.append(button);
       if (offset === 0) {
         const numeral = document.createElement('span');
