@@ -86,9 +86,6 @@ export class App {
         ),
     );
     requireElement('main', HTMLElement, root).append(this.pitchFeedback.element);
-    this.pitchFeedback.element.append(
-      requireElement('#intonation-options', HTMLDetailsElement, root),
-    );
     requireElement('.board-scroll-wrap', HTMLElement, root).append(this.pitchFeedback.diagnostics);
     const intonationToggle = requireElement('#intonation-toggle', HTMLButtonElement, root);
     intonationToggle.addEventListener(
@@ -121,7 +118,6 @@ export class App {
       },
     );
     this.sequence.element.id = 'pitch-sequence';
-    this.sequence.element.append(requireElement('#sequence-options', HTMLDetailsElement, root));
     this.sequence.element.hidden = true;
     this.piano.element.before(this.sequence.element);
     const sequenceToggle = requireElement('#sequence-toggle', HTMLButtonElement, root);

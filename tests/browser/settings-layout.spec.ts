@@ -89,15 +89,15 @@ for (const width of [320, 375, 1280]) {
     await page.getByLabel('Hinweise zu Artikulation', { exact: true }).click();
     await expect(page.locator('#articulation-help')).not.toBeVisible();
     await expect(page.locator('#music-settings')).toHaveAttribute('open', '');
-    await page.locator('#settings-close').click();
-    await page.locator('#sequence-toggle').click();
+    await expect(page.locator('#settings #sequence-options')).toHaveCount(1);
+    await expect(page.locator('#settings #intonation-options')).toHaveCount(1);
+    await expect(page.locator('#pitch-sequence details, #intonation details')).toHaveCount(0);
     await page.locator('#sequence-options > summary').click();
     await page.locator('#replay-tempo').fill('90');
-    await expect(page.locator('#pitch-sequence #replay-tempo-value')).toHaveText('90 BPM');
-    await page.locator('#intonation-toggle').click();
+    await expect(page.locator('#settings #replay-tempo-value')).toHaveText('90 BPM');
     await page.locator('#intonation-options > summary').click();
     await page.locator('#pitch-hold-ms').fill('350');
-    await expect(page.locator('#intonation #pitch-hold-value')).toHaveText('350 ms');
+    await expect(page.locator('#settings #pitch-hold-value')).toHaveText('350 ms');
     await expect(page.locator('.pitch-mic')).toHaveAttribute('aria-pressed', 'false');
   });
 }

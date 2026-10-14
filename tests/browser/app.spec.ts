@@ -1263,11 +1263,13 @@ test('sequence replay keeps every pitch view in sync, honors tempo, and never re
     await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   }
   await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+  await page.locator('#settings-open').click();
   await page.locator('#sequence-options > summary').click();
   const tempo = page.getByRole('slider', { name: 'Tempo', exact: true });
   await expect(tempo).toHaveValue('120');
   await tempo.fill('40');
   await expect(page.locator('#replay-tempo-value')).toHaveText('40 BPM');
+  await page.locator('#settings-close').click();
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
@@ -1295,8 +1297,11 @@ test('sequence replay keeps every pitch view in sync, honors tempo, and never re
   await checkPitch(0, 50);
   await page.clock.runFor(1);
   await checkPitch(1, 54);
+  await page.locator('#settings-open').click();
   await tempo.fill('240');
   await expect(page.locator('#replay-tempo-value')).toHaveText('240 BPM');
+  await page.locator('#settings-close').click();
+  await page.getByRole('button', { name: 'Noten öffnen' }).click();
   await page.clock.runFor(1500);
   await checkPitch(2, 54);
   await page.clock.runFor(249);

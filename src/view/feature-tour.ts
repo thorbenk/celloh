@@ -93,7 +93,7 @@ export class FeatureTour {
         step(
           '#sequence-toggle',
           'Deine eigene Tonfolge',
-          '„Tonfolge“ sammelt deine gespielten Töne. Spiele sie ab oder ändere unter „Bearbeiten“ Töne und Notenlängen. Das Tempo stellst du direkt in der Tonfolge ein.',
+          '„Tonfolge“ sammelt deine gespielten Töne. Spiele sie ab oder ändere unter „Bearbeiten“ Töne und Notenlängen. Das Tempo stellst du unter Einstellungen → Tempo ein.',
         ),
         step(
           '#intonation-toggle',

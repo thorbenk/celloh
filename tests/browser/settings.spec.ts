@@ -21,13 +21,13 @@ test('preferences survive reload and preserve manual spelling when a key is clea
   if ((await page.locator('#sound-settings').getAttribute('open')) === null)
     await page.locator('#sound-settings > summary').click();
   await page.locator('#volume').fill('35');
-  await page.locator('#settings-close').click();
-  await page.locator('#sequence-toggle').click();
   await page.locator('#sequence-options > summary').click();
   await page.locator('#replay-tempo').fill('80');
-  await page.locator('#intonation-toggle').click();
   await page.locator('#intonation-options > summary').click();
   await page.locator('#pitch-hold-ms').fill('450');
+  await page.locator('#settings-close').click();
+  await page.locator('#sequence-toggle').click();
+  await page.locator('#intonation-toggle').click();
   await page.reload();
   await expect(page.locator('#key')).toHaveValue('major:1');
   await expect(page.locator('#position-summary')).toContainText('2 oben');
@@ -235,7 +235,6 @@ test('reference A retunes samples and intonation and persists across reloads', a
   await page.getByRole('slider', { name: 'Kammerton A' }).fill('442');
   await expect(page.locator('#reference-a-value')).toHaveText('442 Hz');
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
-  await page.locator('#intonation-toggle').click();
   await page.locator('.note[data-string="3"][data-offset="12"]').click();
   await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
   await expect

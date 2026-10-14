@@ -247,6 +247,6 @@ test('compact intonation panel has icon controls and hold time in settings', asy
   await expect(page.locator('.pitch-meter')).toHaveCount(0);
   await expect(page.locator('#intonation input[type="range"]')).toHaveCount(0);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.getByRole('tab', { name: 'Intonation', exact: true }).click();
+  await page.locator('#intonation-options > summary').click();
   await expect(page.getByRole('slider', { name: 'Haltezeit für Tonerkennung' })).toHaveValue('250');
 });

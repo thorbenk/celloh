@@ -127,6 +127,15 @@ h2 {
 .icon-button:hover {
   background: #eef2e7;
 }
+.settings-heading .icon-button {
+  border: 0;
+  background: transparent;
+  outline: none;
+}
+.settings-heading .icon-button:hover,
+.settings-heading .icon-button:focus-visible {
+  background: #e0eadd;
+}
 .icon-button[aria-expanded='true'],
 .icon-button[aria-pressed='true'] {
   background: #e0eadd;
@@ -1100,6 +1109,7 @@ input[type='range'] {
 .widget-body {
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }
 #staff {
   display: block;
@@ -1652,21 +1662,6 @@ main:has(.pitch-feedback) .workspace {
 }
 #articulation-controls[hidden] {
   display: none;
-}
-#sequence-options,
-#intonation-options {
-  padding: 0 16px;
-  border-top: 1px solid #e6e3d8;
-  border-bottom: 0;
-}
-#sequence-options > summary,
-#intonation-options > summary {
-  min-height: 44px;
-  font-size: 12px;
-}
-#intonation-options {
-  grid-column: 1 / -1;
-  padding: 0;
 }
 #sequence-options input,
 #intonation-options input {

@@ -181,13 +181,13 @@ test('microphone is gesture gated, target reused, and all tracks stop', async ({
   expect((await stats()).requests).toBe(3);
   await page.locator('#octave-notation').selectOption('scientific');
   await expect(page.locator('.pitch-target')).toHaveText('D3 · 146.8 Hz');
-  await page.locator('#settings-close').click();
   await page.locator('#intonation-options > summary').click();
   const hold = page.getByRole('slider', { name: 'Haltezeit für Tonerkennung' });
   await expect(hold).toHaveValue('250');
   await hold.focus();
   await page.keyboard.press('Home');
   await expect(hold).toHaveValue('150');
+  await page.locator('#settings-close').click();
   await expect(page.locator('.pitch-target')).toHaveText('D3 · 146.8 Hz');
   await setHz(0);
   await expect(page.locator('.note.playing')).toHaveCount(0);
