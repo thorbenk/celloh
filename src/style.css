@@ -953,8 +953,7 @@ main,
   overflow-y: auto;
   box-shadow: -10px 0 40px #26382b20;
 }
-#settings,
-#notation-panel {
+#settings {
   bottom: var(--footer-height);
   height: calc(100dvh - var(--header-height) - var(--footer-height));
   max-height: calc(100dvh - var(--header-height) - var(--footer-height));
@@ -1061,11 +1060,36 @@ input[type='range'] {
   padding: 20px;
   background: #fffdf8;
 }
-.notation-panel .settings-heading {
-  gap: 12px;
+#notation-panel {
+  inset: calc(var(--header-height) + 12px) 12px auto auto;
+  width: min(280px, calc(100% - 24px));
+  height: auto;
+  max-height: calc(100dvh - var(--header-height) - var(--footer-height) - 24px);
+  border: 1px solid #e3e0d5;
+  border-radius: 12px;
 }
-.notation-panel .settings-heading h2 {
-  margin-right: auto;
+.notation-panel .settings-heading {
+  justify-content: flex-end;
+  padding: 4px 8px 0;
+  border: 0;
+}
+.notation-panel .note-widget {
+  padding: 0 16px 16px;
+}
+.notation-panel #staff {
+  height: 210px;
+}
+.add-note {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #b8cebe;
+  border-radius: 8px;
+  background: #e0eadd;
+  color: #111;
+}
+.add-note:disabled {
+  opacity: 0.5;
 }
 .clear-note {
   border: 0;
@@ -1108,7 +1132,7 @@ input[type='range'] {
   color: #76816c;
   line-height: 1.6;
 }
-#audio-status {
+#audio-status:not(.visually-hidden) {
   display: block;
   margin-top: 8px;
   font-size: 10px;
@@ -1122,6 +1146,7 @@ input[type='range'] {
   margin: 12px 0 0;
 }
 .accidentals button {
+  color: #111;
   font-size: 21px;
   padding: 4px;
 }

@@ -161,6 +161,7 @@ export class StaffView {
 
   renderSelection(model: AppModel): void {
     const selection = model.selection;
+    requireElement('#add-note', HTMLButtonElement).disabled = !selection;
     const pitch = model.selectedPitch;
     this.name.textContent = selection
       ? writtenNoteName(selection.note, model.noteDisplay)

@@ -607,9 +607,7 @@ test('staff previews silently, selects exact matches, and renders board clicks w
   await expect(page.locator('#staff .staff-note')).toHaveAttribute('data-midi', '36');
   await expect(page.locator('#staff .ledger-line')).toHaveCount(2);
   await page.screenshot({ path: '/tmp/celloh-note-panel.png', fullPage: true });
-  await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
-  await expect(page.locator('.note.selected')).toHaveCount(0);
-  await expect(page.locator('#staff .staff-note')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Tonmarkierung aufheben' })).toHaveCount(0);
 });
 
 test('staff accidentals and keyboard distinguish German H and B', async ({ page }) => {
@@ -1488,4 +1486,27 @@ test('open-string caps stay flush with the board and use the regular note spacin
     await expect(open).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#selected-note')).toHaveText('C2');
   }
+});
+
+test('compact note picker cycles accidentals and adds only on request', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Noten öffnen' }).click();
+  const panel = page.getByRole('dialog', { name: 'Noten', exact: true });
+  const box = (await panel.boundingBox())!;
+  expect(box.height).toBeLessThan(500);
+  expect(box.x + box.width).toBeGreaterThan(1200);
+  await expect(page.locator('#audio-status')).toHaveClass('visually-hidden');
+  await expect(page.locator('#add-note')).toBeDisabled();
+  const point = await staffPoint(page, 10);
+  await page.mouse.click(point.x, point.y);
+  await expect(page.locator('#staff .staff-note')).toHaveAttribute('data-midi', '53');
+  await page.mouse.click(point.x, point.y);
+  await expect(page.locator('#staff .staff-note')).toHaveAttribute('data-midi', '52');
+  await page.mouse.click(point.x, point.y);
+  await expect(page.locator('#staff .staff-note')).toHaveAttribute('data-midi', '54');
+  await expect(page.locator('.sequence-scroll .staff-note')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Note hinzufügen' }).click();
+  await page.locator('#sequence-toggle').click();
+  await expect(page.locator('.sequence-scroll .staff-note')).toHaveCount(1);
+  await expect(page.locator('.sequence-scroll .staff-note')).toHaveAttribute('data-midi', '54');
 });

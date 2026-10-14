@@ -1,7 +1,7 @@
 import { SettingsStore, type Preferences } from './settings';
 import { PitchFeedbackView } from './view/pitch-feedback';
-import { frequency, keyName, NOTE_NAMINGS, OCTAVE_NOTATIONS } from './music';
-import { staffNote, writtenNoteName } from './notation';
+import { frequency, isPlayablePitch, keyName, NOTE_NAMINGS, OCTAVE_NOTATIONS } from './music';
+import { naturalMidi, staffNote, writtenNoteName } from './notation';
 import { AudioPlayer } from './audio-backend';
 import { AppModel } from './model';
 import {
@@ -491,13 +491,20 @@ export class App {
     }
   }
   private selectWrittenNote(step: number): void {
-    const accidental =
+    let accidental =
       this.model.picker.previewStep !== null
         ? (this.model.displayedNote?.accidental ?? this.model.picker.accidental)
         : this.model.picker.accidental;
+    if (this.model.selection?.note.step === step) {
+      const cycle = [0, -1, 1] as const;
+      const index = cycle.indexOf(this.model.selection.note.accidental);
+      accidental = [1, 2, 3]
+        .map((offset) => cycle[(index + offset) % cycle.length]!)
+        .find((value) => isPlayablePitch(naturalMidi(step) + value))!;
+    }
     if (!this.model.selectWritten(step, accidental)) return;
     this.renderSelection();
-    void this.playSelection();
+    void this.auditionPitch(this.model.selectedPitch!);
   }
   private bindBoard(): void {
     const options = { signal: this.events.signal };
@@ -581,19 +588,14 @@ export class App {
         () => {
           const shouldPlay = this.model.changeAccidental(accidental);
           this.renderSelection();
-          if (shouldPlay) void this.playSelection();
+          if (shouldPlay) void this.auditionPitch(this.model.selectedPitch!);
         },
         options,
       );
     }
-    requireElement('#clear-note', HTMLButtonElement).addEventListener(
+    requireElement('#add-note', HTMLButtonElement).addEventListener(
       'click',
-      () => {
-        this.stopReplay();
-        this.model.clearSelection();
-        this.staff.status.textContent = 'Bereit';
-        this.renderSelection();
-      },
+      () => void this.playSelection(),
       options,
     );
   }

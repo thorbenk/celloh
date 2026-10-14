@@ -237,12 +237,8 @@
   </div>
 </dialog>
 
-<dialog id="notation-panel" class="settings-panel notation-panel" aria-labelledby="notation-title">
+<dialog id="notation-panel" class="settings-panel notation-panel" aria-label="Noten">
   <div class="settings-heading">
-    <h2 id="notation-title">Noten</h2>
-    <button id="clear-note" class="clear-note" aria-label="Tonmarkierung aufheben">
-      Zurücksetzen
-    </button>
     <button id="notation-close" class="icon-button" aria-label="Noten schließen">×</button>
   </div>
   <div class="note-widget">
@@ -263,10 +259,15 @@
         </div>
         <div id="selected-note">Noch kein Ton gewählt</div>
         <div id="selected-detail">C2–G4 auswählen</div>
-        <span id="audio-status" role="status" aria-live="polite">Bereit</span>
+        <span id="audio-status" class="visually-hidden" role="status" aria-live="polite"
+          >Bereit</span
+        >
       </div>
     </div>
-    <p id="staff-help">Note zeigen, dann klicken oder tippen. ↑ ↓ wählen, Enter spielt.</p>
+    <button id="add-note" class="add-note" disabled>Note hinzufügen</button>
+    <p id="staff-help">
+      Klicken wählt den Ton, erneut klicken wechselt ♮ → ♭ → ♯. ↑ ↓ wählen, Enter spielt.
+    </p>
   </div>
 </dialog>
 <dialog aria-labelledby="settings-title" class="settings-panel" id="settings">
