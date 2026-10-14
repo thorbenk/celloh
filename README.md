@@ -103,6 +103,14 @@ ESLint uses the [type-aware TypeScript rules](https://typescript-eslint.io/getti
 
 With system Chromium or Chrome installed, run `npm run test:browser`. This builds the current source first so tests cannot accidentally exercise an old `dist/` directory. Set `CHROME_PATH` to use a different browser executable. On other platforms, install Playwright’s browser with `npx playwright install chromium`. The checks cover note spelling, delayed audio loading and reset, volume changes, overlays, keyboard activation, and a 375-pixel mobile viewport.
 
+The focused Firefox hover regression also checks notes at a scaled board size:
+
+```sh
+npx playwright install firefox
+npm run build
+npx playwright test --config playwright.firefox.config.ts
+```
+
 ## Features
 
 - Icon-only settings and help buttons in the header, with “Noten”, “Klaviatur”,

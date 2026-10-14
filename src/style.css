@@ -771,6 +771,7 @@ main,
   justify-content: center;
 }
 .note {
+  appearance: none;
   width: var(--note-size, var(--note-diameter));
   height: var(--note-size, var(--note-diameter));
   padding: 0;
@@ -782,13 +783,13 @@ main,
   color: #24312c;
   background: hsl(var(--note-hue) 72% 76%);
   box-shadow: 0 2px 3px #343d2005;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
+  /* Keep rounded borders stationary during hover to avoid Firefox paint seams. */
+  transition: box-shadow 0.15s;
 }
 .note:hover {
-  transform: scale(1.08);
-  box-shadow: 0 3px 8px #343d2018;
+  box-shadow:
+    0 0 0 3px hsl(var(--note-hue) 65% 48% / 18%),
+    0 3px 8px #343d2018;
 }
 .note.selected {
   outline: 3px solid #243d32;
