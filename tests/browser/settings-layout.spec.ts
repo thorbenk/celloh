@@ -9,6 +9,10 @@ for (const width of [320, 375, 1280]) {
     await expect(page.locator('#assistance-open')).toHaveText('');
     await page.locator('#settings-open').click();
     await expect(page.getByRole('tablist')).toHaveCount(0);
+    const panelBounds = (await page.locator('#settings').boundingBox())!;
+    const headerBounds = (await page.locator('.header').boundingBox())!;
+    expect(panelBounds.y).toBe(headerBounds.y + headerBounds.height);
+    expect(headerBounds.height).toBe((await page.locator('.footer').boundingBox())!.height);
     const columns = await page.locator('#settings').evaluate((panel) => {
       const selectors = [
         'label[for="key"]',
@@ -136,5 +140,29 @@ test('fresh defaults use full volume and 442 Hz, with a compact attribution page
     const license = await page.request.get(href!);
     expect(license.ok()).toBe(true);
     expect((await license.text()).length).toBeGreaterThan(100);
+  }
+});
+
+test('mobile settings stay flush with the header as the usable screen height changes', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await page.locator('#settings-open').click();
+  for (const height of [915, 780, 667]) {
+    await page.setViewportSize({ width: 412, height });
+    await expect
+      .poll(async () => {
+        const header = (await page.locator('.header').boundingBox())!;
+        const panel = (await page.locator('#settings').boundingBox())!;
+        const footer = (await page.locator('.footer').boundingBox())!;
+        return {
+          top: panel.y - header.y - header.height,
+          bottom: panel.y + panel.height - footer.y,
+          headerHeight: header.height,
+        };
+      })
+      .toEqual({ top: 0, bottom: 0, headerHeight: 56 });
   }
 });

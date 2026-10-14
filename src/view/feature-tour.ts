@@ -69,6 +69,11 @@ export class FeatureTour {
           'Tippe auf einen Griff und höre den Ton. Derselbe Ton leuchtet auf allen Saiten auf. Probiere es aus oder tippe auf „Weiter“.',
         ),
         step(
+          '#settings-open',
+          'Einstellungen öffnen',
+          'Mit dem Zahnrad öffnest du Tonart, Lagen, Ansicht und Klang. Im nächsten Schritt schauen wir uns die Lagen an.',
+        ),
+        step(
           '#position-controls',
           'Die Lagen kennenlernen',
           'Blende Lagen und Fingerzahlen ein. Bei der 2. und 3. Lage kannst du zwischen unten und oben wählen. Darunter aktivierst du die Rückwärtsstreckung.',
@@ -100,6 +105,8 @@ export class FeatureTour {
         this.popoverObserver.disconnect();
         cancelAnimationFrame(this.layoutFrame);
         document.body.style.removeProperty('--tour-space');
+        document.body.style.removeProperty('--tour-anchor');
+        delete document.body.dataset.tourPlacement;
         this.panels.showForTour(null);
         requireElement('#music-settings', HTMLDetailsElement).open = this.savedMusicOpen;
         requireElement('#position-options', HTMLDetailsElement).open = this.savedPositionsOpen;
@@ -118,8 +125,8 @@ export class FeatureTour {
       { signal: this.events.signal },
     );
     for (const [selector, index] of [
-      ['#piano-toggle', 3],
-      ['#sequence-toggle', 4],
+      ['#piano-toggle', 4],
+      ['#sequence-toggle', 5],
     ] as const) {
       requireElement(selector, HTMLButtonElement).addEventListener(
         'click',
@@ -131,6 +138,13 @@ export class FeatureTour {
         { signal: this.events.signal },
       );
     }
+    window.addEventListener(
+      'resize',
+      () => {
+        if (this.tour.isActive()) this.reservePopoverSpace();
+      },
+      { signal: this.events.signal },
+    );
     // Escape is reserved for the tour, without also closing an app panel or editor.
     document.addEventListener(
       'keydown',
@@ -145,17 +159,30 @@ export class FeatureTour {
     );
   }
 
-  /** Reserve actual card height instead of guessing where each mobile target sits. */
+  /** Keep toolbars fixed; only reserve workspace space for large board/panel targets. */
   private reservePopoverSpace(): void {
-    const popover = document.querySelector<HTMLElement>('.driver-popover');
-    if (!popover || !window.matchMedia('(max-width: 600px)').matches) return;
-    document.body.style.setProperty(
-      '--tour-space',
-      `${popover.getBoundingClientRect().height + 24}px`,
-    );
     cancelAnimationFrame(this.layoutFrame);
     this.layoutFrame = requestAnimationFrame(() => {
-      this.tour.getActiveElement()?.scrollIntoView({ block: 'nearest' });
+      const popover = document.querySelector<HTMLElement>('.driver-popover');
+      const target = this.tour.getActiveElement();
+      if (!popover || !target || !window.matchMedia('(max-width: 600px)').matches) return;
+      const above =
+        target.closest('.footer') !== null ||
+        target.id === 'piano' ||
+        target.id === 'pitch-sequence';
+      const below = target.closest('.header') !== null;
+      const placement = above ? 'above' : below ? 'below' : 'workspace';
+      document.body.dataset.tourPlacement = placement;
+      const bounds = target.getBoundingClientRect();
+      document.body.style.setProperty(
+        '--tour-anchor',
+        `${above ? window.innerHeight - bounds.top + 12 : bounds.bottom + 12}px`,
+      );
+      document.body.style.setProperty(
+        '--tour-space',
+        placement === 'workspace' ? `${popover.getBoundingClientRect().height + 24}px` : '0px',
+      );
+      if (placement === 'workspace') target.scrollIntoView({ block: 'nearest' });
       this.tour.refresh();
     });
   }

@@ -11,7 +11,7 @@
   color: #2d3833;
   background: #f8f5ef;
   font-synthesis: none;
-  --header-height: 78px;
+  --header-height: 56px;
   --footer-height: 56px;
   --piano-height: 88px;
   --green: #287665;
@@ -135,7 +135,7 @@ h2 {
 
 /* Page and toolbar */
 .header {
-  padding: 16px 24px;
+  padding: 6px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1145,10 +1145,10 @@ input[type='range'] {
 }
 @media (max-width: 700px) {
   :root {
-    --header-height: 68px;
+    --header-height: 56px;
   }
   .header {
-    padding: 12px 16px;
+    padding: 6px 16px;
   }
   .header-actions {
     gap: 6px;
@@ -1510,7 +1510,7 @@ main:has(.pitch-feedback) .workspace {
     left: 12px !important;
     right: 12px !important;
     top: auto !important;
-    bottom: calc(env(safe-area-inset-bottom) + 12px) !important;
+    bottom: calc(var(--footer-height) + 12px) !important;
     max-height: 35dvh;
     overflow-y: auto;
     max-width: none;
@@ -1525,8 +1525,15 @@ main:has(.pitch-feedback) .workspace {
   pointer-events: none;
 }
 @media (max-width: 600px) {
-  .driver-active #app {
-    height: calc(100dvh - var(--tour-space, 0px) - env(safe-area-inset-bottom));
+  .driver-active #app main {
+    padding-bottom: var(--tour-space, 0px);
+  }
+  .driver-active[data-tour-placement='above'] .driver-popover.feature-tour {
+    bottom: var(--tour-anchor) !important;
+  }
+  .driver-active[data-tour-placement='below'] .driver-popover.feature-tour {
+    top: var(--tour-anchor) !important;
+    bottom: auto !important;
   }
   .driver-active #settings,
   .driver-active #notation-panel {
@@ -1645,11 +1652,11 @@ main:has(.pitch-feedback) .workspace {
 }
 @media (max-width: 600px) {
   #settings {
-    inset: auto 0 var(--footer-height);
+    inset: var(--header-height) 0 var(--footer-height);
     width: 100%;
-    height: min(78dvh, calc(100dvh - var(--header-height) - var(--footer-height)));
+    height: auto;
     max-height: calc(100dvh - var(--header-height) - var(--footer-height));
-    border-radius: 18px 18px 0 0;
+    border-radius: 0;
     border-left: 0;
     border-top: 1px solid #e3e0d5;
   }

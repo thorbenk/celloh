@@ -38,7 +38,7 @@ test('piano dock preserves board geometry and scroll, remembers visibility, and 
   await page.getByLabel('Tonart', { exact: true }).selectOption({ label: 'Es-Dur' });
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await page.setViewportSize({ width: 320, height: 500 });
-  expect((await page.locator('.board-scroll').boundingBox())!.height).toBe(288);
+  expect((await page.locator('.board-scroll').boundingBox())!.height).toBe(300);
   await expect(page.locator('#piano')).toBeInViewport({ ratio: 1 });
   await expect(toggle).toBeInViewport({ ratio: 1 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
@@ -46,7 +46,7 @@ test('piano dock preserves board geometry and scroll, remembers visibility, and 
   const footer = (await page.locator('.footer').boundingBox())!;
   expect(dock.y + dock.height).toBe(footer.y);
   await toggle.click();
-  expect((await page.locator('.board-scroll').boundingBox())!.height).toBe(376);
+  expect((await page.locator('.board-scroll').boundingBox())!.height).toBe(388);
   await page.reload();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 });

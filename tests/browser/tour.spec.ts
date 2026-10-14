@@ -13,6 +13,10 @@ for (const width of [1280, 375]) {
     await start();
     await page.locator('.note[data-string="0"][data-offset="0"]').click({ timeout: 5000 });
     await page.locator('.driver-popover-next-btn').click({ timeout: 5000 });
+    await expect(page.locator('.driver-active-element')).toHaveAttribute('id', 'settings-open');
+    await expect(page.locator('.driver-popover-title')).toHaveText('Einstellungen öffnen');
+    await expect(page.locator('#settings')).not.toBeVisible();
+    await page.locator('.driver-popover-next-btn').click({ timeout: 5000 });
     await expect(page.locator('#settings')).toBeVisible();
     await expect(page.locator('.driver-popover-title')).toHaveText('Die Lagen kennenlernen');
     await page.locator('.driver-popover-next-btn').click({ timeout: 5000 });
@@ -47,7 +51,7 @@ test('opening the piano during the tour allows playing without forcing progressi
   await page.goto('/');
   await page.locator('#assistance-open').click();
   await page.locator('#tour-start').click();
-  for (let i = 0; i < 3; i++) await page.locator('.driver-popover-next-btn').click();
+  for (let i = 0; i < 4; i++) await page.locator('.driver-popover-next-btn').click();
   await page.locator('#piano-toggle').click();
   await expect(page.locator('#piano')).toBeVisible();
   await page.locator('#piano .piano-key').first().click();
@@ -68,6 +72,7 @@ for (const viewport of [
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await page.locator('#assistance-open').click();
+    const footerBefore = await page.locator('.footer').boundingBox();
     await page.locator('#tour-start').click();
     const assertClear = async () => {
       await expect
@@ -96,11 +101,21 @@ for (const viewport of [
         )
         .toBe('clear');
     };
-    for (let index = 0; index < 6; index++) {
+    for (let index = 0; index < 7; index++) {
       await assertClear();
-      if (index === 3 || index === 4) {
-        await page.locator(index === 3 ? '#piano-toggle' : '#sequence-toggle').click();
+      expect(await page.locator('.footer').boundingBox()).toEqual(footerBefore);
+      if (index >= 4) {
+        const bubble = (await page.locator('.driver-popover').boundingBox())!;
+        const target = (await page.locator('.driver-active-element').boundingBox())!;
+        expect(bubble.y + bubble.height).toBeLessThanOrEqual(target.y);
+      }
+      if (index === 4 || index === 5) {
+        await page.locator(index === 4 ? '#piano-toggle' : '#sequence-toggle').click();
         await assertClear();
+        const bubble = (await page.locator('.driver-popover').boundingBox())!;
+        const target = (await page.locator('.driver-active-element').boundingBox())!;
+        expect(bubble.y + bubble.height).toBeLessThanOrEqual(target.y);
+        expect(await page.locator('.footer').boundingBox()).toEqual(footerBefore);
       }
       await page.locator('.driver-popover-next-btn').click();
     }
