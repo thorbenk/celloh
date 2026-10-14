@@ -168,6 +168,21 @@ test('pitch sequence uses the key signature and cancels/restores alterations per
   ] as const) {
     await page.goto(`/iframe.html?id=components-pitch-sequence--${story}&viewMode=story`);
     await expect(page.locator('.sequence-scroll svg')).toHaveAccessibleName(label);
+    await expect(page.locator('.sequence-scroll .vf-clef')).toHaveCount(1);
+    for (const stem of await page.locator('.staff-note .note-stem path').all()) {
+      expect(await stem.evaluate((path) => getComputedStyle(path).stroke)).not.toBe('none');
+    }
+    const alterations = page.locator('.staff-note .staff-accidental');
+    for (const accidental of await alterations.all()) {
+      const bounds = await accidental.boundingBox();
+      const head = await accidental
+        .locator('xpath=ancestor::*[contains(@class, "staff-note")]')
+        .locator('.notehead')
+        .boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(head).not.toBeNull();
+      if (bounds && head) expect(bounds.x + bounds.width).toBeLessThan(head.x);
+    }
     expect(
       await page
         .locator('.staff-note')

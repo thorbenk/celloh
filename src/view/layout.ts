@@ -1,6 +1,7 @@
 import template from './layout.html?raw';
 import bravuraLicenseUrl from '../assets/bravura-LICENSE.txt?url';
 import iconsLicenseUrl from '../assets/material-icons-LICENSE.txt?url';
+import vexflowLicenseUrl from '../assets/vexflow-LICENSE.txt?url&no-inline';
 import brandIconUrl from '../assets/brand-icon.webp';
 import brandEmblemUrl from '../assets/brand-emblem.webp';
 import { MAJOR_KEYS, MINOR_KEYS, POSITIONS } from '../music';
@@ -11,6 +12,7 @@ export function mountLayout(root: HTMLElement): void {
     .replaceAll('{{brandIcon}}', brandIconUrl)
     .replaceAll('{{brandEmblem}}', brandEmblemUrl)
     .replaceAll('{{bravuraLicense}}', bravuraLicenseUrl)
+    .replaceAll('{{vexflowLicense}}', vexflowLicenseUrl)
     .replaceAll('{{iconsLicense}}', iconsLicenseUrl);
   const keySelect = requireElement('#key', HTMLSelectElement, root);
   for (const [label, keys] of [

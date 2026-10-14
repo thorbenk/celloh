@@ -131,7 +131,7 @@ test('fresh defaults use full volume and 442 Hz, with a compact attribution page
   await expect(page.locator('#help-panel img')).toBeVisible();
   await expect(page.locator('#help-panel p')).toHaveCount(0);
   await expect(page.locator('#help-panel li a')).toHaveCount(7);
-  for (const label of ['Bravura', 'Material Icons']) {
+  for (const label of ['Bravura', 'Material Icons', 'VexFlow']) {
     const href = await page
       .locator('#help-panel')
       .getByRole('link', { name: new RegExp(label) })

@@ -1,4 +1,12 @@
-import bassClefUrl from '../assets/bass-clef.svg';
+import {
+  Accidental as VexAccidental,
+  Dot,
+  ModifierContext,
+  Stave,
+  StaveNote,
+  SVGContext,
+  TickContext,
+} from 'vexflow/bravura';
 import {
   isPlayablePitch,
   matchingBoardNotes,
@@ -7,138 +15,197 @@ import {
   keyAccidental,
   DEFAULT_NOTE_DISPLAY,
   type NoteDisplaySettings,
-  type Accidental,
   type KeySignature,
   type LetterIndex,
 } from '../music';
 import {
   naturalMidi,
   staffY,
-  ledgerSteps,
   writtenNoteName,
   type StaffNote,
   PICKER_MAX,
   COMPACT_VIEW_BOX,
   stepAtStaffY,
   ACCIDENTALS,
-  STAFF_LINES,
   notePitch,
 } from '../notation';
 import type { AppModel } from '../model';
-import { QUARTER_NOTE, type NoteDuration } from '../rhythm';
-import { MUSIC_GLYPHS } from '../assets/music-glyphs';
+import { QUARTER_NOTE } from '../rhythm';
 import { requireElement } from './dom';
 
 export const NOTE_STEM_LENGTH = 70; // 3.5 staff spaces.
-const STEM_WIDTH = 2.4;
 const NOTE_LEDGER_HALF_WIDTH = 20;
-const COMPACT_CONTROL_CLEARANCE = 6; // CSS pixels between the note's ledger lines and resize button.
+const COMPACT_CONTROL_CLEARANCE = 6;
 
-const ACCIDENTAL_SYMBOLS = { [-1]: '♭', 0: '♮', 1: '♯' } as const;
+/** VexFlow uses 10-unit staff spaces; our interactive views use 20. */
+function notationContext(): SVGContext {
+  const context = new SVGContext(document.createElement('div'));
+  const group = context.openGroup();
+  group.setAttribute('transform', 'scale(2)');
+  context.setFillStyle('currentColor').setStrokeStyle('currentColor');
+  return context;
+}
 
-/** Font-independent musical signs: upright stems, slanted thick crossbars, and a tapered flat bowl. */
-function accidentalMarkup(accidental: Accidental, x: number, y: number): string {
-  const paths = {
-    [-1]: '<path d="M-5 -29V10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M-5 -7C12 -18 18 -2 -5 10V6C10 -4 6 -13 -5 -3Z"/>',
-    0: '<path d="M-5 -23V13M5 -13V23" fill="none" stroke="currentColor" stroke-width="2"/><path d="M-5 -10L5 -14V-8L-5 -4ZM-5 8L5 4V10L-5 14Z"/>',
-    1: '<path d="M-5 -23V23M5 -26V20" fill="none" stroke="currentColor" stroke-width="2"/><path d="M-11 -8L11 -14V-7L-11 -1ZM-11 8L11 2V9L-11 15Z"/>',
+function notationStave(width = 240): Stave {
+  // VexFlow's top line is y + 40; align it with our A3 line at y = 70.
+  const stave = new Stave(9, -5, (width - 36) / 2, {
+    left_bar: false,
+    right_bar: false,
+    fill_style: '#657166',
+  }).setClef('bass');
+  stave.setDefaultLedgerLineStyle({ strokeStyle: 'currentColor', lineWidth: 0.75 });
+  return stave;
+}
+
+function drawNote(
+  context: SVGContext,
+  stave: Stave,
+  note: StaffNote,
+  x: number,
+  show: boolean,
+): void {
+  const duration = note.duration ?? QUARTER_NOTE;
+  const letter = ['c', 'd', 'e', 'f', 'g', 'a', 'b'][((note.step % 7) + 7) % 7];
+  const octave = 2 + Math.floor(note.step / 7);
+  const rendered = new StaveNote({
+    clef: 'bass',
+    keys: [`${letter}/${octave}`],
+    duration: String(duration.value),
+    stem_direction: note.step >= 8 ? -1 : 1,
+  })
+    .setStemLength(NOTE_STEM_LENGTH / 2)
+    .setStave(stave)
+    .setContext(context);
+  if (show)
+    rendered.addModifier(
+      new VexAccidental(note.accidental === -1 ? 'b' : note.accidental === 1 ? '#' : 'n'),
+      0,
+    );
+  if (duration.dotted) {
+    Dot.buildAndAttach([rendered], { all: true });
+    for (const dot of rendered.getModifiers().filter((modifier) => modifier instanceof Dot)) {
+      const draw = dot.draw.bind(dot);
+      dot.draw = () => {
+        const group = context.openGroup();
+        group.setAttribute('class', 'note-dot');
+        draw();
+        context.closeGroup();
+      };
+    }
+  }
+  // TickContext alone does not format accidentals or augmentation dots.
+  rendered.addToModifierContext(new ModifierContext());
+  const tick = new TickContext().addTickable(rendered).preFormat().setX(0);
+  // Keep notehead centers stable when accidentals or rhythmic values change.
+  tick.setX(x / 2 - rendered.getNoteHeadBeginX() - rendered.getGlyphWidth() / 2);
+  const group = context.openGroup();
+  if (show) {
+    const modifier = rendered.getModifiers().find((entry) => entry instanceof VexAccidental);
+    if (modifier) {
+      const draw = modifier.draw.bind(modifier);
+      modifier.draw = () => {
+        const accidental = context.openGroup();
+        accidental.setAttribute('class', 'staff-accidental');
+        accidental.innerHTML = `<title>${note.accidental === -1 ? '♭' : note.accidental === 1 ? '♯' : '♮'}</title>`;
+        draw();
+        context.closeGroup();
+      };
+    }
+  }
+  const drawFlag = rendered.drawFlag.bind(rendered);
+  rendered.drawFlag = () => {
+    if (duration.value < 8) return;
+    const flag = context.openGroup();
+    flag.setAttribute('class', 'note-flag');
+    drawFlag();
+    context.closeGroup();
   };
-  return `<g class="staff-accidental" data-accidental="${accidental}" transform="translate(${x} ${y})" fill="currentColor"><title>${ACCIDENTAL_SYMBOLS[accidental]}</title>${paths[accidental]}</g>`;
+  const drawLedgers = rendered.drawLedgerLines.bind(rendered);
+  rendered.drawLedgerLines = () => {
+    const ledgers = context.openGroup();
+    drawLedgers();
+    ledgers.querySelectorAll('path').forEach((path) => path.classList.add('ledger-line'));
+    context.closeGroup();
+  };
+  rendered.draw();
+  group.querySelectorAll('.vf-notehead > path').forEach((head) => head.classList.add('notehead'));
+  group.querySelectorAll('.vf-stem').forEach((stem) => stem.classList.add('note-stem'));
+  context.closeGroup();
 }
 
-/** Font-independent glyph shared by notation and duration controls. Inherits its ink color. */
+/** Shared VexFlow drawing for notation and duration controls. */
 export function noteGlyphMarkup(note: StaffNote, x: number, showAccidental = false): string {
-  const duration: NoteDuration = note.duration ?? QUARTER_NOTE;
-  const y = staffY(note.step);
-  const stemDown = note.step >= 8; // Middle staff line and above: stem on the left, pointing down.
-  const stemmedHead = duration.value === 2 ? MUSIC_GLYPHS.noteheadHalf : MUSIC_GLYPHS.noteheadBlack;
-  const head = duration.value === 1 ? MUSIC_GLYPHS.noteheadWhole : stemmedHead;
-  const [anchorX, anchorY] = stemDown ? stemmedHead.stemDown : stemmedHead.stemUp;
-  const stemX = x + anchorX + (stemDown ? STEM_WIDTH / 2 : -STEM_WIDTH / 2);
-  const stemEnd = y + (stemDown ? NOTE_STEM_LENGTH : -NOTE_STEM_LENGTH);
-  const ledgerHalfWidth = head.width / 2 + 8;
-  const ledgers = ledgerSteps(note.step)
-    .map(
-      (step) => `
-    <line class="ledger-line" x1="${x - ledgerHalfWidth}" x2="${x + ledgerHalfWidth}" y1="${staffY(step)}" y2="${staffY(step)}" stroke="currentColor" stroke-width="1.5"/>
-  `,
-    )
-    .join('');
-  const accidental = showAccidental ? accidentalMarkup(note.accidental, x - 32, y) : '';
-  const hollow = duration.value === 1 || duration.value === 2;
-  const headMarkup = `<g transform="translate(${x} ${y})">
-    ${hollow ? `<path d="${head.outline}" fill="var(--staff-paper, #fffdf8)"/>` : ''}
-    <path class="notehead" d="${head.path}"/>
-  </g>`;
-  const stem =
-    duration.value === 1
-      ? ''
-      : `<line class="note-stem" x1="${stemX}" x2="${stemX}" y1="${y + anchorY}" y2="${stemEnd}" stroke="currentColor" stroke-width="${STEM_WIDTH}"/>`;
-  const flag =
-    duration.value === 8
-      ? stemDown
-        ? MUSIC_GLYPHS.flag8thDown
-        : MUSIC_GLYPHS.flag8thUp
-      : duration.value === 16
-        ? stemDown
-          ? MUSIC_GLYPHS.flag16thDown
-          : MUSIC_GLYPHS.flag16thUp
-        : null;
-  const flagMarkup = flag
-    ? `<path class="note-flag" transform="translate(${stemX - STEM_WIDTH / 2} ${stemEnd})" d="${flag.path}"/>`
-    : '';
-  const dotX = x + head.width / 2 + (flag && !stemDown ? 22 : 10);
-  const dot = duration.dotted
-    ? `<circle class="note-dot" cx="${dotX}" cy="${y - (note.step % 2 === 0 ? 10 : 0)}" r="3.5"/>`
-    : '';
-  return `${ledgers}${accidental}${headMarkup}${stem}${flagMarkup}${dot}`;
+  const context = notationContext();
+  drawNote(context, notationStave(), note, x, showAccidental);
+  return context.svg.innerHTML;
 }
 
-/** Shared notation drawing; the pitch picker defaults to quarter notes. */
+/** Preserve fixed editor spacing while VexFlow handles musical engraving. */
 export function staffMarkup(
   note: StaffNote | readonly StaffNote[] | undefined,
   preview = false,
   noteX = 152,
   options: { width?: number; key?: KeySignature; spacing?: number } = {},
 ): string {
-  const key = options.key;
-  const signatureSteps = key && key.fifths < 0 ? [6, 9, 5, 8, 4, 7, 3] : [10, 7, 11, 8, 5, 9, 6];
-  const signature = signatureSteps
-    .slice(0, Math.abs(key?.fifths ?? 0))
-    .map((step, index) =>
-      accidentalMarkup(key && key.fifths < 0 ? -1 : 1, 94 + index * 22, staffY(step)),
-    )
-    .join('');
+  const context = notationContext();
+  const stave = notationStave(options.width);
+  if (options.key) {
+    const keys = [
+      'Cb',
+      'Gb',
+      'Db',
+      'Ab',
+      'Eb',
+      'Bb',
+      'F',
+      'C',
+      'G',
+      'D',
+      'A',
+      'E',
+      'B',
+      'F#',
+      'C#',
+    ];
+    const keyName = keys[options.key.fifths + 7];
+    if (!keyName) throw new RangeError('Invalid key signature');
+    stave.addKeySignature(keyName);
+  }
+  stave.setContext(context).draw();
+  context.svg.querySelectorAll('.vf-keysignature').forEach((signature) => {
+    signature.classList.add('key-signature');
+    signature.querySelectorAll('path').forEach((path) => path.classList.add('staff-accidental'));
+  });
   const notes = note === undefined ? [] : 'step' in note ? [note] : note;
-  // No barlines: an explicit alteration remains in force for this written pitch until changed.
-  const alterations = new Map<number, Accidental>();
-  const color = preview ? '#287665' : '#26382b';
-  const quarters = notes
-    .map((current, index) => {
-      const previous =
-        alterations.get(current.step) ??
-        (key ? keyAccidental(key, (((current.step % 7) + 7) % 7) as LetterIndex) : 0);
-      alterations.set(current.step, current.accidental);
-      const show = key
-        ? current.accidental !== previous
-        : current.accidental !== 0 || !!current.showNatural;
-      const duration = current.duration ?? QUARTER_NOTE;
-      return `<g class="staff-note ${preview ? 'preview-note' : ''}" data-step="${current.step}" data-midi="${notePitch(current)}" data-value="${duration.value}" data-dotted="${duration.dotted}" fill="${color}" color="${color}">
-        ${noteGlyphMarkup(current, noteX + index * (options.spacing ?? 72), show)}
-      </g>`;
-    })
-    .join('');
-  const lines = STAFF_LINES.map(
-    (step) => `
-    <line x1="18" x2="${(options.width ?? 240) - 18}" y1="${staffY(step)}" y2="${staffY(step)}"/>
-  `,
-  ).join('');
-  return `
-    <g class="staff-lines" stroke="#657166" stroke-width="1">${lines}</g>
-    <image class="bass-clef" href="${bassClefUrl}" x="24" y="70" width="56" height="65"/>
-    <g class="key-signature">${signature}</g>
-    ${quarters}
-  `;
+  const alterations = new Map<number, StaffNote['accidental']>();
+  // Draw editor groups outside the scaled stave group: their hit targets use app coordinates.
+  context.closeGroup();
+  notes.forEach((current, index) => {
+    const previous =
+      alterations.get(current.step) ??
+      (options.key ? keyAccidental(options.key, (((current.step % 7) + 7) % 7) as LetterIndex) : 0);
+    alterations.set(current.step, current.accidental);
+    const show = options.key
+      ? current.accidental !== previous
+      : current.accidental !== 0 || !!current.showNatural;
+    const duration = current.duration ?? QUARTER_NOTE;
+    const group = context.openGroup();
+    group.setAttribute('class', `staff-note ${preview ? 'preview-note' : ''}`);
+    group.setAttribute('data-step', String(current.step));
+    group.setAttribute('data-midi', String(notePitch(current)));
+    group.setAttribute('data-value', String(duration.value));
+    group.setAttribute('data-dotted', String(duration.dotted));
+    group.setAttribute('color', preview ? '#287665' : '#26382b');
+    // Editor hit targets are added to this group; only the musical ink should inherit a stroke.
+    group.setAttribute('stroke', 'none');
+    const ink = context.openGroup();
+    ink.setAttribute('transform', 'scale(2)');
+    ink.setAttribute('stroke', 'currentColor');
+    drawNote(context, stave, current, noteX + index * (options.spacing ?? 72), show);
+    context.closeGroup();
+    context.closeGroup();
+  });
+  return context.svg.innerHTML;
 }
 
 export class StaffView {

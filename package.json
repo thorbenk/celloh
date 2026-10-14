@@ -53,6 +53,7 @@
   "dependencies": {
     "driver.js": "^1.9.0",
     "pitchy": "^4.1.0",
-    "spessasynth_lib": "4.3.14"
+    "spessasynth_lib": "4.3.14",
+    "vexflow": "^4.2.5"
   }
 }
