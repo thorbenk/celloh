@@ -573,6 +573,29 @@ test('note panel toggles and switches exclusively with settings', async ({ page 
   await expect(notes).not.toBeVisible();
 });
 
+test('touch note selection preserves the mounted staff and picker panel', async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    viewport: { width: 820, height: 1180 },
+  });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.locator('#notation-open').tap();
+  await staffPoint(page, 14);
+  const initial = await page.locator('#staff > g').first().elementHandle();
+  const bounds = await page.locator('#notation-panel').boundingBox();
+  for (const step of [14, 13, 7, 14]) {
+    const point = await staffPoint(page, step);
+    await page.touchscreen.tap(point.x, point.y);
+    await expect(page.locator('#staff .staff-note')).toHaveAttribute('data-step', String(step));
+    expect(
+      await initial.evaluate((stave) => stave === document.querySelector('#staff')?.firstChild),
+    ).toBe(true);
+    expect(await page.locator('#notation-panel').boundingBox()).toEqual(bounds);
+  }
+  await context.close();
+});
+
 test('staff previews silently, selects exact matches, and renders board clicks while open', async ({
   page,
 }) => {
