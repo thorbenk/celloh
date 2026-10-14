@@ -222,7 +222,22 @@ The workflow downloads the original soundfont, checks both ZIP and soundfont SHA
 
 Existing releases are left unchanged. To publish different recordings, change the tag in `audio-release.json` to `audio-v2` (and update source checksums if needed), then push to `master`. The workflow publishes the new version and subsequent builds fetch it. Rendering-tool versions follow Ubuntu 24.04 packages; each released bundle is reused unchanged rather than regenerated for app deployments.
 
-The app works in mobile browsers. Offline installation is a possible follow-up; this version requires connectivity to load the app and uncached recordings.
+### Install and use offline
+
+CellOh! is an installable PWA. On Android or desktop Chrome/Edge, choose **Install**
+from the browser menu. On iPhone/iPad, open it in Safari and choose **Share → Add to
+Home Screen**. Installation requires HTTPS (or localhost for development).
+
+The production build registers a service worker and caches the app, recordings,
+and SoundFont after the first online visit (about 7 MB). Wait for that initial
+cache download before going offline. Both playback engines then work offline;
+microphone permission is still required for intonation feedback. Browser storage
+can be cleared or evicted, in which case another online visit is needed.
+
+Updates download in the background and activate after all CellOh! windows close.
+Reopen the app to use the update. Development mode does not register a worker;
+use `npm run build && npm run preview` to test installation and offline behavior.
+The manifest and worker scope follow the deployment subdirectory.
 
 ### Live pitch feedback (experimental)
 
