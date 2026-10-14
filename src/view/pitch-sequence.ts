@@ -40,11 +40,9 @@ export class PitchSequenceView {
   private readonly insert: HTMLButtonElement;
   private readonly remove: HTMLButtonElement;
   private readonly undo: HTMLButtonElement;
-  private readonly cancel: HTMLButtonElement;
   private readonly dot: HTMLButtonElement;
   private readonly durations;
   private editing = false;
-  private armed = false;
   private selectedIndex: number | null = null;
   private location: number | null = null;
   private count = 0;
@@ -135,8 +133,10 @@ export class PitchSequenceView {
     selection.append(this.summary, this.previous, this.next);
     const rhythm = document.createElement('div');
     rhythm.className = 'sequence-durations';
-    rhythm.setAttribute('role', 'group');
-    rhythm.setAttribute('aria-label', 'Notenlänge');
+    const lengths = document.createElement('div');
+    lengths.className = 'sequence-duration-segments';
+    lengths.setAttribute('role', 'group');
+    lengths.setAttribute('aria-label', 'Notenlänge');
     this.durations = NOTE_VALUES.map((value) => {
       const button = this.button('', `${NOTE_VALUE_NAMES[value]} (1/${value})`, () =>
         onAction({ type: 'duration', value }),
@@ -150,35 +150,38 @@ export class PitchSequenceView {
         20,
       );
       symbol.setAttribute('aria-hidden', 'true');
-      const fraction = document.createElement('span');
-      fraction.textContent = `1/${value}`;
-      button.append(symbol, fraction);
-      rhythm.append(button);
+      button.append(symbol);
+      lengths.append(button);
       return { value, button };
     });
     this.dot = this.button('·', 'Punktierung', () => onAction({ type: 'dot' }));
     this.dot.classList.add('sequence-dot-toggle');
-    rhythm.append(this.dot);
+    rhythm.append(lengths, this.dot);
     const actions = document.createElement('div');
     actions.className = 'sequence-actions';
-    this.replace = this.button('Ton ersetzen', 'Ton ersetzen', () => onAction({ type: 'replace' }));
-    this.insert = this.button('Einfügen', 'Vor der Note einfügen', () =>
-      onAction({ type: 'insert' }),
-    );
-    this.remove = this.button('Löschen', 'Ausgewählte Note löschen', () =>
-      onAction({ type: 'delete' }),
-    );
+    this.replace = this.button('', 'Note bearbeiten', () => onAction({ type: 'replace' }));
+    this.insert = this.button('', 'Einfügen', () => onAction({ type: 'insert' }));
+    this.replace.innerHTML =
+      '<span class="material-icon icon-replace-audio" aria-hidden="true"></span>';
+    this.insert.innerHTML =
+      '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10M12 3v18M7 21h10" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+    const modes = document.createElement('div');
+    modes.className = 'sequence-modes';
+    modes.setAttribute('role', 'group');
+    modes.setAttribute('aria-label', 'Bearbeitungsmodus');
+    modes.append(this.replace, this.insert);
+    this.remove = this.button('', 'Ausgewählte Note löschen', () => onAction({ type: 'delete' }));
     this.remove.classList.add('sequence-delete');
+    this.remove.innerHTML = '<span class="material-icon icon-delete" aria-hidden="true"></span>';
     this.undo = this.button('', 'Rückgängig', () => onAction({ type: 'undo' }));
     this.undo.innerHTML = '<span class="material-icon icon-undo" aria-hidden="true"></span>';
-    this.cancel = this.button('Abbrechen', 'Abbrechen', () => onAction({ type: 'cancel' }));
-    actions.append(this.replace, this.insert, this.remove, this.undo, this.cancel);
+    actions.append(modes, this.remove, this.undo);
     this.hint.className = 'sequence-hint';
     this.editor.append(selection, rhythm, actions, this.hint);
     this.element.append(heading, this.confirmation, this.scroll, this.editor);
     // Delegate from the stable SVG: note nodes are replaced on every render.
     const selectNote = (target: EventTarget | null): boolean => {
-      if (!this.editing || !(target instanceof Node)) return false;
+      if (!(target instanceof Node)) return false;
       const index = Array.from(this.staff.querySelectorAll('.staff-note')).findIndex((note) =>
         note.contains(target),
       );
@@ -186,15 +189,30 @@ export class PitchSequenceView {
       onAction({ type: 'select', index });
       return true;
     };
-    this.staff.addEventListener('click', (event) => selectNote(event.target), options);
+    this.staff.addEventListener(
+      'click',
+      (event) => {
+        const gap =
+          event.target instanceof Element ? event.target.closest('[data-position]') : null;
+        if (gap)
+          onAction({ type: 'position', position: Number(gap.getAttribute('data-position')) });
+        else selectNote(event.target);
+      },
+      options,
+    );
     this.scroll.addEventListener(
       'keydown',
       (event) => {
-        if (!this.editing) return;
         switch (event.key) {
           case 'Enter':
           case ' ':
-            if (selectNote(event.target)) {
+            if (event.target instanceof Element && event.target.hasAttribute('data-position')) {
+              event.preventDefault();
+              onAction({
+                type: 'position',
+                position: Number(event.target.getAttribute('data-position')),
+              });
+            } else if (selectNote(event.target)) {
               event.preventDefault();
               this.focusSelected();
             }
@@ -208,6 +226,7 @@ export class PitchSequenceView {
           case 'Delete':
           case 'Backspace':
             event.preventDefault();
+            if (!this.editing) break;
             onAction({ type: 'delete' });
             this.focusSelected();
             break;
@@ -220,7 +239,7 @@ export class PitchSequenceView {
       (event) => {
         if (event.key !== 'Escape' || !this.editing) return;
         event.preventDefault();
-        onAction({ type: this.armed ? 'cancel' : 'done' });
+        onAction({ type: 'done' });
         this.edit.focus();
       },
       options,
@@ -239,18 +258,18 @@ export class PitchSequenceView {
     const focusedNote = this.staff.contains(document.activeElement);
     const editor = sequence.editor;
     this.editing = editor.mode !== 'capture';
-    this.armed = editor.mode === 'replace' || editor.mode === 'insert';
     this.selectedIndex = sequence.selectedIndex;
     const key = selectedKey ?? C_MAJOR;
     const notes = sequence.notes.map(({ pitch, duration }) => ({
       ...staffNote(pitch, selectedKey?.spelling ?? spelling, selectedKey),
       duration,
     }));
-    const spacing = 88; // Room for full-size flags, dots, and the following accidental; 44px touch targets.
+    // Insertion gives notes and the gaps separate 44px touch targets without adding panel height.
+    const spacing = editor.mode === 'insert' ? 176 : 88;
     const firstX = 140 + Math.abs(key.fifths) * 22;
     const width = Math.max(
       240,
-      firstX + Math.max(0, notes.length - 1) * spacing + (this.editing ? spacing : 40),
+      firstX + Math.max(0, notes.length - 1) * spacing + (this.editing ? spacing : 48),
     );
     let top = 40;
     let bottom = staffY(8) + NOTE_STEM_LENGTH + 10; // Empty staff also fits a middle-line down-stem.
@@ -260,7 +279,7 @@ export class PitchSequenceView {
       top = Math.min(top, y - (note.step >= 8 ? 32 : NOTE_STEM_LENGTH + 10));
       bottom = Math.max(bottom, y + (note.step >= 8 ? NOTE_STEM_LENGTH + 10 : 32));
     }
-    if (this.editing) bottom = Math.max(bottom, top + 80 / SCALE); // Full-height finger targets.
+    bottom = Math.max(bottom, top + 80 / SCALE); // Full-height finger targets.
     this.staff.setAttribute('viewBox', `0 ${top} ${width} ${bottom - top}`);
     this.staff.style.width = `${width * SCALE}px`;
     this.staff.style.height = `${(bottom - top) * SCALE}px`;
@@ -268,32 +287,30 @@ export class PitchSequenceView {
       'aria-label',
       `${keyName(key, display.naming)}: ${notes.length ? notes.map((note) => writtenNoteName(note, display)).join(', ') : 'noch keine Töne'}`,
     );
-    this.staff.setAttribute('role', this.editing ? 'group' : 'img');
+    this.staff.setAttribute('role', 'group');
     this.staff.innerHTML = staffMarkup(notes, false, firstX, {
       width,
       key,
       spacing,
     });
     const groups = this.staff.querySelectorAll<SVGGElement>('.staff-note');
-    if (this.editing) {
-      groups.forEach((group, index) => {
-        const note = notes[index];
-        const duration = sequence.notes[index]?.duration;
-        if (!note || !duration) return;
-        group.setAttribute('role', 'button');
-        group.setAttribute('tabindex', index === this.selectedIndex ? '0' : '-1');
-        group.setAttribute(
-          'aria-label',
-          `Note ${index + 1}: ${writtenNoteName(note, display)}, ${durationName(duration)}`,
-        );
-        group.setAttribute('aria-pressed', String(index === this.selectedIndex));
-        group.classList.toggle('sequence-selected', index === this.selectedIndex);
-        group.insertAdjacentHTML(
-          'afterbegin',
-          `<rect class="sequence-note-target" x="${firstX + index * spacing - spacing / 2}" y="${top}" width="${spacing}" height="${bottom - top}" rx="6"/>`,
-        );
-      });
-    }
+    groups.forEach((group, index) => {
+      const note = notes[index];
+      const duration = sequence.notes[index]?.duration;
+      if (!note || !duration) return;
+      group.setAttribute('role', 'button');
+      group.setAttribute('tabindex', index === (this.selectedIndex ?? 0) ? '0' : '-1');
+      group.setAttribute(
+        'aria-label',
+        `Note ${index + 1}: ${writtenNoteName(note, display)}, ${durationName(duration)}`,
+      );
+      group.setAttribute('aria-pressed', String(index === this.selectedIndex));
+      group.classList.toggle('sequence-selected', index === this.selectedIndex);
+      group.insertAdjacentHTML(
+        'afterbegin',
+        `<rect class="sequence-note-target" x="${firstX + index * spacing - 44}" y="${top + 1}" width="88" height="${bottom - top - 2}" rx="6"/>`,
+      );
+    });
     const activeDuration =
       editor.mode === 'insert' ? editor.duration : sequence.selectedNote?.duration;
     this.editor.hidden = !this.editing;
@@ -310,26 +327,29 @@ export class PitchSequenceView {
         : this.selectedIndex !== null && selectedStaffNote
           ? `Note ${this.selectedIndex + 1} von ${notes.length} · ${writtenNoteName(selectedStaffNote, display)} · ${durationName(selectedStaffNote.duration)}`
           : 'Noch keine Töne · Einfügen zum Starten';
-    this.previous.disabled = this.selectedIndex === null || this.selectedIndex === 0;
-    this.next.disabled = this.selectedIndex === null || this.selectedIndex === notes.length - 1;
-    this.replace.disabled = this.selectedIndex === null || this.armed;
-    this.insert.disabled = this.armed;
-    this.remove.disabled = this.selectedIndex === null || this.armed;
+    this.previous.disabled =
+      editor.mode === 'insert'
+        ? editor.position === 0
+        : this.selectedIndex === null || this.selectedIndex === 0;
+    this.next.disabled =
+      editor.mode === 'insert'
+        ? editor.position === notes.length
+        : this.selectedIndex === null || this.selectedIndex === notes.length - 1;
+    this.replace.setAttribute('aria-pressed', String(editor.mode === 'replace'));
+    this.insert.setAttribute('aria-pressed', String(editor.mode === 'insert'));
+    this.remove.disabled = this.selectedIndex === null;
     this.undo.disabled = !sequence.canUndo;
-    this.cancel.hidden = !this.armed;
-    this.cancel.textContent = editor.mode === 'insert' ? 'Einfügen beenden' : 'Abbrechen';
-    this.cancel.setAttribute('aria-label', this.cancel.textContent);
     this.hint.textContent =
       editor.mode === 'replace'
-        ? 'Spiele einen Ersatzton auf Klaviatur oder Griffbrett. Die Notenlänge bleibt erhalten.'
+        ? 'Note antippen zum Anhören. Klaviatur oder Griffbrett ersetzen die ausgewählte Note.'
         : editor.mode === 'insert'
-          ? 'Spiele neue Töne auf Klaviatur oder Griffbrett. Die Notenlänge gilt für neue Töne.'
+          ? 'Zwischen die Noten tippen, um den Cursor zu bewegen. Klaviatur und Griffbrett fügen neue Töne ein.'
           : 'Note antippen zum Bearbeiten. Klaviatur und Griffbrett spielen nur zur Probe.';
     for (const { value, button } of this.durations) {
-      button.disabled = activeDuration === undefined || editor.mode === 'replace';
+      button.disabled = activeDuration === undefined;
       button.setAttribute('aria-pressed', String(activeDuration?.value === value));
     }
-    this.dot.disabled = activeDuration === undefined || editor.mode === 'replace';
+    this.dot.disabled = activeDuration === undefined;
     this.dot.setAttribute('aria-pressed', String(activeDuration?.dotted ?? false));
     this.play.textContent = playingIndex === null ? '▶ Abspielen' : '■ Stopp';
     this.play.setAttribute(
@@ -343,10 +363,17 @@ export class PitchSequenceView {
     this.count = notes.length;
     const location = editor.mode === 'insert' ? editor.position : this.selectedIndex;
     if (editor.mode === 'insert') {
+      for (let position = 0; position <= notes.length; position++) {
+        const x = firstX + position * spacing - spacing / 2;
+        this.staff.insertAdjacentHTML(
+          'beforeend',
+          `<rect class="sequence-gap-target" data-position="${position}" role="button" tabindex="${position === editor.position ? 0 : -1}" aria-label="${position === notes.length ? 'Am Ende einfügen' : `Vor Note ${position + 1} einfügen`}" aria-pressed="${position === editor.position}" x="${x - 41}" y="${top + 1}" width="82" height="${bottom - top - 2}"/>`,
+        );
+      }
       const x = firstX + editor.position * spacing - spacing / 2;
       this.staff.insertAdjacentHTML(
         'beforeend',
-        `<path class="sequence-insertion-marker" d="M${x - 7} ${top + 3}H${x + 7}M${x} ${top + 3}V${bottom - 3}"/>`,
+        `<path class="sequence-insertion-marker" d="M${x - 7} ${top + 3}H${x + 7}M${x} ${top + 3}V${bottom - 3}M${x - 7} ${bottom - 3}H${x + 7}"/>`,
       );
     }
     if (playingIndex !== null) {
@@ -358,7 +385,7 @@ export class PitchSequenceView {
       const active = groups[playingIndex];
       active?.classList.add('playing');
       this.scroll.scrollLeft = x * SCALE - this.scroll.clientWidth / 2;
-    } else if (this.editing && location !== null) {
+    } else if (location !== null) {
       if (location !== this.location || added) {
         const x = (firstX + location * spacing) * SCALE;
         if (
@@ -378,11 +405,19 @@ export class PitchSequenceView {
     button.className = 'sequence-control';
     button.textContent = text;
     button.setAttribute('aria-label', label);
+    button.title = label;
     button.addEventListener('click', action, { signal: this.events.signal });
     return button;
   }
 
   private focusSelected(): void {
+    const cursor = this.staff.querySelector<SVGElement>(
+      '.sequence-gap-target[aria-pressed="true"]',
+    );
+    if (cursor) {
+      cursor.focus({ preventScroll: true });
+      return;
+    }
     const note =
       this.selectedIndex === null
         ? undefined

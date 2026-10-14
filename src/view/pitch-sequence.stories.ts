@@ -27,7 +27,7 @@ const meta = {
   argTypes: {
     width: { control: { type: 'range', min: 280, max: 1280, step: 10 } },
     pitch: { control: { type: 'number', min: 36, max: 81 } },
-    mode: { control: 'select', options: ['capture', 'select', 'replace', 'insert'] },
+    mode: { control: 'select', options: ['capture', 'replace', 'insert'] },
     key: {
       control: 'select',
       options: ['', ...MAJOR_KEYS, ...MINOR_KEYS].map((key) =>
@@ -86,8 +86,7 @@ const meta = {
         () => {
           if (index !== null) stop();
           else {
-            sequence.dispatch({ type: 'cancel' });
-            index = 0;
+            index = sequence.selectedIndex ?? 0;
             advance();
           }
           view.render(sequence, key, index);
@@ -128,8 +127,8 @@ export const LongHistory: Story = {
   args: { pitches: Array.from({ length: 40 }, (_, i) => 48 + (i % 12)) },
 };
 export const SevenFlats: Story = { args: { key: 'Ces-Dur', pitches: [36, 59, 81] } };
-export const Editing: Story = { args: { mode: 'select', mixedDurations: true, width: 820 } };
-export const NarrowEditing: Story = { args: { mode: 'select', mixedDurations: true, width: 320 } };
+export const Editing: Story = { args: { mode: 'replace', mixedDurations: true, width: 820 } };
+export const NarrowEditing: Story = { args: { mode: 'replace', mixedDurations: true, width: 320 } };
 export const Replacing: Story = { args: { mode: 'replace' } };
 export const Inserting: Story = { args: { mode: 'insert', mixedDurations: true } };
-export const EmptyEditing: Story = { args: { pitches: [], mode: 'select' } };
+export const EmptyEditing: Story = { args: { pitches: [], mode: 'replace' } };

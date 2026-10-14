@@ -8,9 +8,8 @@ export interface SequenceNote {
 
 /** Only insertion has a between-note position; replacement always targets an existing note. */
 export type SequenceEditor =
-  | { readonly mode: 'capture' }
-  | { readonly mode: 'select'; readonly index: number | null }
-  | { readonly mode: 'replace'; readonly index: number }
+  | { readonly mode: 'capture'; readonly index?: number | null }
+  | { readonly mode: 'replace'; readonly index: number | null }
   | { readonly mode: 'insert'; readonly position: number; readonly duration: NoteDuration };
 
 export type SequenceAction =
@@ -18,12 +17,12 @@ export type SequenceAction =
   | { readonly type: 'done' }
   | { readonly type: 'replace' }
   | { readonly type: 'insert' }
-  | { readonly type: 'cancel' }
   | { readonly type: 'delete' }
   | { readonly type: 'dot' }
   | { readonly type: 'undo' }
   | { readonly type: 'clear' }
   | { readonly type: 'select'; readonly index: number }
+  | { readonly type: 'position'; readonly position: number }
   | { readonly type: 'move'; readonly delta: -1 | 1 }
   | { readonly type: 'duration'; readonly value: NoteValue };
 
@@ -51,7 +50,7 @@ export class SequenceModel {
   }
 
   get selectedIndex(): number | null {
-    return this.state.mode === 'select' || this.state.mode === 'replace' ? this.state.index : null;
+    return this.state.mode === 'insert' ? null : (this.state.index ?? null);
   }
 
   get selectedNote(): SequenceNote | undefined {
@@ -59,22 +58,21 @@ export class SequenceModel {
     return index === null ? undefined : this.current[index];
   }
 
-  /** Unarmed input in edit mode auditions without mutating the sequence. */
+  /** Instrument input records, replaces the selected note, or inserts at the cursor. */
   input(pitch: MidiPitch): void {
     const editor = this.state;
     switch (editor.mode) {
       case 'capture':
         this.save();
         this.current = [...this.current, { pitch, duration: QUARTER_NOTE }];
-        break;
-      case 'select':
+        this.state = { mode: 'capture' };
         break;
       case 'replace':
+        if (editor.index === null) return;
         this.save();
         this.current = this.current.map((note, index) =>
           index === editor.index ? { ...note, pitch } : note,
         );
-        this.state = { mode: 'select', index: editor.index };
         break;
       case 'insert':
         this.save();
@@ -93,6 +91,8 @@ export class SequenceModel {
     const index = this.selectedIndex;
     if (
       editor.mode === 'capture' &&
+      action.type !== 'select' &&
+      action.type !== 'move' &&
       action.type !== 'edit' &&
       action.type !== 'done' &&
       action.type !== 'clear' &&
@@ -101,40 +101,40 @@ export class SequenceModel {
       return;
     switch (action.type) {
       case 'edit':
-        this.state = { mode: 'select', index: this.lastIndex() };
+        this.state = { mode: 'replace', index: index ?? this.lastIndex() };
         return;
       case 'done':
-        this.state = { mode: 'capture' };
+        this.state = { mode: 'capture', index };
         return;
       case 'clear':
         if (!this.current.length) return;
         this.save();
         this.current = [];
-        this.state = editor.mode === 'capture' ? editor : { mode: 'select', index: null };
+        this.state =
+          editor.mode === 'capture' ? { mode: 'capture' } : { mode: 'replace', index: null };
         return;
       case 'undo': {
         const previous = this.history.pop();
         if (!previous) return;
         this.current = previous.notes;
-        // Undo restores the location without re-arming an input mode the user has left.
-        if (editor.mode === 'capture') this.state = editor;
+        // Restore the changed location while keeping the user's current editing mode.
+        if (editor.mode === 'capture') this.state = { mode: 'capture' };
+        else if (editor.mode === 'insert' && previous.editor.mode !== 'insert')
+          this.state = { ...editor, position: Math.min(editor.position, this.current.length) };
         else
           switch (previous.editor.mode) {
             case 'capture':
-              this.state = { mode: 'select', index: this.lastIndex() };
-              break;
-            case 'select':
-              this.state = previous.editor;
+              this.state = { mode: 'replace', index: this.lastIndex() };
               break;
             case 'replace':
-              this.state = { mode: 'select', index: previous.editor.index };
+              this.state = { mode: 'replace', index: previous.editor.index };
               break;
             case 'insert':
               this.state =
                 editor.mode === 'insert'
                   ? previous.editor
                   : {
-                      mode: 'select',
+                      mode: 'replace',
                       index: this.current[previous.editor.position]
                         ? previous.editor.position
                         : this.lastIndex(),
@@ -144,39 +144,55 @@ export class SequenceModel {
         return;
       }
       case 'select':
-        if (this.current[action.index]) this.state = { mode: 'select', index: action.index };
+        if (this.current[action.index])
+          this.state =
+            editor.mode === 'insert'
+              ? { ...editor, position: action.index + 1 }
+              : { mode: editor.mode === 'capture' ? 'capture' : 'replace', index: action.index };
+        break;
+      case 'position':
+        if (editor.mode === 'insert')
+          this.state = {
+            ...editor,
+            position: Math.max(0, Math.min(this.current.length, action.position)),
+          };
         break;
       case 'move':
+        if (editor.mode === 'insert') {
+          this.state = {
+            ...editor,
+            position: Math.max(0, Math.min(this.current.length, editor.position + action.delta)),
+          };
+          break;
+        }
         if (index !== null && this.current[index + action.delta])
-          this.state = { mode: 'select', index: index + action.delta };
+          this.state = {
+            mode: editor.mode === 'capture' ? 'capture' : 'replace',
+            index: index + action.delta,
+          };
         break;
       case 'replace':
-        if (index !== null) this.state = { mode: 'replace', index };
+        this.state = {
+          mode: 'replace',
+          index:
+            index ??
+            (editor.mode === 'insert' ? Math.max(0, editor.position - 1) : this.lastIndex()),
+        };
+        if (!this.current.length) this.state = { mode: 'replace', index: null };
         break;
       case 'insert':
         if (editor.mode !== 'insert')
           this.state = {
             mode: 'insert',
-            position: index ?? 0,
+            position: index === null ? this.current.length : index + 1,
             duration: this.selectedNote?.duration ?? QUARTER_NOTE,
           };
-        break;
-      case 'cancel':
-        this.state = {
-          mode: 'select',
-          index:
-            editor.mode === 'insert'
-              ? this.current[editor.position]
-                ? editor.position
-                : this.lastIndex()
-              : index,
-        };
         break;
       case 'delete':
         if (index === null) return;
         this.save();
         this.current = this.current.filter((_, i) => i !== index);
-        this.state = { mode: 'select', index: this.current[index] ? index : this.lastIndex() };
+        this.state = { mode: 'replace', index: this.current[index] ? index : this.lastIndex() };
         break;
       case 'duration':
       case 'dot': {

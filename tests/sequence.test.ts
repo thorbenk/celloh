@@ -18,118 +18,93 @@ void test('all supported note values and dots have exact quarter-beat lengths', 
   }
 });
 
-void test('editing auditions without recording; one-shot replacement preserves duration', () => {
+void test('viewing selection does not record, and instrument input clears it', () => {
   const sequence = new SequenceModel();
   for (const pitch of [48, 50, 52]) sequence.input(midiPitch(pitch));
-  sequence.dispatch({ type: 'edit' });
-  assert.equal(sequence.selectedIndex, 2);
   sequence.dispatch({ type: 'select', index: 1 });
-  sequence.dispatch({ type: 'duration', value: 16 });
-  sequence.dispatch({ type: 'dot' });
-  sequence.input(midiPitch(67));
+  assert.equal(sequence.selectedNote?.pitch, 50);
+  assert.equal(sequence.editor.mode, 'capture');
+  sequence.input(midiPitch(55));
+  assert.equal(sequence.selectedIndex, null);
   assert.deepEqual(
     sequence.notes.map((note) => note.pitch),
-    [48, 50, 52],
+    [48, 50, 52, 55],
   );
-  sequence.dispatch({ type: 'replace' });
+});
+
+void test('editing repeatedly replaces the selected note and changes its duration', () => {
+  const sequence = new SequenceModel();
+  for (const pitch of [48, 50, 52]) sequence.input(midiPitch(pitch));
+  sequence.dispatch({ type: 'select', index: 1 });
+  sequence.dispatch({ type: 'edit' });
   sequence.input(midiPitch(55));
   sequence.input(midiPitch(57));
-  assert.deepEqual(sequence.notes, [
-    { pitch: 48, duration: { value: 4, dotted: false } },
-    { pitch: 55, duration: { value: 16, dotted: true } },
-    { pitch: 52, duration: { value: 4, dotted: false } },
-  ]);
-  sequence.dispatch({ type: 'undo' });
-  assert.equal(sequence.selectedNote?.pitch, 50);
+  sequence.dispatch({ type: 'duration', value: 16 });
+  sequence.dispatch({ type: 'dot' });
+  assert.deepEqual(sequence.selectedNote, { pitch: 57, duration: { value: 16, dotted: true } });
+  assert.equal(sequence.notes.length, 3);
+  sequence.dispatch({ type: 'select', index: 0 });
   sequence.input(midiPitch(59));
-  assert.equal(sequence.selectedNote?.pitch, 50, 'undo must not re-arm replacement');
+  assert.equal(sequence.notes[0]?.pitch, 59);
+  sequence.dispatch({ type: 'undo' });
+  assert.equal(sequence.selectedNote?.pitch, 48);
+  assert.equal(sequence.editor.mode, 'replace');
   sequence.dispatch({ type: 'done' });
+  assert.equal(sequence.selectedIndex, 0);
   sequence.input(midiPitch(60));
+  assert.equal(sequence.selectedIndex, null);
   assert.equal(sequence.notes.at(-1)?.pitch, 60);
 });
 
-void test('insertion advances before the original note, retains rhythm, and undoes at its location', () => {
-  const sequence = new SequenceModel();
-  for (const pitch of [48, 50, 52, 53]) sequence.input(midiPitch(pitch));
-  sequence.dispatch({ type: 'edit' });
-  sequence.dispatch({ type: 'select', index: 2 });
-  sequence.dispatch({ type: 'insert' });
-  sequence.dispatch({ type: 'duration', value: 1 });
-  sequence.dispatch({ type: 'dot' });
-  sequence.input(midiPitch(55));
-  sequence.input(midiPitch(57));
-  assert.deepEqual(
-    sequence.notes.map((note) => note.pitch),
-    [48, 50, 55, 57, 52, 53],
-  );
-  assert.deepEqual(
-    sequence.notes.slice(2, 4).map((note) => note.duration),
-    [
-      { value: 1, dotted: true },
-      { value: 1, dotted: true },
-    ],
-  );
-  assert.deepEqual(sequence.editor, {
-    mode: 'insert',
-    position: 4,
-    duration: { value: 1, dotted: true },
-  });
-  sequence.dispatch({ type: 'undo' });
-  sequence.input(midiPitch(59));
-  assert.deepEqual(
-    sequence.notes.map((note) => note.pitch),
-    [48, 50, 55, 59, 52, 53],
-  );
-  sequence.dispatch({ type: 'cancel' });
-  assert.equal(sequence.selectedNote?.pitch, 52);
-  sequence.input(midiPitch(60));
-  assert.equal(sequence.notes.length, 6, 'ending insertion keeps new notes but disarms input');
-  sequence.dispatch({ type: 'undo' });
-  sequence.input(midiPitch(61));
-  assert.deepEqual(
-    sequence.notes.map((note) => note.pitch),
-    [48, 50, 55, 52, 53],
-  );
-  assert.equal(sequence.selectedNote?.pitch, 52, 'undo after ending insertion must not re-arm it');
-});
-
-void test('deletion selects the following note, then previous at the end, then empty; undo restores it', () => {
+void test('insertion begins after selection, moves to gaps and advances with each note', () => {
   const sequence = new SequenceModel();
   for (const pitch of [48, 50, 52]) sequence.input(midiPitch(pitch));
   sequence.dispatch({ type: 'edit' });
   sequence.dispatch({ type: 'select', index: 1 });
-  sequence.dispatch({ type: 'delete' });
+  sequence.dispatch({ type: 'insert' });
+  assert.equal(sequence.editor.mode === 'insert' && sequence.editor.position, 2);
+  sequence.dispatch({ type: 'duration', value: 8 });
+  sequence.input(midiPitch(55));
+  sequence.input(midiPitch(57));
   assert.deepEqual(
     sequence.notes.map((note) => note.pitch),
-    [48, 52],
+    [48, 50, 55, 57, 52],
   );
-  assert.equal(sequence.selectedNote?.pitch, 52);
+  sequence.dispatch({ type: 'undo' });
+  assert.equal(sequence.editor.mode === 'insert' && sequence.editor.position, 3);
+  sequence.dispatch({ type: 'position', position: 0 });
+  sequence.input(midiPitch(43));
+  assert.equal(sequence.notes[0]?.pitch, 43);
+  sequence.dispatch({ type: 'select', index: 4 });
+  assert.equal(sequence.editor.mode === 'insert' && sequence.editor.position, 5);
+  sequence.dispatch({ type: 'move', delta: 1 });
+  sequence.input(midiPitch(60));
+  assert.equal(sequence.notes.at(-1)?.pitch, 60);
+  assert.deepEqual(sequence.notes.at(-1)?.duration, { value: 8, dotted: false });
+  sequence.dispatch({ type: 'replace' });
+  sequence.input(midiPitch(62));
+  assert.equal(sequence.notes.at(-1)?.pitch, 62);
+});
+
+void test('deletion and clearing recover selection with undo, including empty editing', () => {
+  const sequence = new SequenceModel();
+  sequence.dispatch({ type: 'edit' });
+  sequence.input(midiPitch(48));
+  assert.equal(sequence.notes.length, 0);
+  sequence.dispatch({ type: 'insert' });
+  sequence.input(midiPitch(48));
+  sequence.input(midiPitch(50));
+  sequence.dispatch({ type: 'replace' });
   sequence.dispatch({ type: 'delete' });
   assert.equal(sequence.selectedNote?.pitch, 48);
   sequence.dispatch({ type: 'delete' });
-  assert.deepEqual(sequence.editor, { mode: 'select', index: null });
-  assert.deepEqual(sequence.notes, []);
+  assert.equal(sequence.selectedIndex, null);
   sequence.dispatch({ type: 'undo' });
   assert.equal(sequence.selectedNote?.pitch, 48);
   sequence.dispatch({ type: 'clear' });
   sequence.dispatch({ type: 'undo' });
   assert.equal(sequence.selectedNote?.pitch, 48);
-});
-
-void test('empty sequences can insert and grow at the end, and cancel never rolls back entries', () => {
-  const sequence = new SequenceModel();
-  sequence.dispatch({ type: 'edit' });
-  sequence.dispatch({ type: 'insert' });
-  sequence.input(midiPitch(43));
-  sequence.input(midiPitch(50));
-  sequence.dispatch({ type: 'cancel' });
-  assert.deepEqual(
-    sequence.notes.map((note) => note.pitch),
-    [43, 50],
-  );
-  assert.equal(sequence.selectedNote?.pitch, 50);
-  sequence.dispatch({ type: 'replace' });
-  sequence.dispatch({ type: 'cancel' });
-  sequence.input(midiPitch(55));
-  assert.equal(sequence.selectedNote?.pitch, 50);
+  sequence.dispatch({ type: 'done' });
+  sequence.dispatch({ type: 'clear' });
+  assert.equal(sequence.selectedIndex, null);
 });

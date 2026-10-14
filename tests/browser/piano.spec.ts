@@ -122,7 +122,7 @@ test('touch resizing preserves key proportions, resets, and scrolling does not m
       JSON.stringify({ version: 1, values: { 'octave-notation': 'scientific' } }),
     );
   });
-  await page.goto('http://127.0.0.1:4173');
+  await page.goto(test.info().project.use.baseURL!);
   await page.getByRole('button', { name: 'Klaviatur', exact: true }).tap();
   await page.locator('.piano-key[data-midi="37"]').tap();
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Cis2, Bassschlüssel');
@@ -240,7 +240,7 @@ test('optional pitch history records only played notes, follows key changes, and
   await page.locator('.note[data-string="2"][data-offset="0"]').click();
   await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
   await expect(notes).toHaveCount(1);
-  await expect(sequence.getByRole('img')).toHaveAccessibleName('C-Dur: D3');
+  await expect(sequence.locator('.sequence-scroll svg')).toHaveAccessibleName('C-Dur: D3');
   await expect(page.locator('#piano')).toBeHidden();
   const normalHeight = (await sequence.boundingBox())!.height;
   await page.locator('.board-scroll').evaluate((board) => {
@@ -260,7 +260,7 @@ test('optional pitch history records only played notes, follows key changes, and
   expect((await sequence.boundingBox())!.y + grownHeight).toBe(pianoBounds.y);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.getByLabel('Tonart', { exact: true }).selectOption({ label: 'D-Dur' });
-  await expect(sequence.getByRole('img')).toHaveAccessibleName(
+  await expect(sequence.locator('.sequence-scroll svg')).toHaveAccessibleName(
     'D-Dur: D3, Fis3, Fis3, A5, D3, F3, Fis3, A3',
   );
   await expect(notes).toHaveCount(8);
@@ -289,7 +289,9 @@ test('optional pitch history records only played notes, follows key changes, and
   await expect(notes).toHaveCount(0);
   expect((await sequence.boundingBox())!.height).toBe(normalHeight);
   await page.getByRole('button', { name: 'D-Dur: Tonart aufheben' }).click();
-  await expect(sequence.getByRole('img')).toHaveAccessibleName('C-Dur: noch keine Töne');
+  await expect(sequence.locator('.sequence-scroll svg')).toHaveAccessibleName(
+    'C-Dur: noch keine Töne',
+  );
   await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
   await expect(sequence).toBeHidden();
   await expect(page.locator('#piano')).toBeVisible();

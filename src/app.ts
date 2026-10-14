@@ -103,9 +103,12 @@ export class App {
       (action) => {
         this.stopReplay();
         this.sequenceModel.dispatch(action);
-        const selected = this.sequenceModel.selectedNote;
+        const audition =
+          action.type === 'select' ? this.sequenceModel.notes[action.index] : undefined;
+        const selected = audition ?? this.sequenceModel.selectedNote;
         if (selected) this.model.selectPiano(selected.pitch);
         this.renderSelection();
+        if (audition) void this.auditionPitch(audition.pitch);
       },
       () => {
         if (this.replayIndex !== null) this.stopReplay();
@@ -372,6 +375,9 @@ export class App {
     if (pitch === null) return;
     this.sequenceModel.input(pitch);
     this.renderSequence();
+    await this.auditionPitch(pitch);
+  }
+  private async auditionPitch(pitch: MidiPitch): Promise<void> {
     const request = ++this.playbackRequest;
     this.staff.status.textContent = 'Klang wird geladen …';
     try {
@@ -396,18 +402,18 @@ export class App {
     }
   }
   private async startReplay(): Promise<void> {
-    const first = this.sequenceModel.notes[0];
+    const start = this.sequenceModel.selectedIndex ?? 0;
+    const first = this.sequenceModel.notes[start];
     if (first === undefined) return;
     this.stopReplay();
-    this.sequenceModel.dispatch({ type: 'cancel' });
     const request = this.playbackRequest;
-    this.replayIndex = 0;
+    this.replayIndex = start;
     this.model.selectPiano(first.pitch);
     this.renderSelection();
     this.staff.status.textContent = 'Tonfolge wird geladen …';
     try {
       await this.audio.prepare(this.sequenceModel.notes.map((note) => note.pitch));
-      if (request === this.playbackRequest) await this.playSequenceNote(0, request);
+      if (request === this.playbackRequest) await this.playSequenceNote(start, request);
     } catch {
       if (request !== this.playbackRequest) return;
       this.stopReplay();

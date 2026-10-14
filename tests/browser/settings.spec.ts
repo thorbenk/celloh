@@ -90,7 +90,7 @@ test('note displays update globally while simplified fingerboard names retain fu
       'aria-pressed',
       'true',
     );
-    await expect(page.locator('#pitch-sequence').getByRole('img')).toHaveAccessibleName(
+    await expect(page.locator('#pitch-sequence .sequence-scroll svg')).toHaveAccessibleName(
       `C-Dur: ${expected}`,
     );
   }

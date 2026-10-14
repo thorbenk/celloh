@@ -347,16 +347,43 @@ main,
   background: #e2ede6;
 }
 .sequence-durations {
+  display: flex;
+  align-items: center;
+  justify-self: start;
+  align-self: center;
+  gap: 8px;
+}
+.sequence-duration-segments {
   display: grid;
-  grid-template-columns: repeat(6, minmax(44px, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(5, 44px);
+}
+.sequence-duration-segments .sequence-control,
+.sequence-modes .sequence-control {
+  border-radius: 0;
+}
+.sequence-duration-segments .sequence-control + .sequence-control,
+.sequence-modes .sequence-control + .sequence-control {
+  border-left-width: 0;
+}
+.sequence-duration-segments .sequence-control:first-child,
+.sequence-modes .sequence-control:first-child {
+  border-radius: 7px 0 0 7px;
+}
+.sequence-duration-segments .sequence-control:last-child,
+.sequence-modes .sequence-control:last-child {
+  border-radius: 0 7px 7px 0;
+}
+.sequence-duration-segments .sequence-control[aria-pressed='true'],
+.sequence-modes .sequence-control[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px var(--green);
 }
 .sequence-durations .sequence-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding-inline: 4px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
 }
 .sequence-duration-symbol {
   width: 20px;
@@ -364,7 +391,8 @@ main,
   flex-shrink: 0;
 }
 .sequence-dot-toggle {
-  font-size: 20px;
+  font-size: 36px;
+  font-weight: 700;
   line-height: 1;
 }
 .sequence-actions {
@@ -374,6 +402,9 @@ main,
   gap: 6px;
 }
 .sequence-delete {
+  display: grid;
+  place-items: center;
+  padding: 6px;
   color: #a33b2f;
 }
 .sequence-hint {
@@ -416,10 +447,6 @@ main,
   .sequence-editor {
     grid-template-columns: minmax(0, 1fr);
     padding-inline: 12px;
-  }
-  .sequence-durations .sequence-control {
-    flex-direction: column;
-    gap: 2px;
   }
 }
 
@@ -1456,4 +1483,33 @@ main:has(.pitch-feedback) .workspace {
 }
 #board-settings .panel-actions .material-icon {
   justify-self: center;
+}
+
+.icon-replace-audio {
+  --icon: url('./assets/replace_audio.svg');
+}
+.sequence-modes {
+  display: grid;
+  grid-template-columns: repeat(2, 44px);
+}
+.sequence-modes .sequence-control {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+.sequence-gap-target {
+  fill: transparent;
+  pointer-events: all;
+  cursor: text;
+}
+.sequence-gap-target:focus-visible {
+  outline: none;
+  stroke: var(--green);
+  stroke-width: 2px;
+}
+
+.icon-delete {
+  --icon: url('./assets/delete.svg');
 }
