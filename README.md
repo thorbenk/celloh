@@ -256,3 +256,10 @@ This is a listening prototype: note transitions still follow the existing browse
 timer scheduler. It improves sustain and release control, but does not add sampled
 legato transitions or model bow changes. Compare short eighth notes, long notes,
 and repeated pitches on desktop and mobile before choosing a default engine.
+
+**Artikulation (SoundFont)** applies automatically to the whole sequence.
+**Verbunden** (default) overlaps different pitches by up to 65 ms and separates
+repeated pitches by up to 50 ms. **Abgesetzt** shortens notes by up to 120 ms;
+**Neutral** keeps the original gate durations for comparison. All adjustments
+scale down for short notes and fast tempos. No per-note annotations are needed.
+The choice is saved and affects sequence replay only, with the SoundFont engine.

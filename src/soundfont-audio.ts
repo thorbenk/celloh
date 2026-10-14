@@ -2,14 +2,21 @@ import { WorkletSynthesizer } from 'spessasynth_lib';
 import processorUrl from 'spessasynth_lib/dist/spessasynth_processor.min.js?url';
 import { isPlayablePitch, type MidiPitch } from './music';
 import type { AudioBackend } from './audio-backend';
+import { soundingDuration, type NotePlayback } from './articulation';
 
 /** Live SF2 synthesis; release tails may overlap the next bowed attack. */
 export class SoundFontAudio implements AudioBackend {
   private synth: WorkletSynthesizer | null = null;
   private ready: Promise<void> | null = null;
   private request = 0;
-  private active: MidiPitch | null = null;
-  private releaseTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly voices = new Map<
+    number,
+    {
+      pitch: MidiPitch;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
+  private nextChannel = 0;
   private referenceA = 440;
   private volume = 0.65;
 
@@ -40,29 +47,40 @@ export class SoundFontAudio implements AudioBackend {
     synth.connect(context.destination);
     // The source is a solo cello bank, with its instrument at preset zero.
     synth.programChange(0, 0);
+    synth.programChange(1, 0);
     this.applyParameters();
   }
 
-  async play(pitch: MidiPitch, duration = 1.6): Promise<boolean> {
+  async play(pitch: MidiPitch, duration = 1.6, options?: NotePlayback): Promise<boolean> {
     if (!isPlayablePitch(pitch)) throw new RangeError(`Invalid cello pitch: ${pitch}`);
     if (!Number.isFinite(duration) || duration <= 0) throw new RangeError('Invalid note duration');
     const request = ++this.request;
     await this.prepare();
     if (request !== this.request) return false;
-    this.release();
+    if (!options) this.release();
     const synth = this.synth;
     if (!synth) throw new Error('SoundFont not initialized');
-    synth.noteOn(0, pitch, 90);
-    this.active = pitch;
-    this.releaseTimer = setTimeout(() => this.release(), duration * 1000);
+    // Alternate channels so a previous release cannot cut off a repeated pitch.
+    const channel = this.nextChannel;
+    this.nextChannel = 1 - channel;
+    this.releaseChannel(channel);
+    synth.noteOn(channel, pitch, 90);
+    const gate = options ? soundingDuration(pitch, duration, options) : duration;
+    const timer = setTimeout(() => this.releaseChannel(channel), gate * 1000);
+    this.voices.set(channel, { pitch, timer });
     return true;
   }
 
+  private releaseChannel(channel: number): void {
+    const voice = this.voices.get(channel);
+    if (!voice) return;
+    clearTimeout(voice.timer);
+    this.synth?.noteOff(channel, voice.pitch);
+    this.voices.delete(channel);
+  }
+
   private release(): void {
-    if (this.releaseTimer !== null) clearTimeout(this.releaseTimer);
-    this.releaseTimer = null;
-    if (this.active !== null) this.synth?.noteOff(0, this.active);
-    this.active = null;
+    for (const channel of this.voices.keys()) this.releaseChannel(channel);
   }
 
   stop(releaseTail = false): void {

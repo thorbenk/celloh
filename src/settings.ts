@@ -1,3 +1,4 @@
+import type { Articulation } from './articulation';
 import {
   MAJOR_KEYS,
   MINOR_KEYS,
@@ -24,6 +25,7 @@ export interface Preferences {
   'position-3-upper': boolean;
   spread: number;
   volume: number;
+  articulation: Articulation;
   'audio-backend': 'recordings' | 'soundfont';
   'reference-a': number;
   'replay-tempo': number;

@@ -271,6 +271,10 @@ export class App {
       this.stopReplay();
       this.audio.setBackend(backend);
     });
+    this.bindChoice('articulation', 'connected', ['neutral', 'detached', 'connected'], (value) => {
+      this.stopReplay();
+      this.audio.setArticulation(value);
+    });
     this.bindChoice('note-naming', this.model.noteDisplay.naming, NOTE_NAMINGS, (naming) => {
       this.model.noteDisplay.naming = naming;
     });
@@ -351,7 +355,9 @@ export class App {
     );
   }
   /** Validate DOM strings against domain choices before they reach model or storage. */
-  private bindChoice<K extends 'note-naming' | 'octave-notation' | 'key' | 'audio-backend'>(
+  private bindChoice<
+    K extends 'note-naming' | 'octave-notation' | 'key' | 'audio-backend' | 'articulation',
+  >(
     key: K,
     fallback: Preferences[K],
     choices: readonly Preferences[K][],
@@ -434,7 +440,9 @@ export class App {
     }
     try {
       if (
-        !(await this.audio.play(note.pitch, (60 / this.tempo) * quarterBeats(note.duration))) ||
+        !(await this.audio.play(note.pitch, (60 / this.tempo) * quarterBeats(note.duration), {
+          nextPitch: this.sequenceModel.notes[index + 1]?.pitch,
+        })) ||
         request !== this.playbackRequest
       )
         return;

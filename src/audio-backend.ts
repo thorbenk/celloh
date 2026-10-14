@@ -1,4 +1,5 @@
 import { CelloAudio } from './audio';
+import type { Articulation, NotePlayback } from './articulation';
 import type { MidiPitch } from './music';
 
 export type AudioBackendId = 'recordings' | 'soundfont';
@@ -6,7 +7,7 @@ export type AudioBackendId = 'recordings' | 'soundfont';
 /** Duration is in seconds; omitted durations are short note previews. */
 export interface AudioBackend {
   prepare(pitches: readonly MidiPitch[]): Promise<void>;
-  play(pitch: MidiPitch, duration?: number): Promise<boolean>;
+  play(pitch: MidiPitch, duration?: number, options?: NotePlayback): Promise<boolean>;
   stop(releaseTail?: boolean): void;
   setReferenceA(hz: number): void;
   setVolume(volume: number): void;
@@ -20,6 +21,7 @@ export class AudioPlayer implements AudioBackend {
   private generation = 0;
   private referenceA = 440;
   private volume = 0.65;
+  private articulation: Articulation = 'connected';
   private loading: Promise<AudioBackend> | null = null;
   private soundfontContext: AudioContext | null = null;
 
@@ -56,13 +58,17 @@ export class AudioPlayer implements AudioBackend {
     await backend.prepare(pitches);
   }
 
-  async play(pitch: MidiPitch, duration?: number): Promise<boolean> {
+  async play(pitch: MidiPitch, duration?: number, options?: NotePlayback): Promise<boolean> {
     const generation = this.generation;
     const backend = await this.selected();
     if (generation !== this.generation) return false;
     backend.setReferenceA(this.referenceA);
     backend.setVolume(this.volume);
-    return backend.play(pitch, duration);
+    return backend.play(
+      pitch,
+      duration,
+      options && { ...options, articulation: this.articulation },
+    );
   }
 
   stop(releaseTail = false): void {
@@ -73,6 +79,10 @@ export class AudioPlayer implements AudioBackend {
   setReferenceA(hz: number): void {
     this.backend.setReferenceA(hz);
     this.referenceA = hz;
+  }
+
+  setArticulation(articulation: Articulation): void {
+    this.articulation = articulation;
   }
 
   setVolume(volume: number): void {

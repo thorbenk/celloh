@@ -454,6 +454,17 @@
         Vergleiche dieselbe Tonfolge mit beiden Klängen. SoundFont lädt beim ersten Abspielen ca.
         4,6 MB und hält Töne passend zu ihrer Notenlänge.
       </p>
+      <label for="articulation">Artikulation (SoundFont)</label>
+      <select id="articulation" aria-describedby="articulation-help">
+        <option value="neutral">Neutral (zum Vergleichen)</option>
+        <option value="detached">Abgesetzt</option>
+        <option value="connected" selected>Verbunden</option>
+      </select>
+      <p class="micro" id="articulation-help">
+        Für die ganze Tonfolge: Verbunden lässt verschiedene Töne leicht überlappen.
+        Tonwiederholungen erhalten eine kleine Trennung. Abgesetzt lässt mehr Abstand. Wirkt nur mit
+        SoundFont; einzelne Probiertöne bleiben unverändert.
+      </p>
       <label class="volume-label" for="reference-a"
         >Kammerton A <output id="reference-a-value" for="reference-a">440 Hz</output></label
       >
