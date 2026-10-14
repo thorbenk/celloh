@@ -10,7 +10,7 @@ export default defineConfig({
       injectRegister: 'script',
       manifest: {
         id: './',
-        name: 'CellOh! · Dein Griffbrett entdecken',
+        name: 'CellOh!',
         short_name: 'CellOh!',
         description: 'Entdecke die Töne und Lagen auf dem Cello-Griffbrett.',
         lang: 'de',
