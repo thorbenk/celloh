@@ -92,6 +92,7 @@ export class PanelController {
     document.addEventListener(
       'keydown',
       (event) => {
+        if (document.body.classList.contains('driver-active')) return;
         if (event.key !== 'Escape') return;
         const active = this.panels.find((panel) => panel.dialog.open);
         if (active) {
@@ -104,6 +105,7 @@ export class PanelController {
     document.addEventListener(
       'pointerdown',
       (event) => {
+        if (document.body.classList.contains('driver-active')) return;
         const active = this.panels.find((panel) => panel.dialog.open);
         const target = event.target;
         if (
@@ -128,6 +130,14 @@ export class PanelController {
   destroy(): void {
     this.events.abort();
     for (const panel of this.panels) if (panel.dialog.open) panel.dialog.close();
+  }
+  /** Open a tour panel through the same lifecycle as ordinary user actions. */
+  showForTour(id: string | null): void {
+    for (const panel of this.panels) {
+      if (panel.dialog.id === id) {
+        if (!panel.dialog.open) this.toggle(panel);
+      } else if (panel.dialog.open) this.close(panel);
+    }
   }
   private createPanel(dialog: string, button: string, close: string): Panel {
     return {

@@ -24,6 +24,7 @@ import { PitchSequenceView } from './view/pitch-sequence';
 import { BoardZoom } from './view/board-zoom';
 import { SequenceModel } from './sequence';
 import { quarterBeats } from './rhythm';
+import { FeatureTour } from './view/feature-tour';
 
 /** Wire typed user actions to the model, views, and audio. Rendering contains no event logic. */
 export class App {
@@ -40,6 +41,7 @@ export class App {
   private readonly sequence: PitchSequenceView;
   private readonly sequenceModel = new SequenceModel();
   private readonly panels: PanelController;
+  private readonly tour: FeatureTour;
   private readonly draggableNotation: DraggableNotation;
   private readonly zoom: BoardZoom;
   private readonly resizeObserver: ResizeObserver;
@@ -153,8 +155,10 @@ export class App {
       );
     });
     this.sequenceObserver.observe(this.sequence.element);
+    this.tour = new FeatureTour(this.panels);
   }
   destroy(): void {
+    this.tour.destroy();
     this.stopReplay();
     this.events.abort();
     this.pitchFeedback.destroy();
