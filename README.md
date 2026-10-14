@@ -105,10 +105,14 @@ With system Chromium or Chrome installed, run `npm run test:browser`. This build
 
 ## Features
 
-- Labelled “Einstellungen” and “Hilfe” controls in the header, with “Noten”, “Klaviatur”,
-  and “Tonfolge” together in a single bottom tool bar. Settings are grouped into keyboard-accessible
-  “Musik” (key, spelling, positions), “Griffbrett” (spacing, dimming, zoom), and “Klang”
-  (volume, sequence tempo) tabs. Help contains “Gut zu wissen” and “Über CellOh!”.
+- Icon-only settings and help buttons in the header, with “Noten”, “Klaviatur”,
+  “Tonfolge”, and “Intonation” in the bottom toolbar. Settings use independently
+  expandable “Tonart & Lagen”, “Ansicht”, “Klang”, and “Weitere Einstellungen” groups,
+  with compact zoom actions, a live summary of selected positions, and a bottom sheet on phones.
+  The manual sharp/flat choice appears only without a selected key. Sequence tempo lives
+  beside the sequence; recognition timing is under intonation options.
+  Help contains the feature walkthrough and attribution links under “Über CellOh!”.
+  New users start at 100% volume and A = 442 Hz; saved preferences take precedence.
 - Four strings, C2 / G2 / D3 / A3, with open strings and 24 semitone steps each.
 - German sharp/flat spelling, including H (B natural) and B (B flat), with consistent colors for matching notes across strings and octaves.
 - Colored brackets and finger numbers for positions 1–4, with independently selectable lower/upper variants of positions 2 and 3 and finger-number circles beside each bracket.

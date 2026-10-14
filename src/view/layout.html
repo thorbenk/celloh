@@ -11,23 +11,23 @@
     </button>
     <button
       id="settings-open"
-      class="icon-button labelled-button"
+      class="icon-button"
+      title="Einstellungen"
       aria-label="Einstellungen öffnen"
       aria-controls="settings"
       aria-expanded="false"
     >
       <span class="material-icon icon-settings" aria-hidden="true"></span>
-      Einstellungen
     </button>
     <button
       id="assistance-open"
-      class="icon-button labelled-button"
+      class="icon-button"
+      title="Hilfe"
       aria-label="Hilfe öffnen"
       aria-controls="assistance-panel"
       aria-expanded="false"
     >
       <span class="material-icon icon-help" aria-hidden="true"></span>
-      Hilfe
     </button>
   </div>
 </header>
@@ -171,50 +171,14 @@
       App entdecken
     </button>
     <button
-      id="info-open"
-      aria-label="Gut zu wissen öffnen"
-      aria-controls="info-panel"
-      aria-expanded="false"
-    >
-      <span class="material-icon icon-info" aria-hidden="true"></span>
-      Gut zu wissen
-    </button>
-    <button
       id="help-open"
       aria-label="Über CellOh! öffnen"
       aria-controls="help-panel"
       aria-expanded="false"
     >
-      <span class="material-icon icon-help" aria-hidden="true"></span>
+      <span class="material-icon icon-info" aria-hidden="true"></span>
       Über CellOh!
     </button>
-  </div>
-</dialog>
-<dialog id="info-panel" class="settings-panel" aria-labelledby="info-title">
-  <div class="settings-heading">
-    <h2 id="info-title">Gut zu wissen</h2>
-    <button id="info-close" class="icon-button" aria-label="Informationen schließen">×</button>
-  </div>
-  <div class="panel-copy">
-    <p>
-      Die Lagen zeigen die geschlossene Hand: Zwischen benachbarten Fingern liegt jeweils ein
-      Halbton. Die 2. und 3. Lage haben eine untere und eine obere Variante. Bei der
-      Rückwärtsstreckung bleibt Finger 2–4 am Platz; Finger 1 greift einen Halbton näher zur
-      Schnecke. Die gestrichelte Linie zeigt diesen zusätzlichen Bereich.
-    </p>
-    <p>
-      Kreuze und Be ändern nur die Schreibweise, nicht den Klang. H ist der natürliche Ton, B sein
-      um einen Halbton erniedrigter Nachbar. Gleiche Töne haben auf allen Saiten dieselbe Farbe,
-      auch bei anderer Schreibweise oder Oktave. Die Fingerzahlen neben den Klammern gehören zur
-      jeweiligen Lage. Untere und obere Varianten lassen sich gleichzeitig anzeigen.
-    </p>
-    <p>
-      Orientierung:
-      <a href="https://www.celloonline.com/cellofingeringchart.htm" target="_blank" rel="noreferrer"
-        >Cello Online</a
-      >. Gleichmäßige Abstände sind eine Lernhilfe; auf einem echten Cello werden sie Richtung Steg
-      kleiner.
-    </p>
   </div>
 </dialog>
 <dialog id="help-panel" class="settings-panel" aria-labelledby="help-title">
@@ -230,26 +194,46 @@
       height="240"
       alt="Ein leuchtendes Cello in Form einer Glühbirne"
     />
-    <p>
-      CellOh! hilft dir, Töne und Lagen auf dem Cello-Griffbrett zu entdecken. Tippe auf einen Griff
-      oder wähle einen Ton im Notenfenster, um ihn zu hören.
-    </p>
-    <p>
-      Der Cello-Klang stammt aus dem Soundfont
-      <a href="https://ethanwiner.com/ewsf2.html" target="_blank" rel="noreferrer"
-        >Cello Solo von Ethan Winer</a
-      >. Die einzelnen Töne wurden daraus vorab aufgenommen.
-    </p>
-    <p>
-      Icons: Google Material Icons (Apache 2.0). Bassschlüssel:
-      <a
-        href="https://commons.wikimedia.org/wiki/File:Bass_clef.svg"
-        target="_blank"
-        rel="noreferrer"
-        >Wikimedia Commons / Tlusťa</a
-      >
-      (gemeinfrei).
-    </p>
+    <ul class="about-links">
+      <li>
+        <a href="https://ethanwiner.com/ewsf2.html" target="_blank" rel="noreferrer"
+          >Cello Solo · Ethan Winer</a
+        >
+      </li>
+      <li>
+        <a href="{{bravuraLicense}}" target="_blank" rel="noreferrer"
+          >Bravura · SIL Open Font License</a
+        >
+      </li>
+      <li>
+        <a href="{{iconsLicense}}" target="_blank" rel="noreferrer"
+          >Material Icons &amp; Symbols · Apache 2.0</a
+        >
+      </li>
+      <li>
+        <a
+          href="https://commons.wikimedia.org/wiki/File:Bass_clef.svg"
+          target="_blank"
+          rel="noreferrer"
+          >Bassschlüssel · Tlusťa · gemeinfrei</a
+        >
+      </li>
+      <li>
+        <a href="https://github.com/spessasus/spessasynth_lib" target="_blank" rel="noreferrer"
+          >SpessaSynth · Code &amp; Lizenz</a
+        >
+      </li>
+      <li>
+        <a href="https://github.com/ianprime0509/pitchy" target="_blank" rel="noreferrer"
+          >Pitchy · Code &amp; Lizenz</a
+        >
+      </li>
+      <li>
+        <a href="https://github.com/nilbuild/driver.js" target="_blank" rel="noreferrer"
+          >Driver.js · Code &amp; Lizenz</a
+        >
+      </li>
+    </ul>
   </div>
 </dialog>
 
@@ -285,241 +269,259 @@
     <p id="staff-help">Note zeigen, dann klicken oder tippen. ↑ ↓ wählen, Enter spielt.</p>
   </div>
 </dialog>
-<dialog id="settings" class="settings-panel" aria-labelledby="settings-title">
+<dialog aria-labelledby="settings-title" class="settings-panel" id="settings">
   <div class="settings-heading">
     <h2 id="settings-title">Einstellungen</h2>
-    <button id="settings-close" class="icon-button" aria-label="Einstellungen schließen">×</button>
+    <button aria-label="Einstellungen schließen" class="icon-button" id="settings-close">×</button>
   </div>
-  <div class="segmented settings-tabs" role="tablist" aria-label="Einstellungsbereiche">
-    <button id="music-tab" role="tab" aria-selected="true" aria-controls="music-settings">
-      Musik
-    </button>
-    <button
-      id="board-tab"
-      role="tab"
-      aria-selected="false"
-      aria-controls="board-settings"
-      tabindex="-1"
-    >
-      Griffbrett
-    </button>
-    <button
-      id="sound-tab"
-      role="tab"
-      aria-selected="false"
-      aria-controls="sound-settings"
-      tabindex="-1"
-    >
-      Klang
-    </button>
-    <button
-      id="intonation-tab"
-      role="tab"
-      aria-selected="false"
-      aria-controls="intonation-settings"
-      tabindex="-1"
-    >
-      Intonation
-    </button>
-  </div>
+
   <div class="controls">
-    <div id="music-settings" role="tabpanel" aria-labelledby="music-tab">
-      <section>
-        <h2>Die Töne</h2>
-        <p class="hint">Wie möchtest du die Töne lesen?</p>
-        <div class="key-control note-display-control">
+    <details class="settings-group" id="music-settings" open="">
+      <summary>Tonart &amp; Lagen</summary>
+      <div class="settings-group-body">
+        <section>
+          <div class="settings-form-row">
+            <label for="key">Tonart</label>
+            <select aria-describedby="key-notes key-help" id="key">
+              <option value="">Alle Töne</option>
+            </select>
+          </div>
+          <div class="settings-form-row" id="spelling-controls">
+            <span>Schreibweise</span>
+            <div aria-label="Enharmonische Schreibweise" class="segmented">
+              <button aria-pressed="true" id="sharp">Kreuze ♯</button
+              ><button aria-pressed="false" id="flat">Be ♭</button>
+            </div>
+          </div>
+          <p class="micro" hidden="" id="spelling-help">Die Tonart bestimmt die Schreibweise.</p>
+          <p class="key-notes" hidden="" id="key-notes"></p>
+          <p class="micro" id="key-help">Tonartfremde Töne werden gedimmt und bleiben spielbar.</p>
+          <p class="micro" hidden="" id="minor-help">
+            Natürliches Moll: Töne der Tonartvorzeichnung. Veränderungen in harmonischem und
+            melodischem Moll bleiben spielbar.
+          </p>
+        </section>
+        <details class="position-options" id="position-options">
+          <summary>
+            <span>Lagen</span><span id="position-summary" aria-live="polite"></span>
+          </summary>
+          <div class="position-options-body">
+            <div class="position-controls" id="position-controls"></div>
+            <label class="extension slider-switch"
+              ><input id="extension" role="switch" type="checkbox" /><span
+                aria-hidden="true"
+                class="switch-track"
+              ></span
+              ><span>1. Finger nach hinten strecken</span></label
+            >
+          </div>
+        </details>
+      </div>
+    </details>
+    <details class="settings-group" id="board-settings" open="">
+      <summary>Ansicht</summary>
+      <div class="settings-group-body">
+        <section class="settings-form-row zoom-row">
+          <span>Zoom</span>
+          <div aria-label="Griffbrett-Zoom" class="segmented zoom-actions" role="group">
+            <button aria-label="Alles einpassen" id="zoom-fit" title="Alles einpassen">
+              Alles
+            </button>
+            <button aria-label="Breite einpassen" id="zoom-width" title="Breite einpassen">
+              Breite
+            </button>
+            <button aria-label="Zoom auf 100 %" id="zoom-reset" title="Zoom auf 100 %">
+              100 %
+            </button>
+          </div>
+        </section>
+
+        <section>
+          <div class="settings-form-row">
+            <span>Abstände</span>
+            <label class="slider-switch"
+              ><input
+                aria-label="Abstände wie auf dem Cello"
+                aria-describedby="scale-help"
+                id="to-scale"
+                role="switch"
+                type="checkbox"
+              /><span aria-hidden="true" class="switch-track"></span
+              ><span>Wie auf dem Cello</span></label
+            >
+          </div>
+          <p class="micro" id="scale-help" hidden>
+            Je höher der Ton, desto enger die Abstände. Dichte Töne erscheinen als Punkte ohne
+            Namen.
+          </p>
+          <div hidden="" id="spread-controls">
+            <label class="volume-label" for="spread"
+              >Spreizung <output for="spread" id="spread-value">100 %</output></label
+            >
+            <input id="spread" max="180" min="60" step="5" type="range" value="100" />
+            <p class="micro">Mehr Platz, gleiche Proportionen.</p>
+          </div>
+        </section>
+        <section class="settings-form-row">
+          <span>Tonauswahl</span>
+          <label class="slider-switch settings-switch">
+            <input
+              checked
+              id="highlight-toggle"
+              role="switch"
+              type="checkbox"
+              aria-label="Andere Töne bei Tonauswahl dimmen"
+            />
+            <span aria-hidden="true" class="switch-track"></span>
+            <span>Andere Töne dimmen</span>
+          </label>
+        </section>
+      </div>
+    </details>
+    <details class="settings-group" id="sound-settings">
+      <summary>Klang</summary>
+      <div class="settings-group-body">
+        <label class="volume-label" for="volume"
+          >Lautstärke <span id="volume-value">100 %</span></label
+        ><input id="volume" max="100" min="0" type="range" value="100" />
+        <div class="settings-form-row">
+          <label for="audio-backend">Klangquelle</label>
+          <select aria-describedby="audio-backend-help" id="audio-backend">
+            <option value="recordings">Aufnahmen</option>
+            <option value="soundfont">SoundFont</option>
+          </select>
+          <details class="settings-info">
+            <summary aria-label="Hinweise zur Klangquelle" title="Hinweise zur Klangquelle">
+              ⓘ
+            </summary>
+            <p class="micro" id="audio-backend-help">
+              Aufnahmen oder ein flexibler SoundFont-Klang.
+            </p>
+          </details>
+        </div>
+        <div id="articulation-controls">
+          <div class="settings-form-row">
+            <label for="articulation">Artikulation</label
+            ><select aria-describedby="articulation-help" id="articulation">
+              <option value="neutral">Neutral</option>
+              <option value="detached">Abgesetzt</option>
+              <option selected="" value="connected">Verbunden</option>
+            </select>
+            <details class="settings-info">
+              <summary aria-label="Hinweise zu Artikulation" title="Hinweise zu Artikulation">
+                ⓘ
+              </summary>
+              <p class="micro" id="articulation-help">
+                Verbunden lässt Töne leicht überlappen. Abgesetzt trennt sie deutlicher.
+              </p>
+            </details>
+          </div>
+        </div>
+
+        <label class="volume-label" for="reference-a"
+          >Kammerton A <output for="reference-a" id="reference-a-value">442 Hz</output></label
+        >
+        <input
+          aria-describedby="reference-a-help"
+          id="reference-a"
+          max="450"
+          min="430"
+          step="1"
+          type="range"
+          value="442"
+        />
+        <p class="micro" id="reference-a-help">Für Cello-Klang und Intonation.</p>
+      </div>
+    </details>
+    <details class="settings-group" id="advanced-settings">
+      <summary>Weitere Einstellungen</summary>
+      <div class="settings-group-body">
+        <div class="settings-form-row">
           <label for="note-naming">Notennamen</label>
-          <select id="note-naming" aria-describedby="note-naming-help">
-            <option value="german">Deutsch · H, B, Fis</option>
-            <option value="international">International · B, B♭, F♯</option>
+          <select aria-describedby="note-naming-help" id="note-naming">
+            <option value="german">Deutsch · H/B</option>
+            <option value="international">International · B/B♭</option>
           </select>
+          <details class="settings-info">
+            <summary aria-label="Hinweise zu Notennamen" title="Hinweise zu Notennamen">ⓘ</summary>
+            <p class="micro" id="note-naming-help">
+              Deutsche Notennamen: H = B natural, B = B flat.
+            </p>
+          </details>
         </div>
-        <p id="note-naming-help" class="micro">Deutsche Notennamen: H = B natural, B = B flat.</p>
-        <div class="key-control note-display-control">
+        <div class="settings-form-row">
           <label for="octave-notation">Oktavbezeichnung</label>
-          <select id="octave-notation" aria-describedby="octave-notation-help">
-            <option value="helmholtz">Helmholtz · C, c, c′</option>
-            <option value="scientific">Zahlen · C2, C3, C4</option>
+          <select aria-describedby="octave-notation-help" id="octave-notation">
+            <option value="helmholtz">Helmholtz · c′</option>
+            <option value="scientific">Zahlen · C4</option>
           </select>
+          <details class="settings-info">
+            <summary aria-label="Hinweise zu Oktavbezeichnung" title="Hinweise zu Oktavbezeichnung">
+              ⓘ
+            </summary>
+            <p class="micro" id="octave-notation-help">
+              Mittleres C: C4 = c′. Gilt für alle Tonanzeigen.
+            </p>
+          </details>
         </div>
-        <p id="octave-notation-help" class="micro">
-          Mittleres C: C4 = c′. Gilt für alle Tonanzeigen.
+        <section>
+          <label class="slider-switch settings-switch">
+            <input
+              aria-describedby="show-octaves-help"
+              checked=""
+              id="show-octaves"
+              role="switch"
+              type="checkbox"
+            />
+            <span aria-hidden="true" class="switch-track"></span>
+            <span>Oktaven anzeigen</span>
+          </label>
+          <p class="micro" id="show-octaves-help">
+            Aus: einfache Namen wie D und Fis, auch auf leeren Saiten. Vollständige Töne bleiben im
+            Tooltip erhalten.
+          </p>
+        </section>
+      </div>
+    </details>
+    <details class="settings-group" id="sequence-options">
+      <summary>Tempo</summary>
+      <div class="settings-group-body">
+        <label class="volume-label" for="replay-tempo"
+          >Tempo <output for="replay-tempo" id="replay-tempo-value">120 BPM</output></label
+        ><input
+          aria-describedby="replay-tempo-help"
+          id="replay-tempo"
+          max="240"
+          min="40"
+          step="10"
+          type="range"
+          value="120"
+        />
+        <p class="micro" id="replay-tempo-help">
+          Viertelnoten pro Minute beim Abspielen der Tonfolge.
         </p>
-        <div class="segmented" aria-label="Enharmonische Schreibweise">
-          <button id="sharp" aria-pressed="true">Kreuze ♯</button
-          ><button id="flat" aria-pressed="false">Be ♭</button>
-        </div>
-        <p id="spelling-help" class="micro" hidden>Die Tonart bestimmt die Schreibweise.</p>
-        <div class="key-control">
-          <label for="key">Tonart</label>
-          <select id="key" aria-describedby="key-notes key-help">
-            <option value="">Alle Töne</option>
-          </select>
-        </div>
-        <p id="key-notes" class="key-notes" hidden></p>
-        <p id="key-help" class="micro">
-          Tonartfremde Töne werden gedimmt, bleiben aber spielbar. Tonarteigene Töne folgen der
-          Schreibweise der Tonart.
-        </p>
-        <p id="minor-help" class="micro" hidden>
-          Natürliches Moll: Töne der Tonartvorzeichnung. Veränderungen in harmonischem und
-          melodischem Moll bleiben spielbar.
-        </p>
-      </section>
-      <section>
-        <h2>Die Lagen</h2>
-        <p class="hint">Zeige die Wege für deine Finger.</p>
-        <div id="position-controls" class="position-controls"></div>
-        <label class="extension slider-switch"
-          ><input id="extension" type="checkbox" role="switch" /><span
-            class="switch-track"
-            aria-hidden="true"
-          ></span
-          ><span>1. Finger nach hinten strecken</span></label
+      </div>
+    </details>
+    <details class="settings-group" id="intonation-options">
+      <summary>Weitere Optionen</summary>
+      <div class="settings-group-body">
+        <label class="volume-label" for="pitch-hold-ms"
+          >Ton halten <output for="pitch-hold-ms" id="pitch-hold-value">250 ms</output></label
         >
-      </section>
-    </div>
-    <div id="board-settings" role="tabpanel" aria-labelledby="board-tab" hidden>
-      <section>
-        <h2>Notennamen</h2>
-        <label class="slider-switch settings-switch">
-          <input
-            id="show-octaves"
-            type="checkbox"
-            role="switch"
-            checked
-            aria-describedby="show-octaves-help"
-          />
-          <span class="switch-track" aria-hidden="true"></span>
-          <span>Oktaven anzeigen</span>
-        </label>
-        <p id="show-octaves-help" class="micro">
-          Aus: einfache Namen wie D und Fis, auch auf leeren Saiten. Vollständige Töne bleiben im
-          Tooltip erhalten.
+        <input
+          aria-describedby="pitch-hold-help"
+          aria-label="Haltezeit für Tonerkennung"
+          id="pitch-hold-ms"
+          max="600"
+          min="150"
+          step="50"
+          type="range"
+          value="250"
+        />
+        <p class="micro" id="pitch-hold-help">
+          Ein Ton muss so lange stabil bleiben, bevor er hervorgehoben wird.
         </p>
-      </section>
-      <section>
-        <h2>Abstände</h2>
-        <label class="extension slider-switch"
-          ><input id="to-scale" type="checkbox" role="switch" aria-describedby="scale-help" /><span
-            class="switch-track"
-            aria-hidden="true"
-          ></span
-          ><span>Wie auf dem Cello <small>Abstände maßstabsgetreu anzeigen</small></span></label
-        >
-        <p id="scale-help" class="micro">
-          Je höher der Ton, desto enger die Abstände. Dichte Töne erscheinen als Punkte ohne Namen.
-        </p>
-        <div id="spread-controls" hidden>
-          <label class="volume-label" for="spread"
-            >Spreizung <output id="spread-value" for="spread">100 %</output></label
-          >
-          <input id="spread" type="range" min="60" max="180" step="5" value="100" />
-          <p class="micro">Mehr Platz, gleiche Proportionen.</p>
-        </div>
-      </section>
-      <section>
-        <h2>Hervorhebung</h2>
-        <div class="panel-actions">
-          <label class="slider-switch settings-switch"
-            ><input id="highlight-toggle" type="checkbox" role="switch" checked /><span
-              class="switch-track"
-              aria-hidden="true"
-            ></span
-            ><span>Andere Töne dimmen</span></label
-          >
-        </div>
-      </section>
-      <section>
-        <h2>Zoom</h2>
-        <div class="panel-actions">
-          <button id="zoom-fit">
-            <span class="material-icon icon-fit-page" aria-hidden="true"></span>
-            Alles einpassen
-          </button>
-          <button id="zoom-width">
-            <span class="material-icon icon-fit-width" aria-hidden="true"></span>
-            Breite einpassen
-          </button>
-          <button id="zoom-reset">
-            <span class="material-icon icon-view-real-size" aria-hidden="true"></span>
-            100 %
-          </button>
-        </div>
-      </section>
-    </div>
-    <div id="sound-settings" role="tabpanel" aria-labelledby="sound-tab" hidden>
-      <label for="audio-backend">Klangerzeugung</label>
-      <select id="audio-backend" aria-describedby="audio-backend-help">
-        <option value="recordings">Aufnahmen (Standard)</option>
-        <option value="soundfont">SoundFont (experimentell)</option>
-      </select>
-      <p class="micro" id="audio-backend-help">
-        Vergleiche dieselbe Tonfolge mit beiden Klängen. SoundFont lädt beim ersten Abspielen ca.
-        4,6 MB und hält Töne passend zu ihrer Notenlänge.
-      </p>
-      <label for="articulation">Artikulation (SoundFont)</label>
-      <select id="articulation" aria-describedby="articulation-help">
-        <option value="neutral">Neutral (zum Vergleichen)</option>
-        <option value="detached">Abgesetzt</option>
-        <option value="connected" selected>Verbunden</option>
-      </select>
-      <p class="micro" id="articulation-help">
-        Für die ganze Tonfolge: Verbunden lässt verschiedene Töne leicht überlappen.
-        Tonwiederholungen erhalten eine kleine Trennung. Abgesetzt lässt mehr Abstand. Wirkt nur mit
-        SoundFont; einzelne Probiertöne bleiben unverändert.
-      </p>
-      <label class="volume-label" for="reference-a"
-        >Kammerton A <output id="reference-a-value" for="reference-a">440 Hz</output></label
-      >
-      <input
-        id="reference-a"
-        type="range"
-        min="430"
-        max="450"
-        step="1"
-        value="440"
-        aria-describedby="reference-a-help"
-      />
-      <p class="micro" id="reference-a-help">
-        Stimmung für Cello-Klang und Intonation. Standard: 440 Hz.
-      </p>
-      <label class="volume-label" for="volume">Lautstärke <span id="volume-value">65 %</span></label
-      ><input id="volume" type="range" min="0" max="100" value="65" />
-      <p class="micro">Ein echter Cello-Klang.<br />Tippe auf einen Ton, um ihn zu hören.</p>
-      <label class="volume-label" for="replay-tempo"
-        >Tonfolge-Tempo <output id="replay-tempo-value" for="replay-tempo">120 BPM</output></label
-      >
-      <input
-        id="replay-tempo"
-        type="range"
-        min="40"
-        max="240"
-        step="10"
-        value="120"
-        aria-describedby="replay-tempo-help"
-      />
-      <p class="micro" id="replay-tempo-help">
-        Viertelnoten pro Minute beim Abspielen der Tonfolge.
-      </p>
-    </div>
-    <div id="intonation-settings" role="tabpanel" aria-labelledby="intonation-tab" hidden>
-      <label class="volume-label" for="pitch-hold-ms"
-        >Ton halten <output id="pitch-hold-value" for="pitch-hold-ms">250 ms</output></label
-      >
-      <input
-        id="pitch-hold-ms"
-        type="range"
-        min="150"
-        max="600"
-        step="50"
-        value="250"
-        aria-label="Haltezeit für Tonerkennung"
-        aria-describedby="pitch-hold-help"
-      />
-      <p id="pitch-hold-help" class="micro">
-        So lange muss ein Ton stabil erklingen, bevor er auf dem Griffbrett hervorgehoben wird.
-      </p>
-    </div>
+      </div>
+    </details>
   </div>
 </dialog>

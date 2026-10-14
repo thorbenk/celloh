@@ -35,7 +35,8 @@ test('experimental engine loads lazily, produces audio, and preserves the select
   await page.goto('/');
   expect(assets).toHaveLength(0);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.locator('#sound-tab').click();
+  if ((await page.locator('#sound-settings').getAttribute('open')) === null)
+    await page.locator('#sound-settings > summary').click();
   await page.locator('#audio-backend').selectOption('soundfont');
   expect(assets).toHaveLength(0);
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
@@ -70,7 +71,8 @@ test('experimental engine loads lazily, produces audio, and preserves the select
   await page.reload();
   await expect(page.locator('#audio-backend')).toHaveValue('soundfont');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.locator('#sound-tab').click();
+  if ((await page.locator('#sound-settings').getAttribute('open')) === null)
+    await page.locator('#sound-settings > summary').click();
   await page.locator('#audio-backend').selectOption('recordings');
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   const sample = page.waitForResponse(
@@ -94,7 +96,8 @@ test('failed SoundFont loading can be retried without silently playing recording
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.locator('#sound-tab').click();
+  if ((await page.locator('#sound-settings').getAttribute('open')) === null)
+    await page.locator('#sound-settings > summary').click();
   await page.locator('#audio-backend').selectOption('soundfont');
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   const note = page.locator('.note[data-string="3"][data-offset="1"]');
@@ -152,7 +155,8 @@ test('articulation overlaps changing pitches, separates repetitions, and persist
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.locator('#sound-tab').click();
+  if ((await page.locator('#sound-settings').getAttribute('open')) === null)
+    await page.locator('#sound-settings > summary').click();
   await page.locator('#audio-backend').selectOption('soundfont');
   await expect(page.locator('#articulation')).toHaveValue('connected');
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
@@ -168,7 +172,8 @@ test('articulation overlaps changing pitches, separates repetitions, and persist
   await sequence.getByRole('button', { name: 'Achtel (1/8)', exact: true }).click();
   for (const articulation of ['connected', 'detached']) {
     await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-    await page.locator('#sound-tab').click();
+    if ((await page.locator('#sound-settings').getAttribute('open')) === null)
+      await page.locator('#sound-settings > summary').click();
     await page.locator('#articulation').selectOption(articulation);
     await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
     await notes.nth(0).click();

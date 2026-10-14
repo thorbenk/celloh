@@ -7,7 +7,8 @@ import type { PanelController } from './panels';
 export class FeatureTour {
   private readonly events = new AbortController();
   private readonly tour: Driver;
-  private savedTab: HTMLButtonElement | null = null;
+  private savedMusicOpen = true;
+  private savedPositionsOpen = false;
   private savedScroll = 0;
   private readonly popoverObserver = new ResizeObserver(() => this.reservePopoverSpace());
   private layoutFrame = 0;
@@ -36,7 +37,10 @@ export class FeatureTour {
       popover: { title, description, side: 'top', align: 'center' },
       onHighlightStarted: () => {
         this.panels.showForTour(panel);
-        if (panel === 'settings') requireElement('#music-tab', HTMLButtonElement).click();
+        if (panel === 'settings') {
+          requireElement('#music-settings', HTMLDetailsElement).open = true;
+          requireElement('#position-options', HTMLDetailsElement).open = true;
+        }
         requireElement(element, HTMLElement).scrollIntoView({ block: 'nearest' });
       },
     });
@@ -84,7 +88,7 @@ export class FeatureTour {
         step(
           '#sequence-toggle',
           'Deine eigene Tonfolge',
-          '„Tonfolge“ sammelt deine gespielten Töne. Spiele sie ab oder ändere unter „Bearbeiten“ Töne und Notenlängen. Das Tempo findest du unter Einstellungen → Klang.',
+          '„Tonfolge“ sammelt deine gespielten Töne. Spiele sie ab oder ändere unter „Bearbeiten“ Töne und Notenlängen. Das Tempo stellst du direkt in der Tonfolge ein.',
         ),
         step(
           '#intonation-toggle',
@@ -97,7 +101,8 @@ export class FeatureTour {
         cancelAnimationFrame(this.layoutFrame);
         document.body.style.removeProperty('--tour-space');
         this.panels.showForTour(null);
-        this.savedTab?.click();
+        requireElement('#music-settings', HTMLDetailsElement).open = this.savedMusicOpen;
+        requireElement('#position-options', HTMLDetailsElement).open = this.savedPositionsOpen;
         this.boardScroll.scrollTop = this.savedScroll;
         requireElement('#assistance-open', HTMLButtonElement).focus({ preventScroll: true });
       },
@@ -105,9 +110,8 @@ export class FeatureTour {
     requireElement('#tour-start', HTMLButtonElement).addEventListener(
       'click',
       () => {
-        this.savedTab = document.querySelector<HTMLButtonElement>(
-          '.settings-tabs [aria-selected="true"]',
-        );
+        this.savedMusicOpen = requireElement('#music-settings', HTMLDetailsElement).open;
+        this.savedPositionsOpen = requireElement('#position-options', HTMLDetailsElement).open;
         this.savedScroll = this.boardScroll.scrollTop;
         this.tour.drive();
       },

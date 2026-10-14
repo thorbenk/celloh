@@ -50,7 +50,7 @@ export class App {
   private replayIndex: number | null = null;
   private replayTimer: number | null = null;
   private intonationActive = false;
-  private referenceA = 440;
+  private referenceA = 442;
   private tempo = 120;
 
   constructor(root: HTMLElement) {
@@ -86,6 +86,9 @@ export class App {
         ),
     );
     requireElement('main', HTMLElement, root).append(this.pitchFeedback.element);
+    this.pitchFeedback.element.append(
+      requireElement('#intonation-options', HTMLDetailsElement, root),
+    );
     requireElement('.board-scroll-wrap', HTMLElement, root).append(this.pitchFeedback.diagnostics);
     const intonationToggle = requireElement('#intonation-toggle', HTMLButtonElement, root);
     intonationToggle.addEventListener(
@@ -118,6 +121,7 @@ export class App {
       },
     );
     this.sequence.element.id = 'pitch-sequence';
+    this.sequence.element.append(requireElement('#sequence-options', HTMLDetailsElement, root));
     this.sequence.element.hidden = true;
     this.piano.element.before(this.sequence.element);
     const sequenceToggle = requireElement('#sequence-toggle', HTMLButtonElement, root);
@@ -170,7 +174,24 @@ export class App {
     this.draggableNotation.destroy();
     this.zoom.destroy();
   }
+  private renderPositionSummary(): void {
+    const labels: string[] = [];
+    for (const position of POSITIONS) {
+      if (position.id === 2 || position.id === 3) {
+        for (const variant of this.model.board.variants[position.id]) {
+          labels.push(`${position.id} ${variant === 'lower' ? 'unten' : 'oben'}`);
+        }
+      } else if (this.model.board.visiblePositions.has(position.id)) {
+        labels.push(String(position.id));
+      }
+    }
+    if (this.model.board.extended) labels.push('Streckung');
+    requireElement('#position-summary', HTMLSpanElement).textContent =
+      labels.join(' · ') || 'Keine';
+  }
+
   private renderBoard(): void {
+    this.renderPositionSummary();
     const key = this.model.board.key;
     const naming = this.model.noteDisplay.naming;
     const name = key ? keyName(key, naming) : '';
@@ -196,6 +217,8 @@ export class App {
     notes.hidden = key === null;
     notes.textContent = key ? keyNoteNames(key, naming).join(' · ') : '';
     requireElement('#spelling-help', HTMLParagraphElement).hidden = key === null;
+    requireElement('#spelling-controls', HTMLDivElement).hidden = key !== null;
+    requireElement('#key-help', HTMLParagraphElement).hidden = key === null;
     requireElement('#minor-help', HTMLParagraphElement).hidden = key?.mode !== 'minor';
     requireElement('.header', HTMLElement).classList.toggle('has-key', key !== null);
     for (const spelling of ['sharp', 'flat']) {
@@ -274,6 +297,7 @@ export class App {
     this.bindChoice('audio-backend', 'recordings', ['recordings', 'soundfont'], (backend) => {
       this.stopReplay();
       this.audio.setBackend(backend);
+      requireElement('#articulation-controls', HTMLDivElement).hidden = backend !== 'soundfont';
     });
     this.bindChoice('articulation', 'connected', ['neutral', 'detached', 'connected'], (value) => {
       this.stopReplay();
@@ -574,6 +598,11 @@ export class App {
     );
   }
   private bindSettings(): void {
+    requireElement('#position-options', HTMLDetailsElement).addEventListener(
+      'change',
+      () => this.renderPositionSummary(),
+      { signal: this.events.signal },
+    );
     const options = { signal: this.events.signal };
     const showOctaves = requireElement('#show-octaves', HTMLInputElement);
     showOctaves.addEventListener(
@@ -603,6 +632,7 @@ export class App {
       () => {
         this.model.board.toScale = toScale.checked;
         spreadControls.hidden = !toScale.checked;
+        requireElement('#scale-help', HTMLParagraphElement).hidden = !toScale.checked;
         this.renderBoard();
       },
       options,

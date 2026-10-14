@@ -1,4 +1,6 @@
 import template from './layout.html?raw';
+import bravuraLicenseUrl from '../assets/bravura-LICENSE.txt?url';
+import iconsLicenseUrl from '../assets/material-icons-LICENSE.txt?url';
 import brandIconUrl from '../assets/brand-icon.webp';
 import brandEmblemUrl from '../assets/brand-emblem.webp';
 import { MAJOR_KEYS, MINOR_KEYS, POSITIONS } from '../music';
@@ -7,7 +9,9 @@ import { requireElement } from './dom';
 export function mountLayout(root: HTMLElement): void {
   root.innerHTML = template
     .replaceAll('{{brandIcon}}', brandIconUrl)
-    .replaceAll('{{brandEmblem}}', brandEmblemUrl);
+    .replaceAll('{{brandEmblem}}', brandEmblemUrl)
+    .replaceAll('{{bravuraLicense}}', bravuraLicenseUrl)
+    .replaceAll('{{iconsLicense}}', iconsLicenseUrl);
   const keySelect = requireElement('#key', HTMLSelectElement, root);
   for (const [label, keys] of [
     ['Dur', MAJOR_KEYS],

@@ -5,24 +5,33 @@ test('preferences survive reload and preserve manual spelling when a key is clea
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  if ((await page.locator('#advanced-settings').getAttribute('open')) === null)
+    await page.locator('#advanced-settings > summary').click();
   await page.locator('#flat').click();
   await page.locator('#key').selectOption({ label: 'G-Dur' });
+  if ((await page.locator('#position-options').getAttribute('open')) === null)
+    await page.locator('#position-options > summary').click();
   await page.locator('#extension').check();
+  if ((await page.locator('#position-options').getAttribute('open')) === null)
+    await page.locator('#position-options > summary').click();
   await page.locator('#position-2-upper').check();
-  await page.locator('#board-tab').click();
   await page.locator('#to-scale').check();
   await page.locator('#highlight-toggle').uncheck();
   await page.locator('#spread').fill('140');
-  await page.locator('#sound-tab').click();
+  if ((await page.locator('#sound-settings').getAttribute('open')) === null)
+    await page.locator('#sound-settings > summary').click();
   await page.locator('#volume').fill('35');
-  await page.locator('#replay-tempo').fill('80');
-  await page.locator('#intonation-tab').click();
-  await page.locator('#pitch-hold-ms').fill('450');
-  await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
-  await page.locator('#intonation-toggle').click();
+  await page.locator('#settings-close').click();
   await page.locator('#sequence-toggle').click();
+  await page.locator('#sequence-options > summary').click();
+  await page.locator('#replay-tempo').fill('80');
+  await page.locator('#intonation-toggle').click();
+  await page.locator('#intonation-options > summary').click();
+  await page.locator('#pitch-hold-ms').fill('450');
   await page.reload();
   await expect(page.locator('#key')).toHaveValue('major:1');
+  await expect(page.locator('#position-summary')).toContainText('2 oben');
+  await expect(page.locator('#position-summary')).toContainText('Streckung');
   for (const id of ['extension', 'position-2-upper', 'to-scale']) {
     await expect(page.locator(`#${id}`)).toBeChecked();
   }
@@ -53,7 +62,7 @@ test('malformed preferences fall back to defaults and migrate piano visibility',
   });
   await page.goto('/');
   await expect(page.locator('#key')).toHaveValue('');
-  await expect(page.locator('#volume')).toHaveValue('65');
+  await expect(page.locator('#volume')).toHaveValue('100');
   await expect(page.locator('#piano')).toBeVisible();
 });
 
@@ -69,9 +78,11 @@ test('note displays update globally while simplified fingerboard names retain fu
   await note.click();
   await page.locator('#sequence-toggle').click();
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  if ((await page.locator('#advanced-settings').getAttribute('open')) === null)
+    await page.locator('#advanced-settings > summary').click();
   await page.locator('#flat').click();
   const naming = page.getByLabel('Notennamen', { exact: true });
-  const octaves = page.getByLabel('Oktavbezeichnung');
+  const octaves = page.getByLabel('Oktavbezeichnung', { exact: true });
   for (const [names, octaveStyle, expected] of [
     ['german', 'scientific', 'B3'],
     ['german', 'helmholtz', 'b'],
@@ -100,7 +111,6 @@ test('note displays update globally while simplified fingerboard names retain fu
   await expect(page.locator('#active-key-name')).toHaveText('H-Dur');
   await naming.selectOption('international');
   await octaves.selectOption('helmholtz');
-  await page.locator('#board-tab').click();
   await page.getByRole('switch', { name: 'Oktaven anzeigen' }).uncheck();
   await expect(page.locator('.open-row .note')).toHaveText(['C', 'G', 'D', 'A']);
   await expect(note).toHaveText('A♯'); // Chromatic spelling follows this sharp key.
@@ -142,6 +152,8 @@ test('legacy key names migrate independently of notation and invalid display pre
   await expect(ces).toHaveText('ces′');
   await ces.click();
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  if ((await page.locator('#advanced-settings').getAttribute('open')) === null)
+    await page.locator('#advanced-settings > summary').click();
   await page.locator('#note-naming').selectOption('international');
   await page.locator('#octave-notation').selectOption('helmholtz');
   await expect(ces).toHaveText('c♭′');
@@ -161,7 +173,11 @@ test('blocked storage leaves settings usable', async ({ page }) => {
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  if ((await page.locator('#advanced-settings').getAttribute('open')) === null)
+    await page.locator('#advanced-settings > summary').click();
   await page.locator('#flat').click();
+  if ((await page.locator('#position-options').getAttribute('open')) === null)
+    await page.locator('#position-options > summary').click();
   await page.locator('#extension').check();
   await expect(page.locator('#flat')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#extension')).toBeChecked();
@@ -174,7 +190,8 @@ test('zoom and notation size and position survive reload', async ({ page }) => {
   await page.keyboard.press('ArrowRight');
   const left = await page.locator('#notation-display').evaluate((element) => element.style.left);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.locator('#board-tab').click();
+  if ((await page.locator('#advanced-settings').getAttribute('open')) === null)
+    await page.locator('#advanced-settings > summary').click();
   await page.locator('#zoom-width').click();
   await page.reload();
   await expect(page.locator('#notation-size-toggle')).toHaveAttribute('aria-expanded', 'true');
@@ -211,7 +228,10 @@ test('reference A retunes samples and intonation and persists across reloads', a
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.locator('#sound-tab').click();
+  if ((await page.locator('#advanced-settings').getAttribute('open')) === null)
+    await page.locator('#advanced-settings > summary').click();
+  if ((await page.locator('#sound-settings').getAttribute('open')) === null)
+    await page.locator('#sound-settings > summary').click();
   await page.getByRole('slider', { name: 'Kammerton A' }).fill('442');
   await expect(page.locator('#reference-a-value')).toHaveText('442 Hz');
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
@@ -222,7 +242,10 @@ test('reference A retunes samples and intonation and persists across reloads', a
     .poll(async () => Number(await page.locator('html').getAttribute('data-playback-rate')))
     .toBeCloseTo(442 / 440);
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
-  await page.locator('#sound-tab').click();
+  if ((await page.locator('#advanced-settings').getAttribute('open')) === null)
+    await page.locator('#advanced-settings > summary').click();
+  if ((await page.locator('#sound-settings').getAttribute('open')) === null)
+    await page.locator('#sound-settings > summary').click();
   await page.locator('#reference-a').fill('444');
   await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
   await page.reload();

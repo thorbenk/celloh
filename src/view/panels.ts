@@ -21,54 +21,9 @@ export class PanelController {
       this.createPanel('#settings', '#settings-open', '#settings-close'),
       this.createPanel('#notation-panel', '#notation-open', '#notation-close'),
       this.createPanel('#assistance-panel', '#assistance-open', '#assistance-close'),
-      this.createPanel('#info-panel', '#info-open', '#info-close'),
       this.createPanel('#help-panel', '#help-open', '#help-close'),
     ];
     const options = { signal: this.events.signal };
-    const tabs = Array.from(
-      document.querySelectorAll<HTMLButtonElement>('.settings-tabs [role="tab"]'),
-    );
-    const selectTab = (selected: HTMLButtonElement): void => {
-      for (const tab of tabs) {
-        const active = tab === selected;
-        tab.setAttribute('aria-selected', String(active));
-        tab.tabIndex = active ? 0 : -1;
-        requireElement(`#${tab.getAttribute('aria-controls')}`, HTMLDivElement).hidden = !active;
-      }
-      requireElement('#settings', HTMLDialogElement).scrollTop = 0;
-    };
-    for (const [index, tab] of tabs.entries()) {
-      tab.addEventListener('click', () => selectTab(tab), options);
-      tab.addEventListener(
-        'keydown',
-        (event) => {
-          let next: number;
-          switch (event.key) {
-            case 'ArrowRight':
-              next = (index + 1) % tabs.length;
-              break;
-            case 'ArrowLeft':
-              next = (index + tabs.length - 1) % tabs.length;
-              break;
-            case 'Home':
-              next = 0;
-              break;
-            case 'End':
-              next = tabs.length - 1;
-              break;
-            default:
-              return;
-          }
-          event.preventDefault();
-          const target = tabs[next];
-          if (target) {
-            selectTab(target);
-            target.focus();
-          }
-        },
-        options,
-      );
-    }
     for (const panel of this.panels) {
       panel.button.addEventListener('click', () => this.toggle(panel), options);
       panel.closeButton.addEventListener('click', () => panel.dialog.close(), options);
