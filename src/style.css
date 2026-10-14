@@ -771,17 +771,18 @@ main,
   justify-content: center;
 }
 .note {
+  --note-emphasis: 100%;
   appearance: none;
   width: var(--note-size, var(--note-diameter));
   height: var(--note-size, var(--note-diameter));
   padding: 0;
   pointer-events: auto;
   border-radius: 50%;
-  border: 1px solid hsl(var(--note-hue) 65% 48%);
+  border: 1px solid color-mix(in srgb, hsl(var(--note-hue) 65% 48%) var(--note-emphasis), #fbfaf5);
   font-size: 12px;
   font-weight: 550;
   color: #24312c;
-  background: hsl(var(--note-hue) 72% 76%);
+  background: color-mix(in srgb, hsl(var(--note-hue) 72% 76%) var(--note-emphasis), #fbfaf5);
   box-shadow: 0 2px 3px #343d2005;
   /* Keep rounded borders stationary during hover to avoid Firefox paint seams. */
   transition: box-shadow 0.15s;
@@ -790,6 +791,11 @@ main,
   box-shadow:
     0 0 0 3px hsl(var(--note-hue) 65% 48% / 18%),
     0 3px 8px #343d2018;
+}
+.note.selected,
+.note.playing {
+  background: hsl(var(--note-hue) 72% 76%);
+  border-color: hsl(var(--note-hue) 65% 48%);
 }
 .note.selected {
   outline: 3px solid #243d32;
@@ -828,23 +834,23 @@ main,
   pointer-events: none;
 }
 .notes.has-selection .note:not(.selected):not(.playing) {
-  opacity: 0.22;
+  --note-emphasis: 22%;
 }
 .notes.has-key.has-selection .note:not(.selected):not(.playing):not(.outside-key) {
-  opacity: 0.55;
+  --note-emphasis: 55%;
 }
 .notes.has-key .note.outside-key:not(.selected):not(.playing) {
-  opacity: 0.22;
+  --note-emphasis: 22%;
 }
 .notes.has-selection .note:not(.selected):not(.playing):hover,
 .notes.has-selection .note:not(.selected):not(.playing):focus-visible {
-  opacity: 0.75;
+  --note-emphasis: 75%;
 }
 .notes.has-key .note:not(.selected):not(.playing):hover,
 .notes.has-key .note:not(.selected):not(.playing):focus-visible,
 .notes.has-key.has-selection .note:not(.selected):not(.playing):hover,
 .notes.has-key.has-selection .note:not(.selected):not(.playing):focus-visible {
-  opacity: 1;
+  --note-emphasis: 100%;
 }
 .overlays {
   position: absolute;

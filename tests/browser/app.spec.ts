@@ -600,8 +600,8 @@ test('staff previews silently, selects exact matches, and renders board clicks w
     await page
       .locator('.note[data-midi="48"]')
       .first()
-      .evaluate((note) => getComputedStyle(note).opacity),
-  ).toBe('0.22');
+      .evaluate((note) => getComputedStyle(note).getPropertyValue('--note-emphasis')),
+  ).toBe('22%');
   await page.locator('.note[data-string="0"][data-offset="0"]').click();
   await expect(page.getByRole('dialog', { name: 'Noten', exact: true })).toBeVisible();
   await expect(page.locator('#staff .staff-note')).toHaveAttribute('data-midi', '36');
@@ -660,11 +660,15 @@ test('quick dimming toggle preserves selection and compact notation', async ({ p
   await expect(compact).toHaveAttribute('aria-label', 'G2, Bassschlüssel');
   await expect(compact.locator('.staff-note')).toHaveAttribute('data-midi', '43');
   const unmatched = page.locator('.note[data-midi="36"]').first();
-  expect(await unmatched.evaluate((note) => getComputedStyle(note).opacity)).toBe('0.22');
+  expect(
+    await unmatched.evaluate((note) => getComputedStyle(note).getPropertyValue('--note-emphasis')),
+  ).toBe('22%');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await toggle.click();
   await expect(toggle).not.toBeChecked();
-  expect(await unmatched.evaluate((note) => getComputedStyle(note).opacity)).toBe('1');
+  expect(
+    await unmatched.evaluate((note) => getComputedStyle(note).getPropertyValue('--note-emphasis')),
+  ).toBe('100%');
   await expect(page.locator('.note.selected')).toHaveCount(2);
   await page.locator('.note[data-string="0"][data-offset="0"]').click();
   await expect(compact.locator('.staff-note')).toHaveAttribute('data-midi', '36');
@@ -673,16 +677,16 @@ test('quick dimming toggle preserves selection and compact notation', async ({ p
     await page
       .locator('.note[data-midi="43"]')
       .first()
-      .evaluate((note) => getComputedStyle(note).opacity),
-  ).toBe('1');
+      .evaluate((note) => getComputedStyle(note).getPropertyValue('--note-emphasis')),
+  ).toBe('100%');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await toggle.click();
   expect(
     await page
       .locator('.note[data-midi="43"]')
       .first()
-      .evaluate((note) => getComputedStyle(note).opacity),
-  ).toBe('0.22');
+      .evaluate((note) => getComputedStyle(note).getPropertyValue('--note-emphasis')),
+  ).toBe('22%');
   await page.getByRole('button', { name: 'Noten öffnen' }).click();
   const point = await staffPoint(page, 14);
   await page.mouse.move(point.x, point.y);
@@ -711,12 +715,12 @@ test('key shading combines with pitch focus without disabling notes or changing 
   const notes = await page.locator('.note').evaluateAll((notes) =>
     notes.map((note) => ({
       midi: Number((note as HTMLElement).dataset.midi),
-      opacity: getComputedStyle(note).opacity,
+      emphasis: getComputedStyle(note).getPropertyValue('--note-emphasis'),
       disabled: (note as HTMLButtonElement).disabled,
     })),
   );
   for (const note of notes) {
-    expect(note.opacity).toBe([0, 2, 3, 5, 7, 8, 10].includes(note.midi % 12) ? '1' : '0.22');
+    expect(note.emphasis).toBe([0, 2, 3, 5, 7, 8, 10].includes(note.midi % 12) ? '100%' : '22%');
     expect(note.disabled).toBe(false);
   }
   const outside = page.locator('.note[data-string="0"][data-offset="4"]'); // E2
@@ -725,26 +729,26 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await expect(inside).toHaveText('Es2');
   await page.keyboard.press('Tab');
   await outside.focus();
-  await expect(outside).toHaveCSS('opacity', '1');
+  await expect(outside).toHaveCSS('--note-emphasis', '100%');
   await page.keyboard.press('Enter');
   await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'E2, Bassschlüssel');
   await page.mouse.move(0, 0);
-  await expect(outside).toHaveCSS('opacity', '1');
-  await expect(inside).toHaveCSS('opacity', '0.55');
-  await expect(higherE).toHaveCSS('opacity', '0.22'); // Key is octave-independent; selection isn't.
+  await expect(outside).toHaveCSS('--note-emphasis', '100%');
+  await expect(inside).toHaveCSS('--note-emphasis', '55%');
+  await expect(higherE).toHaveCSS('--note-emphasis', '22%'); // Key is octave-independent; selection isn't.
   await inside.focus();
-  await expect(inside).toHaveCSS('opacity', '1');
+  await expect(inside).toHaveCSS('--note-emphasis', '100%');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await page.getByRole('switch', { name: 'Andere Töne bei Tonauswahl dimmen' }).click();
-  await expect(inside).toHaveCSS('opacity', '1');
-  await expect(higherE).toHaveCSS('opacity', '0.22');
+  await expect(inside).toHaveCSS('--note-emphasis', '100%');
+  await expect(higherE).toHaveCSS('--note-emphasis', '22%');
   await page.getByRole('switch', { name: 'Andere Töne bei Tonauswahl dimmen' }).click();
   await page.getByRole('button', { name: 'Noten öffnen' }).click();
   await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
   await page.getByRole('button', { name: 'Noten schließen' }).click();
-  await expect(outside).toHaveCSS('opacity', '0.22');
-  await expect(inside).toHaveCSS('opacity', '1');
+  await expect(outside).toHaveCSS('--note-emphasis', '22%');
+  await expect(inside).toHaveCSS('--note-emphasis', '100%');
   await inside.click();
   await page.mouse.move(0, 0);
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Es2, Bassschlüssel');
@@ -758,7 +762,7 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await page.getByRole('button', { name: 'Es-Dur: Tonart aufheben' }).click();
   await expect(page.locator('#active-key')).toBeHidden();
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Dis2, Bassschlüssel');
-  await expect(outside).toHaveCSS('opacity', '0.22'); // Original pitch-focus behavior.
+  await expect(outside).toHaveCSS('--note-emphasis', '22%'); // Original pitch-focus behavior.
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   await expect(page.getByLabel('Tonart', { exact: true })).toHaveValue('');
 });
@@ -797,9 +801,9 @@ test('Dur and natural Moll lock spelling and restore the manual preference when 
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await expect(page.getByRole('button', { name: 'c-Moll: Tonart aufheben' })).toBeVisible();
   const raisedSeventh = page.locator('.note[data-string="1"][data-offset="4"]'); // H2
-  await expect(raisedSeventh).toHaveCSS('opacity', '0.22');
+  await expect(raisedSeventh).toHaveCSS('--note-emphasis', '22%');
   await raisedSeventh.click();
-  await expect(raisedSeventh).toHaveCSS('opacity', '1');
+  await expect(raisedSeventh).toHaveCSS('--note-emphasis', '100%');
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'H2, Bassschlüssel');
   await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
