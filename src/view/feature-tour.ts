@@ -9,6 +9,8 @@ export class FeatureTour {
   private readonly tour: Driver;
   private savedTab: HTMLButtonElement | null = null;
   private savedScroll = 0;
+  private readonly popoverObserver = new ResizeObserver(() => this.reservePopoverSpace());
+  private layoutFrame = 0;
   private readonly boardScroll = requireElement('.board-scroll', HTMLDivElement);
 
   constructor(private readonly panels: PanelController) {
@@ -51,43 +53,49 @@ export class FeatureTour {
       popoverClass: 'feature-tour',
       onPopoverRender: (popover) => {
         popover.wrapper.setAttribute('lang', 'de');
+        this.popoverObserver.disconnect();
+        this.popoverObserver.observe(popover.wrapper);
+        this.reservePopoverSpace();
         popover.nextButton.focus({ preventScroll: true });
       },
       steps: [
         step(
           '.board-card',
           'Töne entdecken',
-          'Tippe auf einen Ton auf dem Griffbrett, um ihn zu hören. Derselbe Ton wird auf allen Saiten hervorgehoben. Du kannst es gleich ausprobieren oder mit „Weiter“ fortfahren.',
+          'Tippe auf einen Griff und höre den Ton. Derselbe Ton leuchtet auf allen Saiten auf. Probiere es aus oder tippe auf „Weiter“.',
         ),
         step(
           '#position-controls',
           'Die Lagen kennenlernen',
-          'Hier blendest du Lagen und Fingerzahlen ein. Die 2. und 3. Lage haben eine untere und eine obere Variante. Darunter findest du die Rückwärtsstreckung für den ersten Finger.',
+          'Blende Lagen und Fingerzahlen ein. Bei der 2. und 3. Lage kannst du zwischen unten und oben wählen. Darunter aktivierst du die Rückwärtsstreckung.',
           'settings',
         ),
         step(
           '#notation-panel',
           'Noten lesen und spielen',
-          'Wähle einen Ton direkt im Notenfenster. Die Vorzeichen ändern ihn um einen Halbton. Auf dem Griffbrett zeigt die kleine, verschiebbare Notenanzeige ebenfalls deinen gewählten Ton.',
+          'Wähle und spiele einen Ton im Notenfenster. ♭ und ♯ verändern ihn um einen Halbton. Die verschiebbare Anzeige auf dem Griffbrett zeigt dieselbe Note.',
           'notation-panel',
         ),
         step(
           '#piano-toggle',
           'Töne auf der Klaviatur',
-          'Mit „Klaviatur“ öffnest oder schließt du die Klaviertasten. Sie spielen denselben Cello-Klang und zeigen die Verbindung zwischen Taste, Note und Griff. Öffne sie gern und probiere einen Ton.',
+          'Öffne die Klaviatur und probiere einen Ton. Die Tasten spielen Cello-Klang und verbinden Taste, Note und Griff miteinander.',
         ),
         step(
           '#sequence-toggle',
           'Deine eigene Tonfolge',
-          'Öffne „Tonfolge“, um gespielte Töne zu sammeln. Du kannst sie abspielen oder unter „Bearbeiten“ Notenlängen ändern, Töne ersetzen und weitere Noten einfügen. Das Tempo findest du unter Einstellungen → Klang.',
+          '„Tonfolge“ sammelt deine gespielten Töne. Spiele sie ab oder ändere unter „Bearbeiten“ Töne und Notenlängen. Das Tempo findest du unter Einstellungen → Klang.',
         ),
         step(
           '#intonation-toggle',
           'Intonation üben',
-          '„Intonation“ zeigt dir, wie genau du einen Ton triffst. Öffne die Ansicht und aktiviere das Mikrofon erst, wenn du bereit bist. Du entscheidest über den Mikrofonzugriff. Den Rundgang findest du jederzeit wieder unter Hilfe → App entdecken.',
+          '„Intonation“ zeigt, wie genau du einen Ton triffst. Aktiviere das Mikrofon, wenn du bereit bist. Diesen Rundgang findest du unter Hilfe → App entdecken.',
         ),
       ],
       onDestroyed: () => {
+        this.popoverObserver.disconnect();
+        cancelAnimationFrame(this.layoutFrame);
+        document.body.style.removeProperty('--tour-space');
         this.panels.showForTour(null);
         this.savedTab?.click();
         this.boardScroll.scrollTop = this.savedScroll;
@@ -131,6 +139,21 @@ export class FeatureTour {
       },
       { capture: true, signal: this.events.signal },
     );
+  }
+
+  /** Reserve actual card height instead of guessing where each mobile target sits. */
+  private reservePopoverSpace(): void {
+    const popover = document.querySelector<HTMLElement>('.driver-popover');
+    if (!popover || !window.matchMedia('(max-width: 600px)').matches) return;
+    document.body.style.setProperty(
+      '--tour-space',
+      `${popover.getBoundingClientRect().height + 24}px`,
+    );
+    cancelAnimationFrame(this.layoutFrame);
+    this.layoutFrame = requestAnimationFrame(() => {
+      this.tour.getActiveElement()?.scrollIntoView({ block: 'nearest' });
+      this.tour.refresh();
+    });
   }
 
   destroy(): void {

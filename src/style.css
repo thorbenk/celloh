@@ -1549,7 +1549,9 @@ main:has(.pitch-feedback) .workspace {
     left: 12px !important;
     right: 12px !important;
     top: auto !important;
-    bottom: calc(var(--footer-height) + env(safe-area-inset-bottom) + 16px) !important;
+    bottom: calc(env(safe-area-inset-bottom) + 12px) !important;
+    max-height: 35dvh;
+    overflow-y: auto;
     max-width: none;
   }
   .feature-tour .driver-popover-arrow {
@@ -1562,7 +1564,19 @@ main:has(.pitch-feedback) .workspace {
   pointer-events: none;
 }
 @media (max-width: 600px) {
-  body:has(#piano.driver-active-element) .driver-popover.feature-tour {
-    bottom: calc(var(--footer-height) + var(--piano-height) + 16px) !important;
+  .driver-active #app {
+    height: calc(100dvh - var(--tour-space, 0px) - env(safe-area-inset-bottom));
+  }
+  .driver-active #settings,
+  .driver-active #notation-panel {
+    bottom: calc(var(--footer-height) + var(--tour-space, 0px) + env(safe-area-inset-bottom));
+    height: calc(
+      100dvh - var(--header-height) - var(--footer-height) - var(--tour-space, 0px) -
+        env(safe-area-inset-bottom)
+    );
+    max-height: calc(
+      100dvh - var(--header-height) - var(--footer-height) - var(--tour-space, 0px) -
+        env(safe-area-inset-bottom)
+    );
   }
 }

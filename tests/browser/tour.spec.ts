@@ -55,3 +55,54 @@ test('opening the piano during the tour allows playing without forcing progressi
   await page.keyboard.press('Escape');
   await expect(page.locator('#piano')).toBeVisible();
 });
+
+for (const viewport of [
+  { width: 320, height: 568 },
+  { width: 375, height: 667 },
+  { width: 390, height: 844 },
+]) {
+  test(`mobile tour keeps every highlighted target clear at ${viewport.width}×${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await page.locator('#assistance-open').click();
+    await page.locator('#tour-start').click();
+    const assertClear = async () => {
+      await expect
+        .poll(
+          async () => {
+            const bubble = await page.locator('.driver-popover').boundingBox();
+            const target = await page.locator('.driver-active-element').boundingBox();
+            if (!bubble || !target) return false;
+            const overlaps =
+              bubble.x < target.x + target.width &&
+              bubble.x + bubble.width > target.x &&
+              bubble.y < target.y + target.height &&
+              bubble.y + bubble.height > target.y;
+            const clear =
+              !overlaps &&
+              target.y >= 0 &&
+              target.y + target.height <= viewport.height &&
+              bubble.y >= 0 &&
+              bubble.y + bubble.height <= viewport.height;
+            return clear ? 'clear' : JSON.stringify({ bubble, target });
+          },
+          {
+            message:
+              'The tour bubble must stay inside the screen and leave the entire highlighted target visible',
+          },
+        )
+        .toBe('clear');
+    };
+    for (let index = 0; index < 6; index++) {
+      await assertClear();
+      if (index === 3 || index === 4) {
+        await page.locator(index === 3 ? '#piano-toggle' : '#sequence-toggle').click();
+        await assertClear();
+      }
+      await page.locator('.driver-popover-next-btn').click();
+    }
+  });
+}
