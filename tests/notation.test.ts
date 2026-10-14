@@ -4,7 +4,6 @@ import { MAJOR_KEYS, MINOR_KEYS, midiPitch } from '../src/music';
 import {
   naturalMidi,
   staffNote,
-  ledgerSteps,
   staffY,
   writtenNoteName,
   noteName,
@@ -16,10 +15,6 @@ void test('bass staff line pitches and middle C', () => {
   assert.equal(naturalMidi(0), 36);
   assert.equal(naturalMidi(18), 67);
   assert.equal(staffY(10), 90); // F3, bass-clef dots straddle this line.
-  assert.deepEqual(ledgerSteps(14), [14]); // C4
-  assert.deepEqual(ledgerSteps(0), [2, 0]); // C2
-  assert.deepEqual(ledgerSteps(18), [14, 16, 18]); // G4
-  assert.deepEqual(ledgerSteps(13), []); // H3 above the staff
 });
 void test('German H and B occupy the same staff step with different accidentals', () => {
   assert.deepEqual(staffNote(midiPitch(59), 'flat'), { step: 13, accidental: 0 });

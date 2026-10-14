@@ -422,7 +422,6 @@ main,
 .staff-note.sequence-selected {
   color: var(--green);
   fill: var(--green);
-  --staff-paper: #e2ede6;
 }
 .staff-note.sequence-selected .note-stem {
   stroke: var(--green);

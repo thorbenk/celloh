@@ -8,7 +8,7 @@ import {
 import { staffNote, staffY, writtenNoteName } from '../notation';
 import { durationName, NOTE_VALUES, NOTE_VALUE_NAMES } from '../rhythm';
 import type { SequenceAction, SequenceModel } from '../sequence';
-import { NOTE_STEM_LENGTH, noteGlyphMarkup, staffMarkup } from './staff';
+import { NOTE_STEM_LENGTH, renderNoteGlyph, renderStaff } from './notation-renderer';
 
 const SCALE = 0.55; // Stable note/staff size; ledger lines grow the viewport, never shrink the music.
 const C_MAJOR: KeySignature = {
@@ -145,10 +145,7 @@ export class PitchSequenceView {
       symbol.classList.add('sequence-duration-symbol');
       symbol.setAttribute('viewBox', '0 45 60 100');
       symbol.setAttribute('fill', 'currentColor');
-      symbol.innerHTML = noteGlyphMarkup(
-        { step: 6, accidental: 0, duration: { value, dotted: false } },
-        20,
-      );
+      renderNoteGlyph(symbol, { step: 6, accidental: 0, duration: { value, dotted: false } }, 20);
       symbol.setAttribute('aria-hidden', 'true');
       button.append(symbol);
       lengths.append(button);
@@ -288,7 +285,7 @@ export class PitchSequenceView {
       `${keyName(key, display.naming)}: ${notes.length ? notes.map((note) => writtenNoteName(note, display)).join(', ') : 'noch keine Töne'}`,
     );
     this.staff.setAttribute('role', 'group');
-    this.staff.innerHTML = staffMarkup(notes, false, firstX, {
+    renderStaff(this.staff, notes, false, firstX, {
       width,
       key,
       spacing,

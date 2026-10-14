@@ -21,7 +21,6 @@ import type { NoteDuration } from './rhythm';
 export const ACCIDENTALS = [-1, 0, 1] as const satisfies readonly Accidental[];
 export const PICKER_MIN = 0; // C2
 export const PICKER_MAX = 18; // G4
-export const STAFF_LINES = [4, 6, 8, 10, 12] as const; // G2, H2, D3, F3, A3
 export const COMPACT_VIEW_BOX = '0 -160 205 375'; // Fixed C2–A5 range, including ledger lines.
 const STAFF_BOTTOM_Y = 190;
 const STAFF_STEP_HEIGHT = 10;
@@ -70,12 +69,6 @@ export function staffY(step: number): number {
 }
 export function stepAtStaffY(y: number): number {
   return clampPickerStep((STAFF_BOTTOM_Y - y) / STAFF_STEP_HEIGHT);
-}
-export function ledgerSteps(step: number): readonly number[] {
-  const lines: number[] = [];
-  for (let line = 2; line >= step; line -= 2) lines.push(line);
-  for (let line = 14; line <= step; line += 2) lines.push(line);
-  return lines;
 }
 /** A pitch-class label deliberately carries no octave, including no octave-dependent casing. */
 export function noteName(note: StaffNote, naming: NoteNaming): string {

@@ -169,8 +169,23 @@ test('pitch sequence uses the key signature and cancels/restores alterations per
     await page.goto(`/iframe.html?id=components-pitch-sequence--${story}&viewMode=story`);
     await expect(page.locator('.sequence-scroll svg')).toHaveAccessibleName(label);
     await expect(page.locator('.sequence-scroll .vf-clef')).toHaveCount(1);
-    for (const stem of await page.locator('.staff-note .note-stem path').all()) {
+    const notes = page.locator('.staff-note');
+    await expect(notes).toHaveCount(signs.length);
+    await expect(notes.locator('.note-stem path')).toHaveCount(signs.length);
+    for (const note of await notes.all()) {
+      const stem = note.locator('.note-stem path');
       expect(await stem.evaluate((path) => getComputedStyle(path).stroke)).not.toBe('none');
+      const stemBounds = await stem.boundingBox();
+      const headBounds = await note.locator('.notehead').boundingBox();
+      expect(stemBounds).not.toBeNull();
+      expect(headBounds).not.toBeNull();
+      if (stemBounds && headBounds) {
+        expect(stemBounds.height).toBeGreaterThan(30);
+        expect(stemBounds.x).toBeGreaterThanOrEqual(headBounds.x - 1);
+        expect(stemBounds.x).toBeLessThanOrEqual(headBounds.x + headBounds.width + 1);
+        expect(stemBounds.y).toBeLessThan(headBounds.y + headBounds.height);
+        expect(stemBounds.y + stemBounds.height).toBeGreaterThan(headBounds.y);
+      }
     }
     const alterations = page.locator('.staff-note .staff-accidental');
     for (const accidental of await alterations.all()) {
