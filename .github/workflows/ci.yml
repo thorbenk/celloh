@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check formatting, lint, types, and unit tests
+        run: npm run check
+      - name: Test audio bundle validation
+        run: npm run test:audio
+      - name: Download and verify playback assets
+        run: |
+          npm run audio:fetch
+          npm run audio:verify
+          npm run audio:soundfont
+      - name: Install Playwright browsers and system dependencies
+        run: npx playwright install --with-deps chromium firefox
+      - name: Test production app in Chromium
+        run: npm run test:browser -- --trace retain-on-failure
+      - name: Test Storybook components in Chromium
+        run: npm run test:stories -- --trace retain-on-failure
+      - name: Test Firefox hover and contrast
+        run: npx playwright test --config playwright.firefox.config.ts --trace retain-on-failure
+      - name: Upload browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-test-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

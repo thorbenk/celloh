@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 import appConfig from './playwright.config';
 
-export default defineConfig({
+export default defineConfig(appConfig, {
   testDir: './tests/stories',
   use: { ...appConfig.use, baseURL: 'http://127.0.0.1:6006' },
   webServer: {

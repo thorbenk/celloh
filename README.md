@@ -37,6 +37,24 @@ event handlers are disposed when a story or its controls change.
 `build:storybook` creates a separate, gitignored `storybook-static/` directory;
 Storybook is not included in the production app bundle.
 
+### Continuous integration and protected master
+
+[CI](.github/workflows/ci.yml) runs on pull requests targeting `master`, pushes to
+`master`, merge queues, and manual dispatch. The **Lint and tests** check runs
+formatting, ESLint, TypeScript, unit tests, Python audio tests, the production app
+and Storybook tests in Chromium, and the Firefox hover/contrast tests. It downloads
+and verifies the pinned audio assets and installs the locked Playwright browsers.
+Failed browser runs upload traces and error contexts for seven days. CI rejects
+focused (`test.only`) browser tests.
+
+After pushing this workflow and letting **Lint and tests** complete successfully,
+create a branch protection rule or branch ruleset targeting `master` in GitHub's
+repository settings. Require a pull request, require the **Lint and tests** status
+check from GitHub Actions, and require branches to be up to date before merging
+(or use a merge queue). Apply the rule to administrators too if direct pushes
+should be blocked for everyone. Required review approvals are optional for a solo
+maintainer. The workflow runs checks; the GitHub protection rule enforces them.
+
 ### Amp orbs
 
 `.agents/setup` uses the orb's preinstalled Node.js 22.13+, npm, and Python 3,
