@@ -117,22 +117,27 @@ test('pitch sequence works independently, scrolls on append, and clears to its m
   await page.getByRole('button', { name: 'Ton hinzufügen' }).click();
   expect((await svg.boundingBox())!.height).toBe(height);
   expect(await svg.evaluate((svg) => (svg as SVGSVGElement).getScreenCTM()?.a)).toBe(scale);
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await expect(page.getByRole('button', { name: 'Abbrechen' })).toBeFocused();
   await expect(notes).toHaveCount(6);
   await page.getByRole('button', { name: 'Abbrechen' }).click();
   await expect(notes).toHaveCount(6);
-  await expect(page.getByRole('button', { name: 'Tonfolge leeren' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' })).toBeFocused();
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('group', { name: 'Tonfolge wirklich leeren?' })).toBeHidden();
   await expect(notes).toHaveCount(6);
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await page.getByRole('button', { name: 'Ja, leeren' }).click();
   await expect(notes).toHaveCount(0);
   await expect(page.locator('.sequence-scroll')).toBeFocused();
   expect((await svg.boundingBox())!.height).toBeLessThan(height);
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await expect(page.getByRole('button', { name: 'Tonfolge leeren' })).toBeDisabled();
+  await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: 'Tonfolge abspielen' })).toBeDisabled();
   for (let i = 0; i < 15; i++) await page.getByRole('button', { name: 'Ton hinzufügen' }).click();
   await expect(notes).toHaveCount(15);
@@ -165,12 +170,12 @@ test('pitch sequence shares selection with playback, seeks, and preserves notati
   await expect(selected).toBeInViewport({ ratio: 1 });
   await page.getByRole('button', { name: 'Vorherige Note', exact: true }).click();
   await expect(selected).toHaveAttribute('data-midi', '53');
-  await expect(page.getByRole('button', { name: 'Tonfolge stoppen' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Tonfolge pausieren' })).toBeEnabled();
   await page.locator('.staff-note').nth(16).click();
   await expect(selected).toHaveAttribute('data-midi', '52');
   await page.clock.runFor(500);
   await expect(selected).toHaveAttribute('data-midi', '53');
-  await page.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await page.getByRole('button', { name: 'Tonfolge pausieren' }).click();
   await page.clock.runFor(1000);
   await expect(selected).toHaveAttribute('data-midi', '53');
   await page.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
@@ -182,7 +187,7 @@ test('pitch sequence shares selection with playback, seeks, and preserves notati
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
   await page.clock.runFor(500);
   await expect(page.getByRole('button', { name: 'Tonfolge abspielen' })).toBeEnabled();
-  await expect(page.locator('.staff-note').last()).toHaveClass(/sequence-selected/);
+  await expect(selected).toHaveCount(0);
 });
 
 test('pitch sequence spells each note independently against the key signature', async ({

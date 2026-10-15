@@ -151,6 +151,19 @@ test('touch resizing preserves key proportions, resets, and scrolling does not m
   }
   await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await expect(handle).toHaveAttribute('aria-valuenow', '178');
+  const reset = page.getByRole('button', { name: 'Klaviaturhöhe zurücksetzen' });
+  const checkResetPosition = async () => {
+    const panel = (await page.locator('#piano').boundingBox())!;
+    const button = (await reset.boundingBox())!;
+    expect(button.y - panel.y).toBe(1);
+    expect(panel.x + panel.width - button.x - button.width).toBe(8);
+  };
+  await checkResetPosition();
+  await page.locator('.piano-scroll').evaluate((scroll) => {
+    scroll.scrollLeft = 120;
+  });
+  await checkResetPosition();
+
   expect((await page.locator('#piano').boundingBox())!.height).toBe(178);
   expect((await page.locator('.board-scroll').boundingBox())!.height).toBe(boardHeight - 90);
   const enlargedWhite = (await white.boundingBox())!;
@@ -177,10 +190,12 @@ test('touch resizing preserves key proportions, resets, and scrolling does not m
   await handle.focus();
   await page.keyboard.press('ArrowUp');
   await expect(handle).toHaveAttribute('aria-valuenow', '104');
+  await checkResetPosition();
   await page.keyboard.press('End');
   await expect(handle).toHaveAttribute('aria-valuenow', '315');
   await page.setViewportSize({ width: 320, height: 500 });
   await expect(handle).toHaveAttribute('aria-valuenow', '225');
+  await checkResetPosition();
   await expect(page.locator('#piano')).toBeInViewport({ ratio: 1 });
   await page.keyboard.press('Home');
   await page.keyboard.press('ArrowDown');
@@ -287,6 +302,7 @@ test('optional pitch history records only played notes, follows key changes, and
   await page.getByRole('button', { name: 'Note hinzufügen', exact: true }).click();
   await expect(notes).toHaveCount(10);
   await page.getByRole('button', { name: 'Noten schließen' }).click();
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await expect(notes).toHaveCount(10);
   await page.getByRole('button', { name: 'Ja, leeren' }).click();
@@ -318,8 +334,8 @@ test('sequence playback moves a single selection and navigation keeps playing', 
   await expect(selected).toHaveAttribute('data-midi', '52');
   await sequence.getByRole('button', { name: 'Zum Anfang', exact: true }).click();
   await expect(selected).toHaveAttribute('data-midi', '50');
-  await expect(sequence.getByRole('button', { name: 'Tonfolge stoppen' })).toBeVisible();
-  await sequence.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await expect(sequence.getByRole('button', { name: 'Tonfolge pausieren' })).toBeVisible();
+  await sequence.getByRole('button', { name: 'Tonfolge pausieren' }).click();
   await expect(selected).toHaveAttribute('data-midi', '50');
   await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
   await sequence.getByRole('button', { name: 'Bearbeiten beenden' }).click();

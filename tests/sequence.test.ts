@@ -122,3 +122,18 @@ void test('jump controls target boundaries and done preserves the insertion loca
   sequence.dispatch({ type: 'done' });
   assert.equal(sequence.selectedIndex, 0);
 });
+
+void test('stopping unselects without changing notes, edit mode, or undo history', () => {
+  const sequence = new SequenceModel();
+  for (const pitch of [48, 50]) sequence.input(midiPitch(pitch));
+  const notes = sequence.notes;
+  sequence.dispatch({ type: 'unselect' });
+  assert.equal(sequence.selectedIndex, null);
+  assert.equal(sequence.notes, notes);
+  sequence.dispatch({ type: 'edit' });
+  sequence.dispatch({ type: 'unselect' });
+  assert.equal(sequence.editor.mode, 'replace');
+  assert.equal(sequence.selectedIndex, null);
+  sequence.dispatch({ type: 'undo' });
+  assert.equal(sequence.notes.length, 1);
+});
