@@ -17,7 +17,7 @@ Open with Zed's **Open in Container**, or run from the project root:
 zed --dev-container .
 ```
 
-The image includes Node.js 22, Python 3, Codex, and Playwright system dependencies. Creation runs `npm ci`. Terminals and language servers run as `node` in `/workspace`; edits appear immediately on the host.
+The image includes Node.js 22, Python 3, Codex, and Playwright system dependencies. Creation runs `npm ci` and installs the lockfile-matched Chromium and Firefox browsers. Terminals and language servers run as `node` in `/workspace`; edits appear immediately on the host.
 
 ## Daily commands
 

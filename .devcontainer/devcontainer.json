@@ -24,5 +24,5 @@
   ],
   "init": true,
   "overrideCommand": true,
-  "postCreateCommand": ["npm", "ci"]
+  "postCreateCommand": "npm ci && npx playwright install chromium firefox"
 }
