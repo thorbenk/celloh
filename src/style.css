@@ -462,9 +462,9 @@ main,
 }
 .piano-size-controls {
   position: absolute;
-  bottom: calc(100% - 12px);
+  top: 0;
   inset-inline: 0;
-  height: 24px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -481,7 +481,7 @@ main,
 }
 .piano-resize-handle {
   position: relative;
-  height: 44px;
+  height: 18px;
   width: 72px;
   display: grid;
   place-items: center;
@@ -492,18 +492,18 @@ main,
 .piano-resize-handle::before {
   content: '';
   position: absolute;
-  bottom: 22px;
+  top: -1px;
   width: 56px;
   height: 12px;
   border: 1px solid #d9d4c4;
-  border-bottom: 0;
-  border-radius: 9px 9px 0 0;
+  border-top: 0;
+  border-radius: 0 0 9px 9px;
   background: #f8f5ef;
 }
 .piano-resize-handle::after {
   content: '';
-  position: relative;
-  transform: translateY(-5px);
+  position: absolute;
+  top: 4px;
   width: 24px;
   height: 3px;
   border-radius: 2px;
