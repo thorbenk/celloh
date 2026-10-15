@@ -58,8 +58,8 @@ export class PianoKeyboardView {
     this.resetSize.title = 'Klaviaturhöhe zurücksetzen';
     this.resetSize.setAttribute('aria-label', this.resetSize.title);
     this.resetSize.hidden = true;
-    controls.append(this.resizeHandle, this.resetSize);
-    this.element.append(controls, this.scroll);
+    controls.append(this.resizeHandle);
+    this.element.append(controls, this.scroll, this.resetSize);
     let whites = 0;
     for (const pitch of ALL_PITCHES) {
       const black = !NATURALS.some((natural) => natural === pitchClass(pitch));

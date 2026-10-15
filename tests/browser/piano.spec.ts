@@ -151,6 +151,19 @@ test('touch resizing preserves key proportions, resets, and scrolling does not m
   }
   await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await expect(handle).toHaveAttribute('aria-valuenow', '178');
+  const reset = page.getByRole('button', { name: 'Klaviaturhöhe zurücksetzen' });
+  const checkResetPosition = async () => {
+    const panel = (await page.locator('#piano').boundingBox())!;
+    const button = (await reset.boundingBox())!;
+    expect(button.y - panel.y).toBe(1);
+    expect(panel.x + panel.width - button.x - button.width).toBe(8);
+  };
+  await checkResetPosition();
+  await page.locator('.piano-scroll').evaluate((scroll) => {
+    scroll.scrollLeft = 120;
+  });
+  await checkResetPosition();
+
   expect((await page.locator('#piano').boundingBox())!.height).toBe(178);
   expect((await page.locator('.board-scroll').boundingBox())!.height).toBe(boardHeight - 90);
   const enlargedWhite = (await white.boundingBox())!;
@@ -177,10 +190,12 @@ test('touch resizing preserves key proportions, resets, and scrolling does not m
   await handle.focus();
   await page.keyboard.press('ArrowUp');
   await expect(handle).toHaveAttribute('aria-valuenow', '104');
+  await checkResetPosition();
   await page.keyboard.press('End');
   await expect(handle).toHaveAttribute('aria-valuenow', '315');
   await page.setViewportSize({ width: 320, height: 500 });
   await expect(handle).toHaveAttribute('aria-valuenow', '225');
+  await checkResetPosition();
   await expect(page.locator('#piano')).toBeInViewport({ ratio: 1 });
   await page.keyboard.press('Home');
   await page.keyboard.press('ArrowDown');
