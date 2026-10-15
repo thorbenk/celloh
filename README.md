@@ -8,6 +8,19 @@ A small static web app for exploring cello notes and fingerboard positions, buil
 - Experimental microphone feedback for intonation and note recognition; audio stays on the device.
 - Installable as a PWA, with offline playback after the first online visit.
 
+## Sharing note sequences
+
+The Tonfolge ⋮ menu offers **Text kopieren**, **Link kopieren**, and **Importieren …**.
+Paste either exported text or a share link to replace the sequence; imports can be undone.
+Share links load into an empty sequence without playing automatically.
+
+The text format is `celloh:v1 C3/4 D3/8 Fis3/4. H3/2`: German note names,
+scientific octaves (middle C is C4), and note lengths 1, 2, 4, 8, or 16 with
+an optional dot. Bare note lists are accepted; omitted lengths mean quarters.
+Whitespace or commas separate tokens. Links carry the same format with commas in
+`#tonfolge=celloh:v1,C3/4,D3/8`. The format preserves sounding pitches and lengths,
+not enharmonic spelling or app settings. Supported pitches run from C2 through A5.
+
 ## Development
 
 Requires Node.js 22.13+ and Python 3:

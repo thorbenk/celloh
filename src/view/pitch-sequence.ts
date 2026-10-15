@@ -7,6 +7,8 @@ import {
 } from '../music';
 import { staffNote, staffY, writtenNoteName } from '../notation';
 import { durationName, NOTE_VALUES, NOTE_VALUE_NAMES } from '../rhythm';
+import { SequenceTransfer } from './sequence-transfer';
+import type { SequenceNote } from '../sequence';
 import type { SequenceAction, SequenceModel } from '../sequence';
 import { NOTE_STEM_LENGTH, renderNoteGlyph, renderStaff } from './notation-renderer';
 
@@ -36,7 +38,6 @@ export class PitchSequenceView {
   private readonly edit: HTMLButtonElement;
   private readonly editor = document.createElement('div');
   private readonly summary = document.createElement('span');
-  private readonly hint = document.createElement('span');
   private readonly beginning: HTMLButtonElement;
   private readonly end: HTMLButtonElement;
   private readonly previous: HTMLButtonElement;
@@ -50,6 +51,8 @@ export class PitchSequenceView {
   private editing = false;
   private selectedIndex: number | null = null;
   private count = 0;
+  private notes: readonly SequenceNote[] = [];
+  private readonly transfer: SequenceTransfer;
 
   constructor(
     onAction: (action: SequenceAction) => void,
@@ -74,7 +77,29 @@ export class PitchSequenceView {
     this.more.setAttribute('aria-expanded', 'false');
     this.menu.className = 'sequence-menu';
     this.menu.hidden = true;
+    this.transfer = new SequenceTransfer((notes) => onAction({ type: 'import', notes }));
+    for (const [text, icon, action] of [
+      ['Text kopieren', 'content-copy', () => void this.transfer.copy('text', this.notes)],
+      ['Link kopieren', 'link', () => void this.transfer.copy('link', this.notes)],
+      ['Importieren …', 'file-upload', () => this.transfer.openImport()],
+    ] satisfies readonly (readonly [string, string, () => void])[]) {
+      const button = this.button(text, text, () => {
+        this.menu.hidden = true;
+        this.more.setAttribute('aria-expanded', 'false');
+        action();
+      });
+      const symbol = document.createElement('span');
+      symbol.className = `material-icon icon-${icon}`;
+      symbol.setAttribute('aria-hidden', 'true');
+      button.prepend(symbol);
+      this.menu.append(button);
+    }
+    const clearIcon = document.createElement('span');
+    clearIcon.className = 'material-icon icon-delete';
+    clearIcon.setAttribute('aria-hidden', 'true');
+    this.clear.prepend(clearIcon);
     this.menu.append(this.clear);
+    this.element.append(this.transfer.dialog, this.transfer.feedback);
     document.addEventListener(
       'pointerdown',
       (event) => {
@@ -153,9 +178,7 @@ export class PitchSequenceView {
     this.editor.setAttribute('role', 'group');
     this.editor.setAttribute('aria-label', 'Tonfolge bearbeiten');
     this.edit.setAttribute('aria-controls', this.editor.id);
-    const selection = document.createElement('div');
-    selection.className = 'sequence-selection';
-    this.summary.className = 'sequence-summary';
+    this.summary.className = 'sequence-summary visually-hidden';
     this.summary.setAttribute('aria-live', 'polite');
     this.previous = this.button('', 'Vorherige Note', () => onAction({ type: 'move', delta: -1 }));
     this.previous.innerHTML =
@@ -185,7 +208,6 @@ export class PitchSequenceView {
       this.edit,
       this.more,
     );
-    selection.append(this.summary);
     const rhythm = document.createElement('div');
     rhythm.className = 'sequence-durations';
     const lengths = document.createElement('div');
@@ -228,8 +250,7 @@ export class PitchSequenceView {
     this.undo = this.button('', 'Rückgängig', () => onAction({ type: 'undo' }));
     this.undo.innerHTML = '<span class="material-icon icon-undo" aria-hidden="true"></span>';
     actions.append(modes, this.remove, this.undo);
-    this.hint.className = 'sequence-hint';
-    this.editor.append(selection, rhythm, actions, this.hint);
+    this.editor.append(this.summary, rhythm, actions);
     this.element.append(this.scroll, transport, this.menu, this.confirmation, this.editor);
     this.element.addEventListener(
       'keydown',
@@ -317,6 +338,7 @@ export class PitchSequenceView {
     display: Readonly<NoteDisplaySettings> = DEFAULT_NOTE_DISPLAY,
     spelling: Spelling = 'sharp',
   ): void {
+    this.notes = sequence.notes;
     const following =
       this.scroll.scrollLeft + this.scroll.clientWidth >= this.scroll.scrollWidth - 1;
     const focusedNote = this.staff.contains(document.activeElement);
@@ -410,12 +432,6 @@ export class PitchSequenceView {
     this.insert.setAttribute('aria-pressed', String(editor.mode === 'insert'));
     this.remove.disabled = this.selectedIndex === null;
     this.undo.disabled = !sequence.canUndo;
-    this.hint.textContent =
-      editor.mode === 'replace'
-        ? 'Note antippen zum Anhören. Klaviatur oder Griffbrett ersetzen die ausgewählte Note.'
-        : editor.mode === 'insert'
-          ? 'Zwischen die Noten tippen, um den Cursor zu bewegen. Klaviatur und Griffbrett fügen neue Töne ein.'
-          : 'Note antippen zum Bearbeiten. Klaviatur und Griffbrett spielen nur zur Probe.';
     for (const { value, button } of this.durations) {
       button.disabled = activeDuration === undefined;
       button.setAttribute('aria-pressed', String(activeDuration?.value === value));
@@ -488,11 +504,16 @@ export class PitchSequenceView {
     else this.scroll.focus({ preventScroll: true });
   }
 
+  openImport(text: string): void {
+    this.transfer.openImport(text);
+  }
+
   revealLatest(): void {
     this.scroll.scrollLeft = this.count ? this.scroll.scrollWidth : 0;
   }
 
   destroy(): void {
     this.events.abort();
+    this.transfer.destroy();
   }
 }
