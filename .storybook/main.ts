@@ -1,7 +1,10 @@
 import type { StorybookConfig } from '@storybook/html-vite';
 
 const config: StorybookConfig = {
-  framework: '@storybook/html-vite',
+  framework: {
+    name: '@storybook/html-vite',
+    options: { builder: { viteConfigPath: '.storybook/vite.config.ts' } },
+  },
   stories: ['../src/**/*.stories.ts'],
   addons: ['@storybook/addon-docs'],
   staticDirs: ['../public'],

@@ -285,16 +285,6 @@ main,
 .sequence-confirm .clear-note {
   flex-shrink: 0;
 }
-.sequence-playhead {
-  fill: #dfe9d7;
-}
-.staff-note.playing {
-  fill: var(--green);
-  color: var(--green);
-}
-.staff-note.playing .note-stem {
-  stroke: var(--green);
-}
 .sequence-scroll {
   overflow-x: auto;
   overflow-y: hidden;
@@ -1842,4 +1832,22 @@ main:has(.pitch-feedback) .workspace {
   margin: 0;
   font-size: 12px;
   min-width: 0;
+}
+
+.sequence-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+.sequence-transport .sequence-play {
+  min-width: 100px;
+  min-height: 44px;
+}
+.icon-first-page {
+  --icon: url('./assets/first_page.svg');
+}
+.icon-last-page {
+  --icon: url('./assets/last_page.svg');
 }

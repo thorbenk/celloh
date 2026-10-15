@@ -18,14 +18,14 @@ void test('all supported note values and dots have exact quarter-beat lengths', 
   }
 });
 
-void test('viewing selection does not record, and instrument input clears it', () => {
+void test('viewing selection does not record, and instrument input selects the new note', () => {
   const sequence = new SequenceModel();
   for (const pitch of [48, 50, 52]) sequence.input(midiPitch(pitch));
   sequence.dispatch({ type: 'select', index: 1 });
   assert.equal(sequence.selectedNote?.pitch, 50);
   assert.equal(sequence.editor.mode, 'capture');
   sequence.input(midiPitch(55));
-  assert.equal(sequence.selectedIndex, null);
+  assert.equal(sequence.selectedIndex, 3);
   assert.deepEqual(
     sequence.notes.map((note) => note.pitch),
     [48, 50, 52, 55],
@@ -52,7 +52,7 @@ void test('editing repeatedly replaces the selected note and changes its duratio
   sequence.dispatch({ type: 'done' });
   assert.equal(sequence.selectedIndex, 0);
   sequence.input(midiPitch(60));
-  assert.equal(sequence.selectedIndex, null);
+  assert.equal(sequence.selectedIndex, 3);
   assert.equal(sequence.notes.at(-1)?.pitch, 60);
 });
 
@@ -107,4 +107,18 @@ void test('deletion and clearing recover selection with undo, including empty ed
   sequence.dispatch({ type: 'done' });
   sequence.dispatch({ type: 'clear' });
   assert.equal(sequence.selectedIndex, null);
+});
+
+void test('jump controls target boundaries and done preserves the insertion location', () => {
+  const sequence = new SequenceModel();
+  for (const pitch of [48, 50, 52]) sequence.input(midiPitch(pitch));
+  sequence.dispatch({ type: 'jump', edge: 'beginning' });
+  assert.equal(sequence.selectedIndex, 0);
+  sequence.dispatch({ type: 'jump', edge: 'end' });
+  assert.equal(sequence.selectedIndex, 2);
+  sequence.dispatch({ type: 'edit' });
+  sequence.dispatch({ type: 'insert' });
+  sequence.dispatch({ type: 'jump', edge: 'beginning' });
+  sequence.dispatch({ type: 'done' });
+  assert.equal(sequence.selectedIndex, 0);
 });

@@ -67,7 +67,8 @@ const meta = {
       const advance = (): void => {
         const note = index === null ? undefined : sequence.notes[index];
         if (!note) stop();
-        else
+        else {
+          sequence.dispatch({ type: 'select', index: index ?? 0 });
           timer = window.setTimeout(
             () => {
               index = (index ?? 0) + 1;
@@ -75,13 +76,18 @@ const meta = {
             },
             500 * quarterBeats(note.duration),
           );
+        }
         view.render(sequence, key, index);
       };
       const view = new PitchSequenceView(
         (action) => {
+          const resume = index !== null && ['select', 'move', 'jump'].includes(action.type);
           stop();
           sequence.dispatch(action);
-          view.render(sequence, key);
+          if (resume) {
+            index = sequence.selectedIndex;
+            advance();
+          } else view.render(sequence, key);
         },
         () => {
           if (index !== null) stop();

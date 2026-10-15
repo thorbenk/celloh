@@ -24,6 +24,7 @@ export type SequenceAction =
   | { readonly type: 'select'; readonly index: number }
   | { readonly type: 'position'; readonly position: number }
   | { readonly type: 'move'; readonly delta: -1 | 1 }
+  | { readonly type: 'jump'; readonly edge: 'beginning' | 'end' }
   | { readonly type: 'duration'; readonly value: NoteValue };
 
 interface Snapshot {
@@ -65,7 +66,7 @@ export class SequenceModel {
       case 'capture':
         this.save();
         this.current = [...this.current, { pitch, duration: QUARTER_NOTE }];
-        this.state = { mode: 'capture' };
+        this.state = { mode: 'capture', index: this.lastIndex() };
         break;
       case 'replace':
         if (editor.index === null) return;
@@ -93,6 +94,7 @@ export class SequenceModel {
       editor.mode === 'capture' &&
       action.type !== 'select' &&
       action.type !== 'move' &&
+      action.type !== 'jump' &&
       action.type !== 'edit' &&
       action.type !== 'done' &&
       action.type !== 'clear' &&
@@ -104,7 +106,15 @@ export class SequenceModel {
         this.state = { mode: 'replace', index: index ?? this.lastIndex() };
         return;
       case 'done':
-        this.state = { mode: 'capture', index };
+        this.state = {
+          mode: 'capture',
+          index:
+            index ??
+            (editor.mode === 'insert'
+              ? Math.min(editor.position, this.current.length - 1)
+              : this.lastIndex()),
+        };
+        if (!this.current.length) this.state = { mode: 'capture' };
         return;
       case 'clear':
         if (!this.current.length) return;
@@ -155,6 +165,18 @@ export class SequenceModel {
           this.state = {
             ...editor,
             position: Math.max(0, Math.min(this.current.length, action.position)),
+          };
+        break;
+      case 'jump':
+        if (editor.mode === 'insert')
+          this.state = {
+            ...editor,
+            position: action.edge === 'beginning' ? 0 : this.current.length,
+          };
+        else
+          this.state = {
+            mode: editor.mode,
+            index: action.edge === 'beginning' && this.current.length ? 0 : this.lastIndex(),
           };
         break;
       case 'move':

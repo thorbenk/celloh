@@ -51,7 +51,7 @@ test('piano dock preserves board geometry and scroll, remembers visibility, and 
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 });
 
-test('board, piano, and staff share exact pitch, spelling, highlighting, reset, and cello playback', async ({
+test('board, piano, and staff share exact pitch, spelling, highlighting and cello playback', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 700 });
@@ -84,13 +84,15 @@ test('board, piano, and staff share exact pitch, spelling, highlighting, reset, 
   await expect(key(58)).toHaveText('B3');
   await page.getByRole('button', { name: 'Noten öffnen' }).click();
   const panelBounds = (await page.locator('#notation-panel').boundingBox())!;
-  expect(panelBounds.y + panelBounds.height).toBe((await page.locator('.footer').boundingBox())!.y);
+  expect(panelBounds.width).toBeLessThanOrEqual(280);
+  expect(panelBounds.y + panelBounds.height).toBeLessThanOrEqual(
+    (await page.locator('.footer').boundingBox())!.y,
+  );
   await expect(page.getByRole('dialog', { name: 'Noten', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Auflösungszeichen' }).click();
   await expect(key(59)).toHaveAttribute('aria-pressed', 'true');
   await expect(key(58)).toHaveAttribute('aria-pressed', 'false');
-  await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
-  await expect(page.locator('.piano-key.selected, .note.selected')).toHaveCount(0);
+  await expect(key(59)).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Noten schließen' }).click();
   await expect(page.getByRole('button', { name: 'Noten öffnen' })).toBeFocused();
   await key(36).focus();
@@ -270,17 +272,19 @@ test('optional pitch history records only played notes, follows key changes, and
   await expect
     .poll(async () => {
       const panel = (await page.locator('#notation-panel').boundingBox())!;
-      return panel.y + panel.height - (await page.locator('.footer').boundingBox())!.y;
+      return panel.y + panel.height <= (await page.locator('.footer').boundingBox())!.y;
     })
-    .toBe(0);
+    .toBe(true);
   await page.locator('#staff').focus();
   await page.keyboard.press('ArrowUp');
   await expect(notes).toHaveCount(8);
   await page.keyboard.press('Enter');
+  await expect(notes).toHaveCount(8);
+  await page.getByRole('button', { name: 'Note hinzufügen', exact: true }).click();
   await expect(notes).toHaveCount(9);
   await page.getByRole('button', { name: 'Be', exact: true }).click();
-  await expect(notes).toHaveCount(10);
-  await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
+  await expect(notes).toHaveCount(9);
+  await page.getByRole('button', { name: 'Note hinzufügen', exact: true }).click();
   await expect(notes).toHaveCount(10);
   await page.getByRole('button', { name: 'Noten schließen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
@@ -296,4 +300,29 @@ test('optional pitch history records only played notes, follows key changes, and
   await expect(sequence).toBeHidden();
   await expect(page.locator('#piano')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+});
+
+test('sequence playback moves a single selection and navigation keeps playing', async ({
+  page,
+}) => {
+  await page.goto('/');
+  for (const offset of [0, 2, 4])
+    await page.locator(`.note[data-string="2"][data-offset="${offset}"]`).click();
+  await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+  const sequence = page.locator('#pitch-sequence');
+  const selected = sequence.locator('.sequence-selected');
+  await sequence.getByRole('button', { name: 'Zum Anfang', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await expect(selected).toHaveCount(1);
+  await expect(selected).toHaveAttribute('data-midi', '50');
+  await expect(selected).toHaveAttribute('data-midi', '52');
+  await sequence.getByRole('button', { name: 'Zum Anfang', exact: true }).click();
+  await expect(selected).toHaveAttribute('data-midi', '50');
+  await expect(sequence.getByRole('button', { name: 'Tonfolge stoppen' })).toBeVisible();
+  await sequence.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await expect(selected).toHaveAttribute('data-midi', '50');
+  await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Bearbeiten beenden' }).click();
+  await expect(sequence.locator('.vf-clef')).toHaveCount(1);
+  await expect(sequence.locator('.vf-stave')).toHaveCount(1);
 });

@@ -58,7 +58,7 @@ test('experimental engine loads lazily, produces audio, and preserves the select
   await notes.nth(0).click();
   await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
-  await expect(notes.nth(0)).toHaveClass(/playing/);
+  await expect(notes.nth(0)).toHaveClass(/sequence-selected/);
   const started = await page.evaluate(() => performance.now());
   await expect
     .poll(

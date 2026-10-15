@@ -36,7 +36,11 @@ test('short portrait workspace allocates remaining height with a key-signature r
   await page.goto('/iframe.html?id=layout-workspace--with-key-signature&viewMode=story');
   await expect(page.locator('#active-key')).toBeVisible();
   await expect(page.locator('.note')).toHaveCount(100);
-  expect((await page.locator('.board-scroll').boundingBox())?.height).toBe(326);
+  const header = (await page.locator('.header').boundingBox())!;
+  const footer = (await page.locator('.footer').boundingBox())!;
+  const board = (await page.locator('.board-scroll').boundingBox())!;
+  expect(board.y).toBe(header.y + header.height);
+  expect(board.y + board.height).toBe(footer.y);
   expect((await page.locator('#app').boundingBox())?.height).toBe(500);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
@@ -90,7 +94,11 @@ test('short workspace reserves the dock below the board and above the footer', a
   await page.goto('/iframe.html?id=layout-workspace--short-portrait-with-piano&viewMode=story');
   await expect(page.locator('.piano-key')).toHaveCount(46);
   await expect(page.locator('#active-key')).toBeVisible();
-  expect((await page.locator('.board-scroll').boundingBox())?.height).toBe(238);
+  const board = (await page.locator('.board-scroll').boundingBox())!;
+  const piano = (await page.locator('.piano-dock').boundingBox())!;
+  const footer = (await page.locator('.footer').boundingBox())!;
+  expect(board.y + board.height).toBe(piano.y);
+  expect(piano.y + piano.height).toBe(footer.y);
   expect((await page.locator('#app').boundingBox())?.height).toBe(500);
 });
 
@@ -140,31 +148,50 @@ test('pitch sequence works independently, scrolls on append, and clears to its m
   await expect(notes.last()).toBeInViewport({ ratio: 1 });
 });
 
-test('pitch sequence replay highlighting and stop work without the app or audio', async ({
+test('pitch sequence shares selection with playback, seeks, and preserves notation after editing', async ({
   page,
 }) => {
   await page.goto('/iframe.html?id=components-pitch-sequence--long-history&viewMode=story');
+  await expect(page.getByRole('button', { name: 'Zum Anfang', exact: true })).toBeEnabled();
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const selected = page.locator('.staff-note.sequence-selected');
+  await page.getByRole('button', { name: 'Zum Anfang', exact: true }).click();
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
-  await expect(page.locator('.staff-note.playing')).toHaveAttribute('data-midi', '48');
-  await expect(page.locator('.staff-note.playing')).toBeInViewport({ ratio: 1 });
+  await expect(selected).toHaveCount(1);
+  await expect(selected).toHaveAttribute('data-midi', '48');
   await page.clock.runFor(9000);
-  await expect(page.locator('.staff-note.playing')).toHaveAttribute('data-midi', '54');
-  await expect(page.locator('.staff-note.playing')).toBeInViewport({ ratio: 1 });
-  await expect(page.locator('.staff-note')).toHaveCount(40);
+  await expect(selected).toHaveAttribute('data-midi', '54');
+  await expect(selected).toBeInViewport({ ratio: 1 });
+  await page.getByRole('button', { name: 'Vorherige Note', exact: true }).click();
+  await expect(selected).toHaveAttribute('data-midi', '53');
+  await expect(page.getByRole('button', { name: 'Tonfolge stoppen' })).toBeEnabled();
+  await page.locator('.staff-note').nth(16).click();
+  await expect(selected).toHaveAttribute('data-midi', '52');
+  await page.clock.runFor(500);
+  await expect(selected).toHaveAttribute('data-midi', '53');
   await page.getByRole('button', { name: 'Tonfolge stoppen' }).click();
   await page.clock.runFor(1000);
-  await expect(page.locator('.staff-note.playing')).toHaveCount(0);
+  await expect(selected).toHaveAttribute('data-midi', '53');
+  await page.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
+  await page.getByRole('button', { name: 'Bearbeiten beenden' }).click();
+  await expect(page.locator('.sequence-scroll .vf-clef')).toHaveCount(1);
+  await expect(page.locator('.sequence-scroll .vf-stave')).toHaveCount(1);
+  await expect(selected).toHaveCount(1);
+  await page.getByRole('button', { name: 'Zum Ende', exact: true }).click();
+  await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
+  await page.clock.runFor(500);
   await expect(page.getByRole('button', { name: 'Tonfolge abspielen' })).toBeEnabled();
+  await expect(page.locator('.staff-note').last()).toHaveClass(/sequence-selected/);
 });
 
-test('pitch sequence uses the key signature and cancels/restores alterations per octave', async ({
+test('pitch sequence spells each note independently against the key signature', async ({
   page,
 }) => {
+  // The unbarred practice strip repeats cancellations; key-signature notes need no restoration.
   for (const [story, label, signs] of [
-    ['sharp-key', 'D-Dur: fis, f, f, fis, fis′, f′, fis′', ['', '♮', '', '♯', '', '♮', '♯']],
-    ['flat-key', 'Es-Dur: es, e, e, es, b, h, b', ['', '♮', '', '♭', '', '♮', '♭']],
+    ['sharp-key', 'D-Dur: fis, f, f, fis, fis′, f′, fis′', ['', '♮', '♮', '', '', '♮', '']],
+    ['flat-key', 'Es-Dur: es, e, e, es, b, h, b', ['', '♮', '♮', '', '', '♮', '']],
   ] as const) {
     await page.goto(`/iframe.html?id=components-pitch-sequence--${story}&viewMode=story`);
     await expect(page.locator('.sequence-scroll svg')).toHaveAccessibleName(label);

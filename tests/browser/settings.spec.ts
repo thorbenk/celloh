@@ -236,7 +236,7 @@ test('reference A retunes samples and intonation and persists across reloads', a
   await expect(page.locator('#reference-a-value')).toHaveText('442 Hz');
   await page.getByRole('button', { name: 'Einstellungen schließen' }).click();
   await page.locator('.note[data-string="3"][data-offset="12"]').click();
-  await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
+  await expect(page.locator('.pitch-target')).toHaveText('a′ · 442.0 Hz');
   await expect
     .poll(async () => Number(await page.locator('html').getAttribute('data-playback-rate')))
     .toBeCloseTo(442 / 440);
@@ -246,12 +246,12 @@ test('reference A retunes samples and intonation and persists across reloads', a
   if ((await page.locator('#sound-settings').getAttribute('open')) === null)
     await page.locator('#sound-settings > summary').click();
   await page.locator('#reference-a').fill('444');
-  await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
+  await expect(page.locator('.pitch-target')).toHaveText('a′ · 444.0 Hz');
   await page.reload();
   await expect(page.locator('#reference-a')).toHaveValue('444');
   await expect(page.locator('#reference-a-value')).toHaveText('444 Hz');
   await page.locator('.note[data-string="3"][data-offset="12"]').click();
-  await expect(page.locator('.pitch-target')).toHaveText('Ton erkennen …');
+  await expect(page.locator('.pitch-target')).toHaveText('a′ · 444.0 Hz');
   await expect
     .poll(async () => Number(await page.locator('html').getAttribute('data-playback-rate')))
     .toBeCloseTo(444 / 440);

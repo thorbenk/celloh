@@ -103,6 +103,9 @@ export class App {
     this.bindPiano(root);
     this.sequence = new PitchSequenceView(
       (action) => {
+        const resume =
+          this.replayIndex !== null &&
+          (action.type === 'select' || action.type === 'move' || action.type === 'jump');
         this.stopReplay();
         this.sequenceModel.dispatch(action);
         const audition =
@@ -110,7 +113,8 @@ export class App {
         const selected = audition ?? this.sequenceModel.selectedNote;
         if (selected) this.model.selectPiano(selected.pitch);
         this.renderSelection();
-        if (audition) void this.auditionPitch(audition.pitch);
+        if (resume) void this.startReplay();
+        else if (audition) void this.auditionPitch(audition.pitch);
       },
       () => {
         if (this.replayIndex !== null) this.stopReplay();
@@ -436,11 +440,14 @@ export class App {
     }
   }
   private async startReplay(): Promise<void> {
+    if (this.sequenceModel.editor.mode === 'insert') this.sequenceModel.dispatch({ type: 'done' });
+
     const start = this.sequenceModel.selectedIndex ?? 0;
     const first = this.sequenceModel.notes[start];
     if (first === undefined) return;
     this.stopReplay();
     const request = this.playbackRequest;
+    this.sequenceModel.dispatch({ type: 'select', index: start });
     this.replayIndex = start;
     this.model.selectPiano(first.pitch);
     this.renderSelection();
@@ -470,6 +477,7 @@ export class App {
         request !== this.playbackRequest
       )
         return;
+      this.sequenceModel.dispatch({ type: 'select', index });
       this.replayIndex = index;
       this.model.selectPiano(note.pitch);
       this.renderSelection();

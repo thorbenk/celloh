@@ -425,21 +425,13 @@ test('one bottom tool row keeps notation, keyboard and sequence independently us
       Promise.all(panel.getAnimations().map((animation) => animation.finished)),
     );
     const bounds = (await picker.boundingBox())!;
-    expect(bounds.y + bounds.height).toBe((await page.locator('.footer').boundingBox())!.y);
-    for (const id of ['piano', 'pitch-sequence']) {
-      expect(
-        await page.locator(`#${id}`).evaluate((dock) => {
-          const bounds = dock.getBoundingClientRect();
-          return Boolean(
-            document
-              .elementFromPoint(bounds.right - 20, bounds.top + 20)
-              ?.closest('#notation-panel'),
-          );
-        }),
-      ).toBe(true);
-    }
+    expect(bounds.width).toBeLessThanOrEqual(280);
+    expect(bounds.y).toBeGreaterThanOrEqual((await page.locator('.header').boundingBox())!.height);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(
+      (await page.locator('.footer').boundingBox())!.y,
+    );
     await expect(picker.getByRole('heading', { name: 'Bassschlüssel' })).toHaveCount(0);
-    await expect(picker.getByRole('button', { name: 'Tonmarkierung aufheben' })).toBeInViewport({
+    await expect(picker.getByRole('button', { name: 'Note hinzufügen' })).toBeInViewport({
       ratio: 1,
     });
     await expect(page.locator('#piano')).toBeVisible();
@@ -766,10 +758,7 @@ test('key shading combines with pitch focus without disabling notes or changing 
   await expect(higherE).toHaveCSS('--note-emphasis', '22%');
   await page.getByRole('switch', { name: 'Andere Töne bei Tonauswahl dimmen' }).click();
   await page.getByRole('button', { name: 'Noten öffnen' }).click();
-  await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
   await page.getByRole('button', { name: 'Noten schließen' }).click();
-  await expect(outside).toHaveCSS('--note-emphasis', '22%');
-  await expect(inside).toHaveCSS('--note-emphasis', '100%');
   await inside.click();
   await page.mouse.move(0, 0);
   await expect(page.locator('#compact-staff')).toHaveAttribute('aria-label', 'Es2, Bassschlüssel');
@@ -984,7 +973,9 @@ function deferred(): { readonly promise: Promise<void>; readonly resolve: () => 
   return { promise, resolve };
 }
 
-test('reset cancels playback while the sample is still loading', async ({ page }) => {
+test('clearing the sequence cancels an audition while its sample is still loading', async ({
+  page,
+}) => {
   await recordAudioPlayback(page);
   const gate = deferred();
   await page.route('**/audio/43.mp3', async (route) => {
@@ -992,16 +983,20 @@ test('reset cancels playback while the sample is still loading', async ({ page }
     await gate.promise;
     await route.fulfill({ response });
   });
-  await page.goto('/');
-  await page.locator('.note[data-string="1"][data-offset="0"]').click();
-  await expect(page.locator('#audio-status')).toHaveText('Klang wird geladen …');
-  await page.getByRole('button', { name: 'Noten öffnen' }).click();
-  await page.getByRole('button', { name: 'Tonmarkierung aufheben' }).click();
-  gate.resolve();
-  await expect(page.locator('html')).toHaveAttribute('data-audio-decodes', '1');
-  await expect(page.locator('html')).not.toHaveAttribute('data-audio-starts');
-  await expect(page.locator('#audio-status')).toHaveText('Bereit');
-  await expect(page.locator('.note.selected')).toHaveCount(0);
+  try {
+    await page.goto('/');
+    await page.locator('.note[data-string="1"][data-offset="0"]').click();
+    await expect(page.locator('#audio-status')).toHaveText('Klang wird geladen …');
+    await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+    await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
+    await page.getByRole('button', { name: 'Ja, leeren' }).click();
+    gate.resolve();
+    await expect(page.locator('html')).toHaveAttribute('data-audio-decodes', '1');
+    await expect(page.locator('html')).not.toHaveAttribute('data-audio-starts');
+    await expect(page.locator('.sequence-scroll .staff-note')).toHaveCount(0);
+  } finally {
+    gate.resolve();
+  }
 });
 
 test('playback uses volume changes made while the sample is loading', async ({ page }) => {
@@ -1023,7 +1018,7 @@ test('playback uses volume changes made while the sample is loading', async ({ p
   expect(gain).toBeCloseTo(0.2);
 });
 
-test('sequence viewing auditions selection, replays from it, and clears selection on recording', async ({
+test('sequence viewing auditions selection, replays from it, and selects newly recorded notes', async ({
   page,
 }) => {
   await recordAudioPlayback(page);
@@ -1042,17 +1037,18 @@ test('sequence viewing auditions selection, replays from it, and clears selectio
   await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '4');
   await expect(notes).toHaveCount(3);
   await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
-  await expect(notes.nth(1)).toHaveClass(/playing/);
+  await expect(notes.nth(1)).toHaveClass(/sequence-selected/);
   await sequence.getByRole('button', { name: 'Tonfolge stoppen' }).click();
   await expect(notes.nth(1)).toHaveAttribute('aria-pressed', 'true');
   await page.locator('.piano-key[data-midi="55"]').click();
   await expect(notes).toHaveCount(4);
-  await expect(sequence.locator('.sequence-selected')).toHaveCount(0);
+  await expect(sequence.locator('.sequence-selected')).toHaveCount(1);
+  await expect(notes.last()).toHaveClass(/sequence-selected/);
   await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
-  await expect(notes.nth(0)).toHaveClass(/playing/);
+  await expect(notes.last()).toHaveClass(/sequence-selected/);
 });
 
-test('sequence insertion moves between every note and keeps its cursor through playback', async ({
+test('sequence insertion moves between notes and hands its position to playback', async ({
   page,
 }) => {
   await recordAudioPlayback(page);
@@ -1084,12 +1080,11 @@ test('sequence insertion moves between every note and keeps its cursor through p
   );
   await expect(page.locator('.piano-key.selected')).toHaveAttribute('data-midi', '48');
   await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
-  await expect(notes.first()).toHaveClass(/playing/);
+  await expect(notes.nth(2)).toHaveClass(/sequence-selected/);
   await sequence.getByRole('button', { name: 'Tonfolge stoppen' }).click();
-  await expect(sequence.getByRole('button', { name: 'Vor Note 3 einfügen' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(sequence.locator('.sequence-editor')).toBeHidden();
+  await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Einfügen', exact: true }).click();
   await sequence.getByRole('button', { name: 'Am Ende einfügen' }).click();
   await page.locator('.piano-key[data-midi="55"]').click();
   expect(
@@ -1259,17 +1254,17 @@ test('sequence replay honors dotted whole, dotted eighth, and sixteenth duration
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
   await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
-  await expect(notes.nth(0)).toHaveClass(/playing/);
+  await expect(notes.nth(0)).toHaveClass(/sequence-selected/);
   await page.clock.runFor(2999);
-  await expect(notes.nth(0)).toHaveClass(/playing/);
+  await expect(notes.nth(0)).toHaveClass(/sequence-selected/);
   await page.clock.runFor(1);
-  await expect(notes.nth(1)).toHaveClass(/playing/);
+  await expect(notes.nth(1)).toHaveClass(/sequence-selected/);
   await page.clock.runFor(374);
-  await expect(notes.nth(1)).toHaveClass(/playing/);
+  await expect(notes.nth(1)).toHaveClass(/sequence-selected/);
   await page.clock.runFor(1);
-  await expect(notes.nth(2)).toHaveClass(/playing/);
+  await expect(notes.nth(2)).toHaveClass(/sequence-selected/);
   await page.clock.runFor(124);
-  await expect(notes.nth(2)).toHaveClass(/playing/);
+  await expect(notes.nth(2)).toHaveClass(/sequence-selected/);
   await page.clock.runFor(1);
   await expect(page.locator('#audio-status')).toHaveText('Tonfolge abgespielt');
   await expect(notes).toHaveCount(3);
@@ -1295,11 +1290,12 @@ test('sequence replay keeps every pitch view in sync, honors tempo, and never re
   await page.locator('#settings-close').click();
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.getByRole('button', { name: 'Zum Anfang', exact: true }).click();
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
   await page.getByRole('button', { name: 'Noten öffnen' }).click();
   const notes = page.locator('.sequence-scroll .staff-note');
   const checkPitch = async (index: number, pitch: number): Promise<void> => {
-    await expect(notes.nth(index)).toHaveClass(/playing/);
+    await expect(notes.nth(index)).toHaveClass(/sequence-selected/);
     await expect(page.locator('.piano-key.selected')).toHaveAttribute('data-midi', String(pitch));
     await expect(page.locator('#staff .staff-note')).toHaveAttribute('data-midi', String(pitch));
     await expect(page.locator('#compact-staff .staff-note')).toHaveAttribute(

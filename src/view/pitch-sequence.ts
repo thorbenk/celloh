@@ -34,6 +34,8 @@ export class PitchSequenceView {
   private readonly editor = document.createElement('div');
   private readonly summary = document.createElement('span');
   private readonly hint = document.createElement('span');
+  private readonly beginning: HTMLButtonElement;
+  private readonly end: HTMLButtonElement;
   private readonly previous: HTMLButtonElement;
   private readonly next: HTMLButtonElement;
   private readonly replace: HTMLButtonElement;
@@ -44,7 +46,6 @@ export class PitchSequenceView {
   private readonly durations;
   private editing = false;
   private selectedIndex: number | null = null;
-  private location: number | null = null;
   private count = 0;
 
   constructor(onAction: (action: SequenceAction) => void, onReplay: () => void) {
@@ -130,7 +131,19 @@ export class PitchSequenceView {
     this.next = this.button('', 'Nächste Note', () => onAction({ type: 'move', delta: 1 }));
     this.next.innerHTML =
       '<span class="material-icon icon-chevron-right" aria-hidden="true"></span>';
-    selection.append(this.summary, this.previous, this.next);
+    this.beginning = this.button('', 'Zum Anfang', () =>
+      onAction({ type: 'jump', edge: 'beginning' }),
+    );
+    this.beginning.innerHTML =
+      '<span class="material-icon icon-first-page" aria-hidden="true"></span>';
+    this.end = this.button('', 'Zum Ende', () => onAction({ type: 'jump', edge: 'end' }));
+    this.end.innerHTML = '<span class="material-icon icon-last-page" aria-hidden="true"></span>';
+    const transport = document.createElement('div');
+    transport.className = 'sequence-transport';
+    transport.setAttribute('role', 'group');
+    transport.setAttribute('aria-label', 'Wiedergabe');
+    transport.append(this.beginning, this.previous, this.play, this.next, this.end);
+    selection.append(this.summary);
     const rhythm = document.createElement('div');
     rhythm.className = 'sequence-durations';
     const lengths = document.createElement('div');
@@ -175,7 +188,7 @@ export class PitchSequenceView {
     actions.append(modes, this.remove, this.undo);
     this.hint.className = 'sequence-hint';
     this.editor.append(selection, rhythm, actions, this.hint);
-    this.element.append(heading, this.confirmation, this.scroll, this.editor);
+    this.element.append(heading, this.confirmation, this.scroll, transport, this.editor);
     // Delegate from the stable SVG: note nodes are replaced on every render.
     const selectNote = (target: EventTarget | null): boolean => {
       if (!(target instanceof Node)) return false;
@@ -332,6 +345,8 @@ export class PitchSequenceView {
       editor.mode === 'insert'
         ? editor.position === notes.length
         : this.selectedIndex === null || this.selectedIndex === notes.length - 1;
+    this.beginning.disabled = this.previous.disabled;
+    this.end.disabled = this.next.disabled;
     this.replace.setAttribute('aria-pressed', String(editor.mode === 'replace'));
     this.insert.setAttribute('aria-pressed', String(editor.mode === 'insert'));
     this.remove.disabled = this.selectedIndex === null;
@@ -373,26 +388,15 @@ export class PitchSequenceView {
         `<path class="sequence-insertion-marker" d="M${x - 7} ${top + 3}H${x + 7}M${x} ${top + 3}V${bottom - 3}M${x - 7} ${bottom - 3}H${x + 7}"/>`,
       );
     }
-    if (playingIndex !== null) {
-      const x = firstX + playingIndex * spacing;
-      this.staff.insertAdjacentHTML(
-        'afterbegin',
-        `<rect class="sequence-playhead" x="${x - 25}" y="${top}" width="50" height="${bottom - top}" rx="6"/>`,
-      );
-      const active = groups[playingIndex];
-      active?.classList.add('playing');
-      this.scroll.scrollLeft = x * SCALE - this.scroll.clientWidth / 2;
-    } else if (location !== null) {
-      if (location !== this.location || added) {
-        const x = (firstX + location * spacing) * SCALE;
-        if (
-          x < this.scroll.scrollLeft + 24 ||
-          x > this.scroll.scrollLeft + this.scroll.clientWidth - 24
-        )
-          this.scroll.scrollLeft = x - this.scroll.clientWidth / 2;
-      }
+    if (location !== null) {
+      const x = (firstX + location * spacing) * SCALE;
+      const margin = 44 * SCALE + 2;
+      if (
+        x < this.scroll.scrollLeft + margin ||
+        x > this.scroll.scrollLeft + this.scroll.clientWidth - margin
+      )
+        this.scroll.scrollLeft = x - this.scroll.clientWidth / 2;
     } else if (!this.editing && (added || following || notes.length === 0)) this.revealLatest();
-    this.location = location;
     if (focusedNote) this.focusSelected();
   }
 

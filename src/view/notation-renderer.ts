@@ -13,7 +13,10 @@ import { QUARTER_NOTE } from '../rhythm';
 
 export const NOTE_STEM_LENGTH = 70; // 3.5 staff spaces in app coordinates.
 
-const staffDrawings = new WeakMap<SVGSVGElement, { signature: string; stave: string }>();
+const staffDrawings = new WeakMap<
+  SVGSVGElement,
+  { signature: string; stave: string; element: ChildNode }
+>();
 
 /** VexFlow uses 10-unit staff spaces; our interactive views use 20. */
 function notationContext(): SVGContext {
@@ -208,10 +211,10 @@ export function renderStaff(
     context.closeGroup();
   });
   const drawings = Array.from(context.svg.childNodes);
-  if (previousDrawing?.stave === staveSignature && target.firstChild) {
+  if (previousDrawing?.stave === staveSignature && previousDrawing.element.parentNode === target) {
     // Keep the unchanged staff and clef mounted while the selected note changes.
-    while (target.firstChild.nextSibling) target.firstChild.nextSibling.remove();
-    target.append(...drawings.slice(1));
+    target.replaceChildren(previousDrawing.element, ...drawings.slice(1));
   } else target.replaceChildren(...drawings);
-  staffDrawings.set(target, { signature, stave: staveSignature });
+  if (target.firstChild)
+    staffDrawings.set(target, { signature, stave: staveSignature, element: target.firstChild });
 }
