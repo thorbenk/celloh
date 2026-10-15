@@ -1911,3 +1911,41 @@ main:has(.pitch-feedback) .workspace {
 .icon-stop {
   --icon: url('./assets/stop.svg');
 }
+
+.sequence-menu .sequence-control {
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  text-align: left;
+}
+.sequence-transfer {
+  width: min(30rem, calc(100vw - 2rem));
+  box-sizing: border-box;
+  border: 1px solid #c9c2b6;
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: #f8f5ef;
+  color: #302b25;
+}
+.sequence-transfer::backdrop {
+  background: #0006;
+}
+.sequence-transfer h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+.sequence-transfer textarea {
+  width: 100%;
+  min-height: 8rem;
+  box-sizing: border-box;
+  font: inherit;
+  resize: vertical;
+}
+.sequence-transfer > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+.sequence-transfer button {
+  min-height: 44px;
+}

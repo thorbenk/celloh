@@ -7,6 +7,8 @@ import {
 } from '../music';
 import { staffNote, staffY, writtenNoteName } from '../notation';
 import { durationName, NOTE_VALUES, NOTE_VALUE_NAMES } from '../rhythm';
+import { SequenceTransfer } from './sequence-transfer';
+import type { SequenceNote } from '../sequence';
 import type { SequenceAction, SequenceModel } from '../sequence';
 import { NOTE_STEM_LENGTH, renderNoteGlyph, renderStaff } from './notation-renderer';
 
@@ -50,6 +52,8 @@ export class PitchSequenceView {
   private editing = false;
   private selectedIndex: number | null = null;
   private count = 0;
+  private notes: readonly SequenceNote[] = [];
+  private readonly transfer: SequenceTransfer;
 
   constructor(
     onAction: (action: SequenceAction) => void,
@@ -74,7 +78,21 @@ export class PitchSequenceView {
     this.more.setAttribute('aria-expanded', 'false');
     this.menu.className = 'sequence-menu';
     this.menu.hidden = true;
+    this.transfer = new SequenceTransfer((notes) => onAction({ type: 'import', notes }));
+    for (const [text, action] of [
+      ['Text kopieren', () => void this.transfer.copy('text', this.notes)],
+      ['Link kopieren', () => void this.transfer.copy('link', this.notes)],
+      ['Importieren …', () => this.transfer.openImport()],
+    ] satisfies readonly (readonly [string, () => void])[]) {
+      const button = this.button(text, text, () => {
+        this.menu.hidden = true;
+        this.more.setAttribute('aria-expanded', 'false');
+        action();
+      });
+      this.menu.append(button);
+    }
     this.menu.append(this.clear);
+    this.element.append(this.transfer.dialog, this.transfer.feedback);
     document.addEventListener(
       'pointerdown',
       (event) => {
@@ -317,6 +335,7 @@ export class PitchSequenceView {
     display: Readonly<NoteDisplaySettings> = DEFAULT_NOTE_DISPLAY,
     spelling: Spelling = 'sharp',
   ): void {
+    this.notes = sequence.notes;
     const following =
       this.scroll.scrollLeft + this.scroll.clientWidth >= this.scroll.scrollWidth - 1;
     const focusedNote = this.staff.contains(document.activeElement);
@@ -488,11 +507,16 @@ export class PitchSequenceView {
     else this.scroll.focus({ preventScroll: true });
   }
 
+  openImport(text: string): void {
+    this.transfer.openImport(text);
+  }
+
   revealLatest(): void {
     this.scroll.scrollLeft = this.count ? this.scroll.scrollWidth : 0;
   }
 
   destroy(): void {
     this.events.abort();
+    this.transfer.destroy();
   }
 }

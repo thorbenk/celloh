@@ -1,3 +1,4 @@
+import { parseSequence, sequenceFromLink } from './sequence-format';
 import { SettingsStore, type Preferences } from './settings';
 import { PitchFeedbackView } from './view/pitch-feedback';
 import { frequency, isPlayablePitch, keyName, NOTE_NAMINGS, OCTAVE_NOTATIONS } from './music';
@@ -168,6 +169,20 @@ export class App {
     });
     this.sequenceObserver.observe(this.sequence.element);
     this.tour = new FeatureTour(this.panels);
+    const importLink = (): void => {
+      if (!location.hash.startsWith('#tonfolge=')) return;
+      const text = sequenceFromLink(location.href);
+      const result = parseSequence(text ?? location.href);
+      this.sequence.element.hidden = false;
+      sequenceToggle.setAttribute('aria-expanded', 'true');
+      if (result.ok && this.sequenceModel.notes.length === 0) {
+        this.stopReplay();
+        this.sequenceModel.dispatch({ type: 'import', notes: result.notes });
+        this.renderSelection();
+      } else this.sequence.openImport(text ?? location.href);
+    };
+    window.addEventListener('hashchange', importLink, { signal: this.events.signal });
+    importLink();
   }
   destroy(): void {
     this.tour.destroy();

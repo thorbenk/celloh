@@ -13,6 +13,7 @@ export type SequenceEditor =
   | { readonly mode: 'insert'; readonly position: number; readonly duration: NoteDuration };
 
 export type SequenceAction =
+  | { readonly type: 'import'; readonly notes: readonly SequenceNote[] }
   | { readonly type: 'unselect' }
   | { readonly type: 'edit' }
   | { readonly type: 'done' }
@@ -93,6 +94,7 @@ export class SequenceModel {
     const index = this.selectedIndex;
     if (
       editor.mode === 'capture' &&
+      action.type !== 'import' &&
       action.type !== 'unselect' &&
       action.type !== 'select' &&
       action.type !== 'move' &&
@@ -104,6 +106,14 @@ export class SequenceModel {
     )
       return;
     switch (action.type) {
+      case 'import':
+        this.save();
+        this.current = action.notes.map(({ pitch, duration }) => ({
+          pitch,
+          duration: { ...duration },
+        }));
+        this.state = { mode: 'capture' };
+        return;
       case 'unselect':
         this.state = { mode: editor.mode === 'capture' ? 'capture' : 'replace', index: null };
         return;
