@@ -1,0 +1,6 @@
+# Only these files are needed to build the development image.
+**
+!package-lock.json
+!.devcontainer/
+!.devcontainer/Dockerfile
+!.devcontainer/config.toml
