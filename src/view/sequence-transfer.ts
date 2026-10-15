@@ -8,6 +8,7 @@ export class SequenceTransfer {
   private readonly input = document.createElement('textarea');
   private readonly status = document.createElement('p');
   private readonly apply = document.createElement('button');
+  private feedbackTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly title = document.createElement('h2');
 
   constructor(onImport: (notes: readonly SequenceNote[]) => void) {
@@ -65,7 +66,11 @@ export class SequenceTransfer {
     const text = kind === 'text' ? exportSequence(notes) : sequenceLink(notes, location.href);
     try {
       await navigator.clipboard.writeText(text);
+      clearTimeout(this.feedbackTimer);
       this.feedback.textContent = kind === 'text' ? 'Text kopiert.' : 'Link kopiert.';
+      this.feedbackTimer = setTimeout(() => {
+        this.feedback.textContent = '';
+      }, 2500);
     } catch {
       this.title.textContent = kind === 'text' ? 'Text kopieren' : 'Link kopieren';
       this.input.value = text;
@@ -78,10 +83,12 @@ export class SequenceTransfer {
   }
 
   destroy(): void {
+    clearTimeout(this.feedbackTimer);
     this.dialog.remove();
   }
 
   private show(): void {
+    clearTimeout(this.feedbackTimer);
     this.feedback.textContent = '';
     this.input.removeAttribute('aria-invalid');
     if (!this.dialog.open) this.dialog.showModal();

@@ -79,18 +79,26 @@ export class PitchSequenceView {
     this.menu.className = 'sequence-menu';
     this.menu.hidden = true;
     this.transfer = new SequenceTransfer((notes) => onAction({ type: 'import', notes }));
-    for (const [text, action] of [
-      ['Text kopieren', () => void this.transfer.copy('text', this.notes)],
-      ['Link kopieren', () => void this.transfer.copy('link', this.notes)],
-      ['Importieren …', () => this.transfer.openImport()],
-    ] satisfies readonly (readonly [string, () => void])[]) {
+    for (const [text, icon, action] of [
+      ['Text kopieren', 'content-copy', () => void this.transfer.copy('text', this.notes)],
+      ['Link kopieren', 'link', () => void this.transfer.copy('link', this.notes)],
+      ['Importieren …', 'file-upload', () => this.transfer.openImport()],
+    ] satisfies readonly (readonly [string, string, () => void])[]) {
       const button = this.button(text, text, () => {
         this.menu.hidden = true;
         this.more.setAttribute('aria-expanded', 'false');
         action();
       });
+      const symbol = document.createElement('span');
+      symbol.className = `material-icon icon-${icon}`;
+      symbol.setAttribute('aria-hidden', 'true');
+      button.prepend(symbol);
       this.menu.append(button);
     }
+    const clearIcon = document.createElement('span');
+    clearIcon.className = 'material-icon icon-delete';
+    clearIcon.setAttribute('aria-hidden', 'true');
+    this.clear.prepend(clearIcon);
     this.menu.append(this.clear);
     this.element.append(this.transfer.dialog, this.transfer.feedback);
     document.addEventListener(

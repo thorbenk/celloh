@@ -39,6 +39,7 @@ test('menu copies readable text and links, with a manual clipboard fallback', as
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/#tonfolge=celloh:v1,C3/4,Fis3/8.');
   const sequence = page.locator('#pitch-sequence');
+  await expect(sequence.locator('.sequence-menu .material-icon')).toHaveCount(4);
   for (const label of ['Text kopieren', 'Link kopieren']) {
     await sequence.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
     await sequence.getByRole('button', { name: label, exact: true }).click();
@@ -47,6 +48,7 @@ test('menu copies readable text and links, with a manual clipboard fallback', as
     if (label === 'Text kopieren') expect(copied).toBe('celloh:v1 C3/4 Fis3/8.');
     else expect(copied).toContain('#tonfolge=celloh:v1,C3/4,Fis3/8.');
   }
+  await expect(sequence.locator('.sequence-transfer-feedback')).toBeHidden();
   await page.evaluate(() => {
     Object.defineProperty(navigator.clipboard, 'writeText', {
       value: () => Promise.reject(new Error('denied')),
