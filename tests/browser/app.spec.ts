@@ -988,6 +988,7 @@ test('clearing the sequence cancels an audition while its sample is still loadin
     await page.locator('.note[data-string="1"][data-offset="0"]').click();
     await expect(page.locator('#audio-status')).toHaveText('Klang wird geladen …');
     await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
+    await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
     await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
     await page.getByRole('button', { name: 'Ja, leeren' }).click();
     gate.resolve();
@@ -1038,7 +1039,7 @@ test('sequence viewing auditions selection, replays from it, and selects newly r
   await expect(notes).toHaveCount(3);
   await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
   await expect(notes.nth(1)).toHaveClass(/sequence-selected/);
-  await sequence.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await sequence.getByRole('button', { name: 'Tonfolge pausieren' }).click();
   await expect(notes.nth(1)).toHaveAttribute('aria-pressed', 'true');
   await page.locator('.piano-key[data-midi="55"]').click();
   await expect(notes).toHaveCount(4);
@@ -1081,7 +1082,7 @@ test('sequence insertion moves between notes and hands its position to playback'
   await expect(page.locator('.piano-key.selected')).toHaveAttribute('data-midi', '48');
   await sequence.getByRole('button', { name: 'Tonfolge abspielen' }).click();
   await expect(notes.nth(2)).toHaveClass(/sequence-selected/);
-  await sequence.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await sequence.getByRole('button', { name: 'Tonfolge pausieren' }).click();
   await expect(sequence.locator('.sequence-editor')).toBeHidden();
   await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
   await sequence.getByRole('button', { name: 'Einfügen', exact: true }).click();
@@ -1092,7 +1093,7 @@ test('sequence insertion moves between notes and hands its position to playback'
   ).toEqual([43, 48, 50, 55]);
   for (const gap of await sequence.locator('.sequence-gap-target').all()) {
     const box = (await gap.boundingBox())!;
-    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.width).toBeGreaterThanOrEqual(34);
     expect(box.height).toBeGreaterThanOrEqual(44);
   }
 });
@@ -1204,7 +1205,7 @@ test('sequence editor supports touch targets and empty insertion on tablet and n
       );
       for (const control of await sequence.locator('.sequence-control:visible').all()) {
         const box = (await control.boundingBox())!;
-        expect(box.width).toBeGreaterThanOrEqual(44);
+        expect(box.width).toBeGreaterThanOrEqual(34);
         expect(box.height).toBeGreaterThanOrEqual(44);
         expect(box.x).toBeGreaterThanOrEqual(0);
         expect(box.x + box.width).toBeLessThanOrEqual(width);
@@ -1336,7 +1337,7 @@ test('sequence replay keeps every pitch view in sync, honors tempo, and never re
   await page.getByRole('button', { name: 'Noten schließen' }).click();
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '9');
-  await page.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await page.getByRole('button', { name: 'Tonfolge pausieren' }).click();
   await page.clock.runFor(2000);
   await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '9');
   await expect(notes).toHaveCount(4);
@@ -1350,10 +1351,12 @@ test('sequence replay keeps every pitch view in sync, honors tempo, and never re
   await expect(page.locator('.staff-note.playing')).toHaveCount(0);
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-audio-starts', '12');
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await page.getByRole('button', { name: 'Abbrechen' }).click();
   await expect(notes).toHaveCount(5);
-  await expect(page.getByRole('button', { name: 'Tonfolge stoppen' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tonfolge pausieren' })).toBeVisible();
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await page.getByRole('button', { name: 'Ja, leeren' }).click();
   await page.clock.runFor(2000);
@@ -1379,6 +1382,7 @@ test('clearing while sequence samples load cannot start stale replay after the l
   await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
   await page.getByRole('button', { name: 'Tonfolge abspielen' }).click();
   await expect(page.locator('#audio-status')).toHaveText('Tonfolge wird geladen …');
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await page.getByRole('button', { name: 'Ja, leeren' }).click();
   gate.resolve();

@@ -117,8 +117,16 @@ export class App {
         else if (audition) void this.auditionPitch(audition.pitch);
       },
       () => {
-        if (this.replayIndex !== null) this.stopReplay();
-        else void this.startReplay();
+        if (this.replayIndex !== null) {
+          this.stopReplay();
+          this.staff.status.textContent = 'Wiedergabe pausiert';
+        } else void this.startReplay();
+      },
+      () => {
+        this.stopReplay();
+        this.sequenceModel.dispatch({ type: 'unselect' });
+        this.renderSelection();
+        this.staff.status.textContent = 'Wiedergabe gestoppt';
       },
     );
     this.sequence.element.id = 'pitch-sequence';
@@ -466,6 +474,8 @@ export class App {
     const note = this.sequenceModel.notes[index];
     if (note === undefined) {
       this.stopReplay(true);
+      this.sequenceModel.dispatch({ type: 'unselect' });
+      this.renderSelection();
       this.staff.status.textContent = 'Tonfolge abgespielt';
       return;
     }

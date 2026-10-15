@@ -13,6 +13,7 @@ export type SequenceEditor =
   | { readonly mode: 'insert'; readonly position: number; readonly duration: NoteDuration };
 
 export type SequenceAction =
+  | { readonly type: 'unselect' }
   | { readonly type: 'edit' }
   | { readonly type: 'done' }
   | { readonly type: 'replace' }
@@ -92,6 +93,7 @@ export class SequenceModel {
     const index = this.selectedIndex;
     if (
       editor.mode === 'capture' &&
+      action.type !== 'unselect' &&
       action.type !== 'select' &&
       action.type !== 'move' &&
       action.type !== 'jump' &&
@@ -102,6 +104,9 @@ export class SequenceModel {
     )
       return;
     switch (action.type) {
+      case 'unselect':
+        this.state = { mode: editor.mode === 'capture' ? 'capture' : 'replace', index: null };
+        return;
       case 'edit':
         this.state = { mode: 'replace', index: index ?? this.lastIndex() };
         return;

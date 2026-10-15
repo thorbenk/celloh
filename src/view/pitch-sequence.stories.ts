@@ -66,8 +66,10 @@ const meta = {
       };
       const advance = (): void => {
         const note = index === null ? undefined : sequence.notes[index];
-        if (!note) stop();
-        else {
+        if (!note) {
+          stop();
+          sequence.dispatch({ type: 'unselect' });
+        } else {
           sequence.dispatch({ type: 'select', index: index ?? 0 });
           timer = window.setTimeout(
             () => {
@@ -96,6 +98,11 @@ const meta = {
             advance();
           }
           view.render(sequence, key, index);
+        },
+        () => {
+          stop();
+          sequence.dispatch({ type: 'unselect' });
+          view.render(sequence, key);
         },
       );
       const add = document.createElement('button');

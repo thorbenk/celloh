@@ -27,6 +27,9 @@ export class PitchSequenceView {
   private readonly staff = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   private readonly label = document.createElement('span');
   private readonly clear = document.createElement('button');
+  private readonly stop: HTMLButtonElement;
+  private readonly more: HTMLButtonElement;
+  private readonly menu = document.createElement('div');
   private readonly play = document.createElement('button');
   private readonly confirmation = document.createElement('div');
   private readonly events = new AbortController();
@@ -48,16 +51,44 @@ export class PitchSequenceView {
   private selectedIndex: number | null = null;
   private count = 0;
 
-  constructor(onAction: (action: SequenceAction) => void, onReplay: () => void) {
+  constructor(
+    onAction: (action: SequenceAction) => void,
+    onReplay: () => void,
+    onStop: () => void = () => onAction({ type: 'unselect' }),
+  ) {
     this.element.className = 'pitch-sequence';
     this.element.setAttribute('aria-label', 'Tonfolge');
-    const heading = document.createElement('div');
-    heading.className = 'sequence-heading';
     this.clear.className = 'clear-note';
     this.clear.textContent = 'Leeren';
     this.clear.setAttribute('aria-label', 'Tonfolge leeren');
     const options = { signal: this.events.signal };
-    this.play.className = 'clear-note sequence-play';
+    this.play.className = 'sequence-control sequence-play';
+    this.play.type = 'button';
+    this.stop = this.button('', 'Tonfolge stoppen', onStop);
+    this.stop.innerHTML = '<span class="material-icon icon-stop" aria-hidden="true"></span>';
+    this.more = this.button('', 'Weitere Tonfolge-Aktionen', () => {
+      this.menu.hidden = !this.menu.hidden;
+      this.more.setAttribute('aria-expanded', String(!this.menu.hidden));
+    });
+    this.more.innerHTML = '<span class="material-icon icon-more-vert" aria-hidden="true"></span>';
+    this.more.setAttribute('aria-expanded', 'false');
+    this.menu.className = 'sequence-menu';
+    this.menu.hidden = true;
+    this.menu.append(this.clear);
+    document.addEventListener(
+      'pointerdown',
+      (event) => {
+        if (
+          event.target instanceof Node &&
+          !this.menu.contains(event.target) &&
+          !this.more.contains(event.target)
+        ) {
+          this.menu.hidden = true;
+          this.more.setAttribute('aria-expanded', 'false');
+        }
+      },
+      options,
+    );
     this.play.addEventListener('click', onReplay, options);
     const cancel = document.createElement('button');
     cancel.className = 'clear-note';
@@ -74,11 +105,13 @@ export class PitchSequenceView {
     this.confirmation.append(question, cancel, confirm);
     const dismiss = (): void => {
       this.confirmation.hidden = true;
-      this.clear.focus();
+      this.more.focus();
     };
     this.clear.addEventListener(
       'click',
       () => {
+        this.menu.hidden = true;
+        this.more.setAttribute('aria-expanded', 'false');
         this.confirmation.hidden = false;
         cancel.focus();
       },
@@ -108,8 +141,7 @@ export class PitchSequenceView {
       onAction({ type: this.editing ? 'done' : 'edit' });
       if (!this.editing) this.edit.focus();
     });
-    this.edit.className = 'clear-note sequence-edit-toggle';
-    heading.append(this.label, this.play, this.edit, this.clear);
+    this.edit.classList.add('sequence-edit-toggle');
     this.scroll.className = 'sequence-scroll';
     this.scroll.tabIndex = 0;
     this.scroll.setAttribute('aria-label', 'Tonfolge, horizontal scrollbar');
@@ -142,7 +174,17 @@ export class PitchSequenceView {
     transport.className = 'sequence-transport';
     transport.setAttribute('role', 'group');
     transport.setAttribute('aria-label', 'Wiedergabe');
-    transport.append(this.beginning, this.previous, this.play, this.next, this.end);
+    transport.append(
+      this.label,
+      this.beginning,
+      this.previous,
+      this.play,
+      this.stop,
+      this.next,
+      this.end,
+      this.edit,
+      this.more,
+    );
     selection.append(this.summary);
     const rhythm = document.createElement('div');
     rhythm.className = 'sequence-durations';
@@ -188,7 +230,19 @@ export class PitchSequenceView {
     actions.append(modes, this.remove, this.undo);
     this.hint.className = 'sequence-hint';
     this.editor.append(selection, rhythm, actions, this.hint);
-    this.element.append(heading, this.confirmation, this.scroll, transport, this.editor);
+    this.element.append(this.scroll, transport, this.menu, this.confirmation, this.editor);
+    this.element.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.key === 'Escape' && !this.menu.hidden) {
+          this.menu.hidden = true;
+          this.more.setAttribute('aria-expanded', 'false');
+          this.more.focus();
+          event.stopImmediatePropagation();
+        }
+      },
+      options,
+    );
     // Delegate from the stable SVG: note nodes are replaced on every render.
     const selectNote = (target: EventTarget | null): boolean => {
       if (!(target instanceof Node)) return false;
@@ -324,7 +378,9 @@ export class PitchSequenceView {
     const activeDuration =
       editor.mode === 'insert' ? editor.duration : sequence.selectedNote?.duration;
     this.editor.hidden = !this.editing;
-    this.edit.textContent = this.editing ? 'Fertig' : 'Bearbeiten';
+    this.edit.innerHTML = `<span class="material-icon icon-${this.editing ? 'check' : 'edit'}" aria-hidden="true"></span>`;
+    this.edit.title = this.editing ? 'Bearbeiten beenden' : 'Tonfolge bearbeiten';
+    this.edit.setAttribute('aria-pressed', String(this.editing));
     this.edit.setAttribute(
       'aria-label',
       this.editing ? 'Bearbeiten beenden' : 'Tonfolge bearbeiten',
@@ -336,7 +392,9 @@ export class PitchSequenceView {
         ? `Einfügen ${editor.position < notes.length ? `vor Note ${editor.position + 1}` : 'am Ende'} · ${durationName(editor.duration)}`
         : this.selectedIndex !== null && selectedStaffNote
           ? `Note ${this.selectedIndex + 1} von ${notes.length} · ${writtenNoteName(selectedStaffNote, display)} · ${durationName(selectedStaffNote.duration)}`
-          : 'Noch keine Töne · Einfügen zum Starten';
+          : notes.length
+            ? 'Keine Note ausgewählt'
+            : 'Noch keine Töne · Einfügen zum Starten';
     this.previous.disabled =
       editor.mode === 'insert'
         ? editor.position === 0
@@ -345,8 +403,9 @@ export class PitchSequenceView {
       editor.mode === 'insert'
         ? editor.position === notes.length
         : this.selectedIndex === null || this.selectedIndex === notes.length - 1;
-    this.beginning.disabled = this.previous.disabled;
-    this.end.disabled = this.next.disabled;
+    this.beginning.disabled =
+      notes.length === 0 || (this.selectedIndex !== null && this.previous.disabled);
+    this.end.disabled = notes.length === 0 || (this.selectedIndex !== null && this.next.disabled);
     this.replace.setAttribute('aria-pressed', String(editor.mode === 'replace'));
     this.insert.setAttribute('aria-pressed', String(editor.mode === 'insert'));
     this.remove.disabled = this.selectedIndex === null;
@@ -363,13 +422,15 @@ export class PitchSequenceView {
     }
     this.dot.disabled = activeDuration === undefined;
     this.dot.setAttribute('aria-pressed', String(activeDuration?.dotted ?? false));
-    this.play.textContent = playingIndex === null ? '▶ Abspielen' : '■ Stopp';
+    this.play.innerHTML = `<span class="material-icon icon-${playingIndex === null ? 'play-arrow' : 'pause'}" aria-hidden="true"></span>`;
     this.play.setAttribute(
       'aria-label',
-      playingIndex === null ? 'Tonfolge abspielen' : 'Tonfolge stoppen',
+      playingIndex === null ? 'Tonfolge abspielen' : 'Tonfolge pausieren',
     );
+    this.play.title = this.play.getAttribute('aria-label') ?? '';
     this.play.disabled = notes.length === 0;
-    this.label.textContent = `Tonfolge · ${keyName(key, display.naming)}`;
+    this.stop.disabled = playingIndex === null && this.selectedIndex === null;
+    this.label.textContent = keyName(key, display.naming);
     this.clear.disabled = notes.length === 0;
     const added = notes.length > this.count;
     this.count = notes.length;

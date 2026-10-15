@@ -302,6 +302,7 @@ test('optional pitch history records only played notes, follows key changes, and
   await page.getByRole('button', { name: 'Note hinzufügen', exact: true }).click();
   await expect(notes).toHaveCount(10);
   await page.getByRole('button', { name: 'Noten schließen' }).click();
+  await page.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
   await page.getByRole('button', { name: 'Tonfolge leeren' }).click();
   await expect(notes).toHaveCount(10);
   await page.getByRole('button', { name: 'Ja, leeren' }).click();
@@ -333,8 +334,8 @@ test('sequence playback moves a single selection and navigation keeps playing', 
   await expect(selected).toHaveAttribute('data-midi', '52');
   await sequence.getByRole('button', { name: 'Zum Anfang', exact: true }).click();
   await expect(selected).toHaveAttribute('data-midi', '50');
-  await expect(sequence.getByRole('button', { name: 'Tonfolge stoppen' })).toBeVisible();
-  await sequence.getByRole('button', { name: 'Tonfolge stoppen' }).click();
+  await expect(sequence.getByRole('button', { name: 'Tonfolge pausieren' })).toBeVisible();
+  await sequence.getByRole('button', { name: 'Tonfolge pausieren' }).click();
   await expect(selected).toHaveAttribute('data-midi', '50');
   await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
   await sequence.getByRole('button', { name: 'Bearbeiten beenden' }).click();
