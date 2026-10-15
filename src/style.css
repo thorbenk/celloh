@@ -296,16 +296,6 @@ main,
 .sequence-editor [hidden] {
   display: none;
 }
-.sequence-selection {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.sequence-summary {
-  margin-right: auto;
-  min-width: 0;
-}
 .sequence-control {
   min-width: 44px;
   min-height: 44px;
@@ -389,11 +379,6 @@ main,
   place-items: center;
   padding: 6px;
   color: #a33b2f;
-}
-.sequence-hint {
-  grid-column: 1 / -1;
-  color: var(--muted);
-  line-height: 1.4;
 }
 .sequence-note-target {
   fill: transparent;

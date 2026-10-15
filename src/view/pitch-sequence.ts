@@ -38,7 +38,6 @@ export class PitchSequenceView {
   private readonly edit: HTMLButtonElement;
   private readonly editor = document.createElement('div');
   private readonly summary = document.createElement('span');
-  private readonly hint = document.createElement('span');
   private readonly beginning: HTMLButtonElement;
   private readonly end: HTMLButtonElement;
   private readonly previous: HTMLButtonElement;
@@ -179,9 +178,7 @@ export class PitchSequenceView {
     this.editor.setAttribute('role', 'group');
     this.editor.setAttribute('aria-label', 'Tonfolge bearbeiten');
     this.edit.setAttribute('aria-controls', this.editor.id);
-    const selection = document.createElement('div');
-    selection.className = 'sequence-selection';
-    this.summary.className = 'sequence-summary';
+    this.summary.className = 'sequence-summary visually-hidden';
     this.summary.setAttribute('aria-live', 'polite');
     this.previous = this.button('', 'Vorherige Note', () => onAction({ type: 'move', delta: -1 }));
     this.previous.innerHTML =
@@ -211,7 +208,6 @@ export class PitchSequenceView {
       this.edit,
       this.more,
     );
-    selection.append(this.summary);
     const rhythm = document.createElement('div');
     rhythm.className = 'sequence-durations';
     const lengths = document.createElement('div');
@@ -254,8 +250,7 @@ export class PitchSequenceView {
     this.undo = this.button('', 'Rückgängig', () => onAction({ type: 'undo' }));
     this.undo.innerHTML = '<span class="material-icon icon-undo" aria-hidden="true"></span>';
     actions.append(modes, this.remove, this.undo);
-    this.hint.className = 'sequence-hint';
-    this.editor.append(selection, rhythm, actions, this.hint);
+    this.editor.append(this.summary, rhythm, actions);
     this.element.append(this.scroll, transport, this.menu, this.confirmation, this.editor);
     this.element.addEventListener(
       'keydown',
@@ -437,12 +432,6 @@ export class PitchSequenceView {
     this.insert.setAttribute('aria-pressed', String(editor.mode === 'insert'));
     this.remove.disabled = this.selectedIndex === null;
     this.undo.disabled = !sequence.canUndo;
-    this.hint.textContent =
-      editor.mode === 'replace'
-        ? 'Note antippen zum Anhören. Klaviatur oder Griffbrett ersetzen die ausgewählte Note.'
-        : editor.mode === 'insert'
-          ? 'Zwischen die Noten tippen, um den Cursor zu bewegen. Klaviatur und Griffbrett fügen neue Töne ein.'
-          : 'Note antippen zum Bearbeiten. Klaviatur und Griffbrett spielen nur zur Probe.';
     for (const { value, button } of this.durations) {
       button.disabled = activeDuration === undefined;
       button.setAttribute('aria-pressed', String(activeDuration?.value === value));

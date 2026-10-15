@@ -1121,7 +1121,9 @@ test('sequence editing repeatedly replaces, inserts after selection, and resumes
   await expect(notes.nth(2).locator('.note-stem')).toHaveCount(0);
   await expect(notes.nth(2).locator('.note-dot')).toHaveCount(1);
   await sequence.getByRole('button', { name: 'Note bearbeiten', exact: true }).click();
-  await expect(sequence.locator('.sequence-hint')).toContainText('ersetzen');
+  await expect(
+    sequence.getByRole('button', { name: 'Note bearbeiten', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await page.locator('.note[data-string="1"][data-offset="0"]').click();
   await expect(notes.nth(2)).toHaveAccessibleName('Note 3: G2, Ganze, punktiert');
   await page.locator('.piano-key[data-midi="57"]').click();
