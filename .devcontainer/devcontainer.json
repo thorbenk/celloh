@@ -1,0 +1,28 @@
+{
+  "name": "CellOh Codex",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/workspace",
+  "appPort": ["127.0.0.1:5173:5173", "127.0.0.1:4173:4173", "127.0.0.1:6006:6006"],
+  "containerUser": "node",
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "userEnvProbe": "none",
+  "containerEnv": {
+    "CODEX_HOME": "/home/node/.codex",
+    "SSH_AUTH_SOCK": ""
+  },
+  "mounts": ["source=celloh-codex-${devcontainerId},target=/home/node/.codex,type=volume"],
+  "runArgs": [
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges:true",
+    "--shm-size=1g",
+    "--user=node"
+  ],
+  "init": true,
+  "overrideCommand": true,
+  "postCreateCommand": ["npm", "ci"]
+}

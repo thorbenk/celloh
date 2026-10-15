@@ -1,0 +1,21 @@
+{
+  "name": "CellOh CI",
+  "build": {
+    "dockerfile": "../../.devcontainer/Dockerfile",
+    "context": "../.."
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/workspace",
+  "containerUser": "node",
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "userEnvProbe": "none",
+  "runArgs": [
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges:true",
+    "--shm-size=1g",
+    "--user=node"
+  ],
+  "init": true,
+  "overrideCommand": true
+}
