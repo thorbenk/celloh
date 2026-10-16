@@ -423,9 +423,9 @@ export class PitchSequenceView {
       ...staffNote(pitch, selectedKey?.spelling ?? spelling, selectedKey),
       duration,
     }));
-    // Insertion gives notes and the gaps separate 44px touch targets without adding panel height.
-    const spacing = editor.mode === 'insert' ? 176 : 88;
-    const firstX = 220 + Math.abs(key.fifths) * 22 + (editor.mode === 'insert' ? 88 : 0);
+    // Keep the music stationary when switching between replacement and insertion.
+    const spacing = 88;
+    const firstX = 220 + Math.abs(key.fifths) * 22;
     const width = Math.max(
       240,
       firstX + Math.max(0, notes.length - 1) * spacing + (this.editing ? spacing : 48),
@@ -555,7 +555,7 @@ export class PitchSequenceView {
         const x = firstX + position * spacing - spacing / 2;
         this.staff.insertAdjacentHTML(
           'beforeend',
-          `<rect class="sequence-gap-target" data-position="${position}" role="button" tabindex="${position === editor.position ? 0 : -1}" aria-label="${position === notes.length ? 'Am Ende einfügen' : `Vor Note ${position + 1} einfügen`}" aria-pressed="${position === editor.position}" x="${x - 41}" y="${top + 1}" width="82" height="${bottom - top - 2}"/>`,
+          `<rect class="sequence-gap-target" data-position="${position}" role="button" tabindex="${position === editor.position ? 0 : -1}" aria-label="${position === notes.length ? 'Am Ende einfügen' : `Vor Note ${position + 1} einfügen`}" aria-pressed="${position === editor.position}" x="${x - 22}" y="${top + 1}" width="44" height="${bottom - top - 2}"/>`,
         );
       }
       const x = firstX + editor.position * spacing - spacing / 2;

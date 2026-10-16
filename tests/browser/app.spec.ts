@@ -1062,7 +1062,13 @@ test('sequence insertion moves between notes and hands its position to playback'
   const sequence = page.locator('#pitch-sequence');
   const notes = sequence.locator('.sequence-scroll .staff-note');
   await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
+  const notePositions = () =>
+    notes
+      .locator('.sequence-note-target')
+      .evaluateAll((targets) => targets.map((target) => target.getAttribute('x')));
+  const originalPositions = await notePositions();
   await sequence.getByRole('button', { name: 'Einfügen', exact: true }).click();
+  expect(await notePositions()).toEqual(originalPositions);
   await expect(sequence.getByRole('button', { name: 'Am Ende einfügen' })).toHaveAttribute(
     'aria-pressed',
     'true',
@@ -1093,7 +1099,7 @@ test('sequence insertion moves between notes and hands its position to playback'
   ).toEqual([43, 48, 50, 55]);
   for (const gap of await sequence.locator('.sequence-gap-target').all()) {
     const box = (await gap.boundingBox())!;
-    expect(box.width).toBeGreaterThanOrEqual(34);
+    expect(box.width).toBeGreaterThanOrEqual(24);
     expect(box.height).toBeGreaterThanOrEqual(44);
   }
 });
