@@ -1,10 +1,10 @@
 import { isPlayablePitch, midiPitch } from './music';
 import { NOTE_VALUES, type NoteValue } from './rhythm';
-import type { SequenceNote } from './sequence';
+import { DEFAULT_MEASURE, isMeasure, type Measure, type SequenceNote } from './sequence';
 
-export const SEQUENCE_PREFIX = 'celloh:v1';
+export const SEQUENCE_PREFIX = 'celloh:v2';
 export type SequenceParseResult =
-  | { readonly ok: true; readonly notes: readonly SequenceNote[] }
+  | { readonly ok: true; readonly notes: readonly SequenceNote[]; readonly measure: Measure }
   | { readonly ok: false; readonly error: 'invalid' | 'unsupported-version' };
 
 const PITCHES: Readonly<Record<string, number>> = {
@@ -32,9 +32,13 @@ const PITCHES: Readonly<Record<string, number>> = {
 };
 const NAMES = ['C', 'Cis', 'D', 'Dis', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'B', 'H'] as const;
 
-export function exportSequence(notes: readonly SequenceNote[]): string {
+export function exportSequence(
+  notes: readonly SequenceNote[],
+  measure: Measure = DEFAULT_MEASURE,
+): string {
   return [
     SEQUENCE_PREFIX,
+    `measure=${measure.numerator}/${measure.denominator}`,
     ...notes.map(
       ({ pitch, duration }) =>
         `${NAMES[pitch % 12]}${Math.floor(pitch / 12) - 1}/${duration.value}${duration.dotted ? '.' : ''}`,
@@ -42,9 +46,13 @@ export function exportSequence(notes: readonly SequenceNote[]): string {
   ].join(' ');
 }
 
-export function sequenceLink(notes: readonly SequenceNote[], base: string): string {
+export function sequenceLink(
+  notes: readonly SequenceNote[],
+  base: string,
+  measure: Measure = DEFAULT_MEASURE,
+): string {
   const url = new URL(base);
-  url.hash = `tonfolge=${exportSequence(notes).replaceAll(' ', ',')}`;
+  url.hash = `tonfolge=${exportSequence(notes, measure).replaceAll(' ', ',')}`;
   return url.href;
 }
 
@@ -62,10 +70,20 @@ export function parseSequence(input: string): SequenceParseResult {
   const invalid: SequenceParseResult = { ok: false, error: 'invalid' };
   const text = (sequenceFromLink(input.trim()) ?? input).trim();
   const tokens = text.split(/[\s,]+/);
+  let version = 'celloh:v1';
   if (tokens[0]?.startsWith('celloh:')) {
     if (!/^celloh:v\d+$/.test(tokens[0])) return invalid;
-    if (tokens.shift() !== SEQUENCE_PREFIX) return { ok: false, error: 'unsupported-version' };
+    version = tokens.shift() ?? 'celloh:v1';
+    if (version !== SEQUENCE_PREFIX && version !== 'celloh:v1')
+      return { ok: false, error: 'unsupported-version' };
   } else if (!text) return invalid;
+  let measure = DEFAULT_MEASURE;
+  if (version === SEQUENCE_PREFIX) {
+    const match = /^measure=(\d+)\/(\d+)$/.exec(tokens.shift() ?? '');
+    if (!match) return invalid;
+    measure = { numerator: Number(match[1]), denominator: Number(match[2]) };
+    if (!isMeasure(measure)) return invalid;
+  }
   const notes: SequenceNote[] = [];
   for (const token of tokens) {
     const match = /^([A-H](?:is|es)?|Es|As)(\d)(?:\/(1|2|4|8|16)(\.)?)?$/.exec(token);
@@ -76,9 +94,16 @@ export function parseSequence(input: string): SequenceParseResult {
     if (!isPlayablePitch(pitch) || !isNoteValue(value)) return invalid;
     notes.push({ pitch: midiPitch(pitch), duration: { value, dotted: match[4] === '.' } });
   }
-  return { ok: true, notes };
+  return version === 'celloh:v1' ? migrateV1({ notes }) : { ok: true, notes, measure };
 }
 
 function isNoteValue(value: number): value is NoteValue {
   return NOTE_VALUES.some((candidate) => candidate === value);
+}
+
+/** Explicit upgrade for legacy versioned and bare note sequences. */
+export function migrateV1(sequence: {
+  readonly notes: readonly SequenceNote[];
+}): SequenceParseResult {
+  return { ok: true, notes: sequence.notes, measure: { ...DEFAULT_MEASURE } };
 }

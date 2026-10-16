@@ -9,9 +9,13 @@ void test('versioned text and readable links round-trip every playable pitch and
   assert.ok(parsed.ok);
   assert.deepEqual(parseSequence(exportSequence(parsed.notes)), parsed);
   const link = sequenceLink(parsed.notes, 'https://example.com/cello/?x=1#old');
-  assert.ok(link.includes('#tonfolge=celloh:v1,C2/1'));
+  assert.ok(link.includes('#tonfolge=celloh:v2,measure=4/4,C2/1'));
   assert.deepEqual(parseSequence(link), parsed);
-  assert.deepEqual(parseSequence('celloh:v1'), { ok: true, notes: [] });
+  assert.deepEqual(parseSequence('celloh:v1'), {
+    ok: true,
+    notes: [],
+    measure: { numerator: 4, denominator: 4 },
+  });
 });
 
 void test('bare input accepts whitespace, commas, flats and independent quarter defaults', () => {
@@ -46,7 +50,7 @@ void test('invalid input and unknown versions fail as a whole', () => {
   ]) {
     assert.deepEqual(parseSequence(text), { ok: false, error: 'invalid' }, text);
   }
-  assert.deepEqual(parseSequence('celloh:v2 C3'), { ok: false, error: 'unsupported-version' });
+  assert.deepEqual(parseSequence('celloh:v3 C3'), { ok: false, error: 'unsupported-version' });
 });
 
 void test('import replaces atomically and can be undone', () => {
@@ -59,4 +63,36 @@ void test('import replaces atomically and can be undone', () => {
   assert.deepEqual(model.notes, second.notes);
   model.dispatch({ type: 'undo' });
   assert.deepEqual(model.notes, first.notes);
+});
+
+void test('v2 preserves a global measure and rejects missing or invalid measures', () => {
+  const parsed = parseSequence('celloh:v2 measure=6/8 C3/8 D3/4.');
+  assert.ok(parsed.ok);
+  assert.deepEqual(parsed.measure, { numerator: 6, denominator: 8 });
+  assert.deepEqual(parseSequence(exportSequence(parsed.notes, parsed.measure)), parsed);
+  assert.deepEqual(
+    parseSequence(sequenceLink(parsed.notes, 'https://example.com', parsed.measure)),
+    parsed,
+  );
+  for (const text of [
+    'celloh:v2 C3',
+    'celloh:v2 measure=0/4',
+    'celloh:v2 measure=4/3',
+    'celloh:v2 measure=33/4',
+  ]) {
+    assert.deepEqual(parseSequence(text), { ok: false, error: 'invalid' });
+  }
+});
+
+void test('measure edits and imported measures are restored by undo', () => {
+  const model = new SequenceModel();
+  model.dispatch({ type: 'measure', measure: { numerator: 3, denominator: 4 } });
+  const imported = parseSequence('celloh:v2 measure=6/8 C3');
+  assert.ok(imported.ok);
+  model.dispatch({ type: 'import', notes: imported.notes, measure: imported.measure });
+  assert.deepEqual(model.measure, { numerator: 6, denominator: 8 });
+  model.dispatch({ type: 'undo' });
+  assert.deepEqual(model.measure, { numerator: 3, denominator: 4 });
+  model.dispatch({ type: 'undo' });
+  assert.deepEqual(model.measure, { numerator: 4, denominator: 4 });
 });
