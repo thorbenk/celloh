@@ -41,7 +41,7 @@ export function exportSequence(
     `measure=${measure.numerator}/${measure.denominator}`,
     ...notes.map(
       ({ pitch, duration }) =>
-        `${NAMES[pitch % 12]}${Math.floor(pitch / 12) - 1}/${duration.value}${duration.dotted ? '.' : ''}`,
+        `${pitch === null ? 'R' : `${NAMES[pitch % 12]}${Math.floor(pitch / 12) - 1}`}/${duration.value}${duration.dotted ? '.' : ''}`,
     ),
   ].join(' ');
 }
@@ -86,6 +86,14 @@ export function parseSequence(input: string): SequenceParseResult {
   }
   const notes: SequenceNote[] = [];
   for (const token of tokens) {
+    const rest = /^R\/(1|2|4|8|16)(\.)?$/.exec(token);
+    if (rest) {
+      notes.push({
+        pitch: null,
+        duration: { value: Number(rest[1]) as NoteValue, dotted: rest[2] === '.' },
+      });
+      continue;
+    }
     const match = /^([A-H](?:is|es)?|Es|As)(\d)(?:\/(1|2|4|8|16)(\.)?)?$/.exec(token);
     if (!match || !match[1]) return invalid;
     const offset = PITCHES[match[1]];

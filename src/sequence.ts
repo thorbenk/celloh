@@ -8,15 +8,16 @@ export interface Measure {
 export const DEFAULT_MEASURE: Measure = { numerator: 4, denominator: 4 };
 export function isMeasure(measure: Measure): boolean {
   return (
-    Number.isInteger(measure.numerator) &&
-    measure.numerator >= 1 &&
-    measure.numerator <= 32 &&
-    [1, 2, 4, 8, 16, 32].includes(measure.denominator)
+    (measure.numerator === 0 && measure.denominator === 0) ||
+    (Number.isInteger(measure.numerator) &&
+      measure.numerator >= 1 &&
+      measure.numerator <= 32 &&
+      [1, 2, 4, 8, 16, 32].includes(measure.denominator))
   );
 }
 
 export interface SequenceNote {
-  readonly pitch: MidiPitch;
+  readonly pitch: MidiPitch | null;
   readonly duration: NoteDuration;
 }
 
@@ -35,6 +36,7 @@ export type SequenceAction =
   | { readonly type: 'replace' }
   | { readonly type: 'insert' }
   | { readonly type: 'delete' }
+  | { readonly type: 'rest' }
   | { readonly type: 'dot' }
   | { readonly type: 'undo' }
   | { readonly type: 'clear' }
@@ -115,6 +117,7 @@ export class SequenceModel {
     const index = this.selectedIndex;
     if (
       editor.mode === 'capture' &&
+      action.type !== 'rest' &&
       action.type !== 'import' &&
       action.type !== 'measure' &&
       action.type !== 'unselect' &&
@@ -128,6 +131,25 @@ export class SequenceModel {
     )
       return;
     switch (action.type) {
+      case 'rest': {
+        const position =
+          editor.mode === 'insert'
+            ? editor.position
+            : index === null
+              ? this.current.length
+              : index + 1;
+        this.save();
+        this.current = [
+          ...this.current.slice(0, position),
+          { pitch: null, duration: editor.mode === 'insert' ? editor.duration : QUARTER_NOTE },
+          ...this.current.slice(position),
+        ];
+        this.state =
+          editor.mode === 'insert'
+            ? { ...editor, position: position + 1 }
+            : { mode: editor.mode, index: position };
+        return;
+      }
       case 'measure':
         if (
           !isMeasure(action.measure) ||

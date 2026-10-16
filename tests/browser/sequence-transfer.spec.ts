@@ -39,7 +39,7 @@ test('menu copies readable text and links, with a manual clipboard fallback', as
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/#tonfolge=celloh:v1,C3/4,Fis3/8.');
   const sequence = page.locator('#pitch-sequence');
-  await expect(sequence.locator('.sequence-menu .material-icon')).toHaveCount(4);
+  await expect(sequence.locator('.sequence-menu .material-icon')).toHaveCount(5);
   for (const label of ['Text kopieren', 'Link kopieren']) {
     await sequence.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
     await sequence.getByRole('button', { name: label, exact: true }).click();
@@ -104,4 +104,31 @@ test('staff time signature supports keyboard editing and restores focus', async 
   await expect(dialog).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(signature).toBeFocused();
+});
+
+test('spillover pieces select together and measures can be disabled and restored', async ({
+  page,
+}) => {
+  await page.goto('/#tonfolge=celloh:v2,measure=3/4,C3/1');
+  const sequence = page.locator('.pitch-sequence');
+  await expect(sequence.locator('.staff-note')).toHaveCount(2);
+  await expect(sequence.locator('.sequence-tie')).toHaveCount(1);
+  await sequence.locator('.staff-note').last().click();
+  await expect(sequence.locator('.staff-note[aria-pressed="true"]')).toHaveCount(2);
+  await sequence.getByRole('button', { name: 'Taktart ändern: 3/4', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Taktart ändern', exact: true });
+  await dialog.getByRole('checkbox', { name: 'Takte anzeigen' }).uncheck();
+  await dialog.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await expect(sequence.locator('.staff-note')).toHaveCount(1);
+  await expect(sequence.locator('.sequence-bar-line')).toHaveCount(0);
+  await sequence.getByRole('button', { name: 'Taktart ändern: 0/0', exact: true }).click();
+  await dialog.getByRole('checkbox', { name: 'Takte anzeigen' }).check();
+  await dialog.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await expect(
+    sequence.getByRole('button', { name: 'Taktart ändern: 4/4', exact: true }),
+  ).toBeVisible();
+  await sequence.getByRole('button', { name: 'Weitere Tonfolge-Aktionen' }).click();
+  await sequence.getByRole('button', { name: 'Pause hinzufügen', exact: true }).click();
+  await expect(sequence.locator('.staff-note')).toHaveCount(2);
+  await expect(sequence.locator('.staff-note').last()).toHaveAttribute('aria-label', /Pause/);
 });

@@ -112,10 +112,10 @@ export class App {
         const audition =
           action.type === 'select' ? this.sequenceModel.notes[action.index] : undefined;
         const selected = audition ?? this.sequenceModel.selectedNote;
-        if (selected) this.model.selectPiano(selected.pitch);
+        if (selected?.pitch != null) this.model.selectPiano(selected.pitch);
         this.renderSelection();
         if (resume) void this.startReplay();
-        else if (audition) void this.auditionPitch(audition.pitch);
+        else if (audition?.pitch != null) void this.auditionPitch(audition.pitch);
       },
       () => {
         if (this.replayIndex !== null) {
@@ -476,11 +476,13 @@ export class App {
     const request = this.playbackRequest;
     this.sequenceModel.dispatch({ type: 'select', index: start });
     this.replayIndex = start;
-    this.model.selectPiano(first.pitch);
+    if (first.pitch !== null) this.model.selectPiano(first.pitch);
     this.renderSelection();
     this.staff.status.textContent = 'Tonfolge wird geladen …';
     try {
-      await this.audio.prepare(this.sequenceModel.notes.map((note) => note.pitch));
+      await this.audio.prepare(
+        this.sequenceModel.notes.flatMap((note) => (note.pitch === null ? [] : [note.pitch])),
+      );
       if (request === this.playbackRequest) await this.playSequenceNote(start, request);
     } catch {
       if (request !== this.playbackRequest) return;
@@ -499,16 +501,19 @@ export class App {
       return;
     }
     try {
+      // Release the bow at a rest while letting the instrument’s resonance decay naturally.
+      if (note.pitch === null) this.audio.stop(true);
       if (
-        !(await this.audio.play(note.pitch, (60 / this.tempo) * quarterBeats(note.duration), {
-          nextPitch: this.sequenceModel.notes[index + 1]?.pitch,
-        })) ||
+        (note.pitch !== null &&
+          !(await this.audio.play(note.pitch, (60 / this.tempo) * quarterBeats(note.duration), {
+            nextPitch: this.sequenceModel.notes[index + 1]?.pitch ?? undefined,
+          }))) ||
         request !== this.playbackRequest
       )
         return;
       this.sequenceModel.dispatch({ type: 'select', index });
       this.replayIndex = index;
-      this.model.selectPiano(note.pitch);
+      if (note.pitch !== null) this.model.selectPiano(note.pitch);
       this.renderSelection();
       this.staff.status.textContent = `Tonfolge: Ton ${index + 1} von ${this.sequenceModel.notes.length}`;
       this.replayTimer = window.setTimeout(

@@ -1108,12 +1108,12 @@ test('sequence editing repeatedly replaces, inserts after selection, and resumes
   page,
 }) => {
   await recordAudioPlayback(page);
-  await page.goto('/');
+  // Keep one rendered note per source note; measure splitting is covered separately.
+  await page.goto('/#tonfolge=celloh:v2,measure=0/0');
   for (const pitch of [48, 50, 52, 53]) {
     await page.locator(`.piano-key[data-midi="${pitch}"]`).click();
     await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   }
-  await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
   const sequence = page.locator('#pitch-sequence');
   const notes = sequence.locator('.sequence-scroll .staff-note');
   const editor = sequence.locator('.sequence-editor');
@@ -1241,12 +1241,12 @@ test('sequence replay honors dotted whole, dotted eighth, and sixteenth duration
   page,
 }) => {
   await recordAudioPlayback(page);
-  await page.goto('/');
+  // Keep one rendered note per source note; measure splitting is covered separately.
+  await page.goto('/#tonfolge=celloh:v2,measure=0/0');
   for (const pitch of [48, 50, 52]) {
     await page.locator(`.piano-key[data-midi="${pitch}"]`).click();
     await expect(page.locator('#audio-status')).toHaveText('Cello-Klang abgespielt');
   }
-  await page.getByRole('button', { name: 'Tonfolge', exact: true }).click();
   const sequence = page.locator('#pitch-sequence');
   await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
   const notes = sequence.locator('.sequence-scroll .staff-note');

@@ -6,7 +6,9 @@ import {
   type Spelling,
 } from '../music';
 import { staffNote, staffY, writtenNoteName } from '../notation';
-import { quarterBeats, durationName, NOTE_VALUES, NOTE_VALUE_NAMES } from '../rhythm';
+import { sequenceNotation } from '../sequence-notation';
+import { midiPitch } from '../music';
+import { durationName, NOTE_VALUES, NOTE_VALUE_NAMES } from '../rhythm';
 import { SequenceTransfer } from './sequence-transfer';
 import { DEFAULT_MEASURE, isMeasure, type Measure, type SequenceNote } from '../sequence';
 import type { SequenceAction, SequenceModel } from '../sequence';
@@ -84,8 +86,10 @@ export class PitchSequenceView {
       onAction({ type: 'import', notes, measure }),
     );
     this.openMeasure = () => {
-      numerator.value = String(this.measure.numerator);
-      denominator.value = String(this.measure.denominator);
+      enabled.checked = this.measure.numerator !== 0;
+      numerator.value = String(this.measure.numerator || 4);
+      denominator.value = String(this.measure.denominator || 4);
+      numerator.disabled = denominator.disabled = !enabled.checked;
       denominator.setCustomValidity('');
       this.measureDialog.showModal();
     };
@@ -109,8 +113,16 @@ export class PitchSequenceView {
       return input;
     };
     form.append(heading);
+    const enabledLabel = document.createElement('label');
+    const enabled = document.createElement('input');
+    enabled.type = 'checkbox';
+    enabledLabel.append(enabled, 'Takte anzeigen');
+    form.append(enabledLabel);
     const numerator = field('Zähler', 32);
     const denominator = field('Nenner', 32);
+    enabled.addEventListener('change', () => {
+      numerator.disabled = denominator.disabled = !enabled.checked;
+    });
     denominator.addEventListener('input', () => denominator.setCustomValidity(''));
     const cancelMeasure = this.button('Abbrechen', 'Abbrechen', () => this.measureDialog.close());
     const applyMeasure = document.createElement('button');
@@ -120,8 +132,8 @@ export class PitchSequenceView {
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       const measure = {
-        numerator: Number(numerator.value),
-        denominator: Number(denominator.value),
+        numerator: enabled.checked ? Number(numerator.value) : 0,
+        denominator: enabled.checked ? Number(denominator.value) : 0,
       };
       if (!isMeasure(measure)) {
         denominator.setCustomValidity('Bitte 1, 2, 4, 8, 16 oder 32 wählen.');
@@ -144,6 +156,7 @@ export class PitchSequenceView {
         () => void this.transfer.copy('text', this.notes, this.measure),
       ],
       ['Link kopieren', 'link', () => void this.transfer.copy('link', this.notes, this.measure)],
+      ['Pause hinzufügen', 'more-vert', () => onAction({ type: 'rest' })],
       ['Importieren …', 'file-upload', () => this.transfer.openImport()],
     ] satisfies readonly (readonly [string, string, () => void])[]) {
       const button = this.button(text, text, () => {
@@ -330,10 +343,9 @@ export class PitchSequenceView {
     // Delegate from the stable SVG: note nodes are replaced on every render.
     const selectNote = (target: EventTarget | null): boolean => {
       if (!(target instanceof Node)) return false;
-      const index = Array.from(this.staff.querySelectorAll('.staff-note')).findIndex((note) =>
-        note.contains(target),
-      );
-      if (index === -1) return false;
+      const group = target instanceof Element ? target.closest('[data-source-index]') : null;
+      if (!group) return false;
+      const index = Number(group.getAttribute('data-source-index'));
       onAction({ type: 'select', index });
       return true;
     };
@@ -420,15 +432,25 @@ export class PitchSequenceView {
     this.selectedIndex = sequence.selectedIndex;
     const key = selectedKey ?? C_MAJOR;
     const notes = sequence.notes.map(({ pitch, duration }) => ({
-      ...staffNote(pitch, selectedKey?.spelling ?? spelling, selectedKey),
+      ...staffNote(pitch ?? midiPitch(50), selectedKey?.spelling ?? spelling, selectedKey),
+      rest: pitch === null,
       duration,
     }));
+    const parts = sequenceNotation(sequence.notes, this.measure);
+    const drawnNotes = parts.map((part) => ({
+      ...(notes[part.sourceIndex] ?? { step: 6, accidental: 0 as const }),
+      duration: part.duration,
+    }));
+    const visualPosition = (position: number) => {
+      const found = parts.findIndex((part) => part.sourceIndex === position);
+      return found < 0 ? parts.length : found;
+    };
     // Keep the music stationary when switching between replacement and insertion.
     const spacing = 88;
     const firstX = 220 + Math.abs(key.fifths) * 22;
     const width = Math.max(
       240,
-      firstX + Math.max(0, notes.length - 1) * spacing + (this.editing ? spacing : 48),
+      firstX + Math.max(0, drawnNotes.length - 1) * spacing + (this.editing ? spacing : 48),
     );
     let top = 40;
     let bottom = staffY(8) + NOTE_STEM_LENGTH + 10; // Empty staff also fits a middle-line down-stem.
@@ -444,10 +466,10 @@ export class PitchSequenceView {
     this.staff.style.height = `${(bottom - top) * SCALE}px`;
     this.staff.setAttribute(
       'aria-label',
-      `${keyName(key, display.naming)}: ${notes.length ? notes.map((note) => writtenNoteName(note, display)).join(', ') : 'noch keine Töne'}`,
+      `${keyName(key, display.naming)}: ${notes.length ? notes.map((note) => (note.rest ? 'Pause' : writtenNoteName(note, display))).join(', ') : 'noch keine Töne'}`,
     );
     this.staff.setAttribute('role', 'group');
-    renderStaff(this.staff, notes, false, firstX, {
+    renderStaff(this.staff, drawnNotes, false, firstX, {
       width,
       key,
       spacing,
@@ -458,42 +480,48 @@ export class PitchSequenceView {
     const backgrounds = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     backgrounds.setAttribute('pointer-events', 'none');
     this.staff.prepend(backgrounds);
-    let beats = 0;
-    const measureBeats = (this.measure.numerator * 4) / this.measure.denominator;
-    sequence.notes.forEach((note, index) => {
-      const previous = beats;
-      beats += quarterBeats(note.duration);
-      if (
-        Math.floor((beats + 1e-9) / measureBeats) > Math.floor((previous + 1e-9) / measureBeats)
-      ) {
-        const x = firstX + index * spacing + spacing / 2;
+    parts.forEach((part, index) => {
+      const x = firstX + index * spacing;
+      if (part.barAfter)
         this.staff.insertAdjacentHTML(
           'beforeend',
-          `<path class="sequence-bar-line" d="M${x} 70V150"/>`,
+          `<path class="sequence-bar-line" d="M${x + spacing / 2} 70V150"/>`,
+        );
+      if (part.tieNext) {
+        const y = staffY(drawnNotes[index]?.step ?? 6) + 22;
+        this.staff.insertAdjacentHTML(
+          'beforeend',
+          `<path class="sequence-tie" d="M${x + 8} ${y} Q${x + spacing / 2} ${y + 24} ${x + spacing - 8} ${y}" fill="none" stroke="currentColor" stroke-width="2"/>`,
         );
       }
     });
     const groups = this.staff.querySelectorAll<SVGGElement>('.staff-note');
-    groups.forEach((group, index) => {
+    groups.forEach((group, visualIndex) => {
+      const index = parts[visualIndex]?.sourceIndex;
+      if (index === undefined) return;
+      group.setAttribute('data-source-index', String(index));
       const note = notes[index];
       const duration = sequence.notes[index]?.duration;
       if (!note || !duration) return;
       group.setAttribute('role', 'button');
-      group.setAttribute('tabindex', index === (this.selectedIndex ?? 0) ? '0' : '-1');
+      group.setAttribute(
+        'tabindex',
+        index === (this.selectedIndex ?? 0) && visualIndex === visualPosition(index) ? '0' : '-1',
+      );
       group.setAttribute(
         'aria-label',
-        `Note ${index + 1}: ${writtenNoteName(note, display)}, ${durationName(duration)}`,
+        `Note ${index + 1}: ${note.rest ? 'Pause' : writtenNoteName(note, display)}, ${durationName(duration)}`,
       );
       group.setAttribute('aria-pressed', String(index === this.selectedIndex));
       group.classList.toggle('sequence-selected', index === this.selectedIndex);
       if (index === this.selectedIndex)
         backgrounds.insertAdjacentHTML(
           'beforeend',
-          `<rect class="sequence-note-highlight" x="${firstX + index * spacing - 44}" y="${top + 1}" width="88" height="${bottom - top - 2}" rx="6"/>`,
+          `<rect class="sequence-note-highlight" x="${firstX + visualIndex * spacing - 44}" y="${top + 1}" width="88" height="${bottom - top - 2}" rx="6"/>`,
         );
       group.insertAdjacentHTML(
         'afterbegin',
-        `<rect class="sequence-note-target" x="${firstX + index * spacing - 44}" y="${top + 1}" width="88" height="${bottom - top - 2}" rx="6"/>`,
+        `<rect class="sequence-note-target" x="${firstX + visualIndex * spacing - 44}" y="${top + 1}" width="88" height="${bottom - top - 2}" rx="6"/>`,
       );
     });
     const activeDuration =
@@ -512,7 +540,7 @@ export class PitchSequenceView {
       editor.mode === 'insert'
         ? `Einfügen ${editor.position < notes.length ? `vor Note ${editor.position + 1}` : 'am Ende'} · ${durationName(editor.duration)}`
         : this.selectedIndex !== null && selectedStaffNote
-          ? `Note ${this.selectedIndex + 1} von ${notes.length} · ${writtenNoteName(selectedStaffNote, display)} · ${durationName(selectedStaffNote.duration)}`
+          ? `Note ${this.selectedIndex + 1} von ${notes.length} · ${selectedStaffNote.rest ? 'Pause' : writtenNoteName(selectedStaffNote, display)} · ${durationName(selectedStaffNote.duration)}`
           : notes.length
             ? 'Keine Note ausgewählt'
             : 'Noch keine Töne · Einfügen zum Starten';
@@ -552,20 +580,20 @@ export class PitchSequenceView {
     const location = editor.mode === 'insert' ? editor.position : this.selectedIndex;
     if (editor.mode === 'insert') {
       for (let position = 0; position <= notes.length; position++) {
-        const x = firstX + position * spacing - spacing / 2;
+        const x = firstX + visualPosition(position) * spacing - spacing / 2;
         this.staff.insertAdjacentHTML(
           'beforeend',
           `<rect class="sequence-gap-target" data-position="${position}" role="button" tabindex="${position === editor.position ? 0 : -1}" aria-label="${position === notes.length ? 'Am Ende einfügen' : `Vor Note ${position + 1} einfügen`}" aria-pressed="${position === editor.position}" x="${x - 22}" y="${top + 1}" width="44" height="${bottom - top - 2}"/>`,
         );
       }
-      const x = firstX + editor.position * spacing - spacing / 2;
+      const x = firstX + visualPosition(editor.position) * spacing - spacing / 2;
       this.staff.insertAdjacentHTML(
         'beforeend',
         `<path class="sequence-insertion-marker" d="M${x - 7} ${top + 3}H${x + 7}M${x} ${top + 3}V${bottom - 3}M${x - 7} ${bottom - 3}H${x + 7}"/>`,
       );
     }
     if (location !== null) {
-      const x = (firstX + location * spacing) * SCALE;
+      const x = (firstX + visualPosition(location) * spacing) * SCALE;
       const margin = 44 * SCALE + 2;
       if (
         x < this.scroll.scrollLeft + margin ||
@@ -620,7 +648,7 @@ export class PitchSequenceView {
     const note =
       this.selectedIndex === null
         ? undefined
-        : this.staff.querySelectorAll<SVGGElement>('.staff-note')[this.selectedIndex];
+        : this.staff.querySelector<SVGGElement>(`[data-source-index="${this.selectedIndex}"]`);
     if (note) note.focus({ preventScroll: true });
     else this.scroll.focus({ preventScroll: true });
   }

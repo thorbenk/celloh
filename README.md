@@ -16,12 +16,13 @@ Share links load into an empty sequence without playing automatically.
 
 The text format is `celloh:v2 measure=4/4 C3/4 D3/8 Fis3/4. H3/2`: German note names,
 scientific octaves (middle C is C4), and note lengths 1, 2, 4, 8, or 16 with
-an optional dot. Bare note lists are accepted; omitted lengths mean quarters.
+an optional dot. Rests use `R/4` (or another length, optionally dotted). Add them from
+the Tonfolge menu with “Pause hinzufügen”, then edit their duration like a note. Bare note lists are accepted; omitted lengths mean quarters.
 Whitespace or commas separate tokens. Links carry the same format with commas in
 `#tonfolge=celloh:v2,measure=4/4,C3/4,D3/8`. The format preserves sounding pitches and lengths,
 not enharmonic spelling or app settings. Supported pitches run from C2 through A5.
 
-The v2 format requires one global `measure=numerator/denominator` after the prefix. Numerators range from 1 to 32; denominators are 1, 2, 4, 8, 16, or 32. Legacy v1 and bare note imports explicitly migrate to 4/4. Exports always use v2. Click the VexFlow time signature on the staff to edit it; measure changes can be undone. Bar lines mark completed measures based on note durations; notes that cross a boundary remain unsplit.
+The v2 format requires one global `measure=numerator/denominator` after the prefix. Numerators range from 1 to 32; denominators are 1, 2, 4, 8, 16, or 32. Legacy v1 and bare note imports explicitly migrate to 4/4. Exports always use v2. Click the VexFlow time signature on the staff to edit it; measure changes can be undone. Notes that cross measure boundaries are split into tied pieces for display; selecting or editing any piece affects the original note. Playback and exports retain the original sequence and durations when the meter changes. Disable “Takte anzeigen” in the measure dialog for an unbarred sequence (`measure=0/0`); the grey 0/0 signature opens the dialog to enable measures again.
 
 ## Development
 

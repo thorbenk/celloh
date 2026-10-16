@@ -1,6 +1,6 @@
 /** Denominator of a whole note, not a time in milliseconds or a playback tempo. */
 export const NOTE_VALUES = [1, 2, 4, 8, 16] as const;
-export type NoteValue = (typeof NOTE_VALUES)[number];
+export type NoteValue = (typeof NOTE_VALUES)[number] | 32;
 
 export interface NoteDuration {
   readonly value: NoteValue;
@@ -14,6 +14,7 @@ export const NOTE_VALUE_NAMES: Readonly<Record<NoteValue, string>> = {
   4: 'Viertel',
   8: 'Achtel',
   16: 'Sechzehntel',
+  32: 'Zweiunddreißigstel',
 };
 
 /** Tempo is measured in quarter notes per minute. */
