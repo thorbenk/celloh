@@ -108,7 +108,7 @@ function drawNote(
     {
       clef: 'bass',
       keys: [`${letter}/${2 + Math.floor(note.step / 7)}`],
-      duration: String(duration.value),
+      duration: String(duration.value) + (note.rest ? 'r' : ''),
       stem_direction: note.step >= 8 ? -1 : 1,
     },
     context,
@@ -116,7 +116,7 @@ function drawNote(
     .setStemLength(NOTE_STEM_LENGTH / 2)
     .setStave(stave)
     .setContext(context);
-  if (show) rendered.addModifier(new EditorAccidental(context, note.accidental), 0);
+  if (show && !note.rest) rendered.addModifier(new EditorAccidental(context, note.accidental), 0);
   if (duration.dotted) {
     rendered.addModifier(new EditorDot(context).setDotShiftY(rendered.glyphProps.dot_shiftY), 0);
   }
@@ -186,6 +186,9 @@ export function renderStaff(
     stave.addTimeSignature(`${options.measure.numerator}/${options.measure.denominator}`);
   }
   stave.setContext(context).draw();
+  if (options.measure?.numerator === 0) {
+    context.svg.querySelector('.vf-timesignature')?.setAttribute('opacity', '0.4');
+  }
   context.svg.querySelectorAll('.vf-keysignature').forEach((signature) => {
     signature.classList.add('key-signature');
     signature.querySelectorAll('path').forEach((path) => path.classList.add('staff-accidental'));

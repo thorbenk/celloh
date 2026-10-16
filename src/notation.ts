@@ -31,6 +31,7 @@ function letterIndex(step: number): LetterIndex {
   return (((step % 7) + 7) % 7) as LetterIndex;
 }
 export interface StaffNote {
+  readonly rest?: boolean;
   readonly step: number;
   readonly accidental: Accidental;
   readonly showNatural?: boolean;

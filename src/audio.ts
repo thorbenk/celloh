@@ -73,9 +73,9 @@ export class CelloAudio implements AudioBackend {
   }
 
   /** Invalidate in-flight requests as well as stopping the currently audible note. */
-  stop(): void {
+  stop(releaseTail = false): void {
     ++this.request;
-    this.fadeOutActiveNote();
+    this.fadeOutActiveNote(releaseTail ? 0.08 : 0.025);
   }
 
   private loadBuffer(midi: MidiPitch, context: AudioContext): Promise<AudioBuffer> {
@@ -96,12 +96,12 @@ export class CelloAudio implements AudioBackend {
     return pending;
   }
 
-  private fadeOutActiveNote(): void {
+  private fadeOutActiveNote(releaseSeconds = 0.025): void {
     if (!this.context || !this.active) return;
     const { gain, source } = this.active;
     this.active = null;
     gain.gain.cancelScheduledValues(this.context.currentTime);
-    gain.gain.setTargetAtTime(0, this.context.currentTime, 0.025);
-    source.stop(this.context.currentTime + 0.15);
+    gain.gain.setTargetAtTime(0, this.context.currentTime, releaseSeconds);
+    source.stop(this.context.currentTime + releaseSeconds * 6);
   }
 }
