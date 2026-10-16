@@ -45,8 +45,8 @@ test('menu copies readable text and links, with a manual clipboard fallback', as
     await sequence.getByRole('button', { name: label, exact: true }).click();
     await expect(sequence.locator('.sequence-transfer-feedback')).toBeVisible();
     const copied = await page.evaluate(() => navigator.clipboard.readText());
-    if (label === 'Text kopieren') expect(copied).toBe('celloh:v1 C3/4 Fis3/8.');
-    else expect(copied).toContain('#tonfolge=celloh:v1,C3/4,Fis3/8.');
+    if (label === 'Text kopieren') expect(copied).toBe('celloh:v2 measure=4/4 C3/4 Fis3/8.');
+    else expect(copied).toContain('#tonfolge=celloh:v2,measure=4/4,C3/4,Fis3/8.');
   }
   await expect(sequence.locator('.sequence-transfer-feedback')).toBeHidden();
   await page.evaluate(() => {
@@ -58,5 +58,50 @@ test('menu copies readable text and links, with a manual clipboard fallback', as
   await sequence.getByRole('button', { name: 'Text kopieren', exact: true }).click();
   await expect(
     page.getByRole('dialog', { name: 'Text kopieren' }).getByRole('textbox'),
-  ).toHaveValue('celloh:v1 C3/4 Fis3/8.');
+  ).toHaveValue('celloh:v2 measure=4/4 C3/4 Fis3/8.');
+});
+
+test('measure changes apply explicitly, redraw bars, and export with the sequence', async ({
+  page,
+}) => {
+  await page.goto('/#tonfolge=celloh:v1,C3/4,D3/4,E3/4,F3/4');
+  const sequence = page.locator('.pitch-sequence');
+  await expect(sequence.locator('.sequence-bar-line')).toHaveCount(1);
+  await expect(sequence.locator('.vf-timesignature[role="button"]')).toBeVisible();
+  await sequence.getByRole('button', { name: 'Taktart ändern: 4/4', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Taktart ändern' });
+  await dialog.getByRole('spinbutton', { name: 'Zähler' }).fill('3');
+  await expect(
+    sequence.getByRole('button', { name: 'Taktart ändern: 4/4', exact: true }),
+  ).toBeVisible();
+  await dialog.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await expect(
+    sequence.getByRole('button', { name: 'Taktart ändern: 3/4', exact: true }),
+  ).toBeVisible();
+  const bars = sequence.locator('.sequence-bar-line');
+  await expect(bars).toHaveCount(1);
+  await expect(bars).toHaveAttribute('d', /M440 70V150/);
+  await sequence.getByRole('button', { name: 'Tonfolge bearbeiten', exact: true }).click();
+  await sequence.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+  await expect(
+    sequence.getByRole('button', { name: 'Taktart ändern: 4/4', exact: true }),
+  ).toBeVisible();
+});
+
+test('staff time signature supports keyboard editing and restores focus', async ({ page }) => {
+  await page.goto('/#tonfolge=celloh:v2,measure=12/16');
+  const signature = page.locator('.pitch-sequence .vf-timesignature');
+  await expect(signature).toHaveAttribute('aria-label', 'Taktart ändern: 12/16');
+  await signature.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Taktart ändern' });
+  await expect(dialog.getByRole('spinbutton', { name: 'Zähler' })).toHaveValue('12');
+  await dialog.getByRole('spinbutton', { name: 'Zähler' }).fill('6');
+  await dialog.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await expect(signature).toHaveAttribute('aria-label', 'Taktart ändern: 6/16');
+  await expect(signature).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(signature).toBeFocused();
 });

@@ -6,9 +6,9 @@ import {
   type Spelling,
 } from '../music';
 import { staffNote, staffY, writtenNoteName } from '../notation';
-import { durationName, NOTE_VALUES, NOTE_VALUE_NAMES } from '../rhythm';
+import { quarterBeats, durationName, NOTE_VALUES, NOTE_VALUE_NAMES } from '../rhythm';
 import { SequenceTransfer } from './sequence-transfer';
-import type { SequenceNote } from '../sequence';
+import { DEFAULT_MEASURE, isMeasure, type Measure, type SequenceNote } from '../sequence';
 import type { SequenceAction, SequenceModel } from '../sequence';
 import { NOTE_STEM_LENGTH, renderNoteGlyph, renderStaff } from './notation-renderer';
 
@@ -48,6 +48,9 @@ export class PitchSequenceView {
   private readonly undo: HTMLButtonElement;
   private readonly dot: HTMLButtonElement;
   private readonly durations;
+  private measure: Measure = DEFAULT_MEASURE;
+  private readonly openMeasure: () => void;
+  private readonly measureDialog = document.createElement('dialog');
   private editing = false;
   private selectedIndex: number | null = null;
   private count = 0;
@@ -77,10 +80,70 @@ export class PitchSequenceView {
     this.more.setAttribute('aria-expanded', 'false');
     this.menu.className = 'sequence-menu';
     this.menu.hidden = true;
-    this.transfer = new SequenceTransfer((notes) => onAction({ type: 'import', notes }));
+    this.transfer = new SequenceTransfer((notes, measure) =>
+      onAction({ type: 'import', notes, measure }),
+    );
+    this.openMeasure = () => {
+      numerator.value = String(this.measure.numerator);
+      denominator.value = String(this.measure.denominator);
+      denominator.setCustomValidity('');
+      this.measureDialog.showModal();
+    };
+    const form = document.createElement('form');
+    const heading = document.createElement('h2');
+    heading.textContent = 'Taktart ändern';
+    heading.id = 'measure-title';
+    this.measureDialog.setAttribute('aria-labelledby', heading.id);
+    this.measureDialog.className = 'sequence-transfer sequence-measure-dialog';
+    const field = (name: string, max: number): HTMLInputElement => {
+      const label = document.createElement('label');
+      label.textContent = name;
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '1';
+      input.max = String(max);
+      input.step = '1';
+      input.required = true;
+      label.append(input);
+      form.append(label);
+      return input;
+    };
+    form.append(heading);
+    const numerator = field('Zähler', 32);
+    const denominator = field('Nenner', 32);
+    denominator.addEventListener('input', () => denominator.setCustomValidity(''));
+    const cancelMeasure = this.button('Abbrechen', 'Abbrechen', () => this.measureDialog.close());
+    const applyMeasure = document.createElement('button');
+    applyMeasure.type = 'submit';
+    applyMeasure.textContent = 'Übernehmen';
+    form.append(cancelMeasure, applyMeasure);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const measure = {
+        numerator: Number(numerator.value),
+        denominator: Number(denominator.value),
+      };
+      if (!isMeasure(measure)) {
+        denominator.setCustomValidity('Bitte 1, 2, 4, 8, 16 oder 32 wählen.');
+        denominator.reportValidity();
+        return;
+      }
+      onAction({ type: 'measure', measure });
+      this.measureDialog.close();
+    });
+    this.measureDialog.addEventListener('keydown', (event) => event.stopPropagation());
+    this.measureDialog.addEventListener('close', () => {
+      this.staff.querySelector<SVGElement>('.vf-timesignature')?.focus();
+    });
+    this.measureDialog.append(form);
+    this.element.append(this.measureDialog);
     for (const [text, icon, action] of [
-      ['Text kopieren', 'content-copy', () => void this.transfer.copy('text', this.notes)],
-      ['Link kopieren', 'link', () => void this.transfer.copy('link', this.notes)],
+      [
+        'Text kopieren',
+        'content-copy',
+        () => void this.transfer.copy('text', this.notes, this.measure),
+      ],
+      ['Link kopieren', 'link', () => void this.transfer.copy('link', this.notes, this.measure)],
       ['Importieren …', 'file-upload', () => this.transfer.openImport()],
     ] satisfies readonly (readonly [string, string, () => void])[]) {
       const button = this.button(text, text, () => {
@@ -277,6 +340,10 @@ export class PitchSequenceView {
     this.staff.addEventListener(
       'click',
       (event) => {
+        if (event.target instanceof Element && event.target.closest('.vf-timesignature')) {
+          this.openMeasure();
+          return;
+        }
         const gap =
           event.target instanceof Element ? event.target.closest('[data-position]') : null;
         if (gap)
@@ -291,6 +358,11 @@ export class PitchSequenceView {
         switch (event.key) {
           case 'Enter':
           case ' ':
+            if (event.target instanceof Element && event.target.closest('.vf-timesignature')) {
+              event.preventDefault();
+              this.openMeasure();
+              return;
+            }
             if (event.target instanceof Element && event.target.hasAttribute('data-position')) {
               event.preventDefault();
               onAction({
@@ -339,6 +411,7 @@ export class PitchSequenceView {
     spelling: Spelling = 'sharp',
   ): void {
     this.notes = sequence.notes;
+    this.measure = sequence.measure;
     const following =
       this.scroll.scrollLeft + this.scroll.clientWidth >= this.scroll.scrollWidth - 1;
     const focusedNote = this.staff.contains(document.activeElement);
@@ -352,7 +425,7 @@ export class PitchSequenceView {
     }));
     // Insertion gives notes and the gaps separate 44px touch targets without adding panel height.
     const spacing = editor.mode === 'insert' ? 176 : 88;
-    const firstX = 140 + Math.abs(key.fifths) * 22;
+    const firstX = 220 + Math.abs(key.fifths) * 22 + (editor.mode === 'insert' ? 88 : 0);
     const width = Math.max(
       240,
       firstX + Math.max(0, notes.length - 1) * spacing + (this.editing ? spacing : 48),
@@ -378,6 +451,27 @@ export class PitchSequenceView {
       width,
       key,
       spacing,
+      measure: this.measure,
+    });
+    this.setupMeasureTarget();
+    // Put selection backgrounds below the stave and musical ink.
+    const backgrounds = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    backgrounds.setAttribute('pointer-events', 'none');
+    this.staff.prepend(backgrounds);
+    let beats = 0;
+    const measureBeats = (this.measure.numerator * 4) / this.measure.denominator;
+    sequence.notes.forEach((note, index) => {
+      const previous = beats;
+      beats += quarterBeats(note.duration);
+      if (
+        Math.floor((beats + 1e-9) / measureBeats) > Math.floor((previous + 1e-9) / measureBeats)
+      ) {
+        const x = firstX + index * spacing + spacing / 2;
+        this.staff.insertAdjacentHTML(
+          'beforeend',
+          `<path class="sequence-bar-line" d="M${x} 70V150"/>`,
+        );
+      }
     });
     const groups = this.staff.querySelectorAll<SVGGElement>('.staff-note');
     groups.forEach((group, index) => {
@@ -392,6 +486,11 @@ export class PitchSequenceView {
       );
       group.setAttribute('aria-pressed', String(index === this.selectedIndex));
       group.classList.toggle('sequence-selected', index === this.selectedIndex);
+      if (index === this.selectedIndex)
+        backgrounds.insertAdjacentHTML(
+          'beforeend',
+          `<rect class="sequence-note-highlight" x="${firstX + index * spacing - 44}" y="${top + 1}" width="88" height="${bottom - top - 2}" rx="6"/>`,
+        );
       group.insertAdjacentHTML(
         'afterbegin',
         `<rect class="sequence-note-target" x="${firstX + index * spacing - 44}" y="${top + 1}" width="88" height="${bottom - top - 2}" rx="6"/>`,
@@ -475,6 +574,28 @@ export class PitchSequenceView {
         this.scroll.scrollLeft = x - this.scroll.clientWidth / 2;
     } else if (!this.editing && (added || following || notes.length === 0)) this.revealLatest();
     if (focusedNote) this.focusSelected();
+  }
+
+  private setupMeasureTarget(): void {
+    const signature = this.staff.querySelector<SVGGElement>('.vf-timesignature');
+    if (!signature) return;
+    signature.setAttribute('role', 'button');
+    signature.setAttribute('tabindex', '0');
+    signature.setAttribute(
+      'aria-label',
+      `Taktart ändern: ${this.measure.numerator}/${this.measure.denominator}`,
+    );
+    signature.setAttribute('aria-haspopup', 'dialog');
+    if (!signature.querySelector('.sequence-measure-target')) {
+      const bounds = signature.getBBox();
+      // Coordinates are inside VexFlow's scale(2) group; retain a 44px touch target.
+      const width = Math.max(bounds.width + 12, 44 / (2 * SCALE));
+      const height = Math.max(bounds.height + 12, 44 / (2 * SCALE));
+      signature.insertAdjacentHTML(
+        'afterbegin',
+        `<rect class="sequence-measure-target" x="${bounds.x + bounds.width / 2 - width / 2}" y="${bounds.y + bounds.height / 2 - height / 2}" width="${width}" height="${height}" rx="3"/>`,
+      );
+    }
   }
 
   private button(text: string, label: string, action: () => void): HTMLButtonElement {

@@ -384,7 +384,7 @@ main,
   fill: transparent;
   pointer-events: all;
 }
-.sequence-selected .sequence-note-target {
+.sequence-note-highlight {
   fill: #e2ede6;
 }
 .staff-note.sequence-selected {
@@ -406,8 +406,8 @@ main,
 }
 .sequence-insertion-marker {
   fill: none;
-  stroke: var(--green);
-  stroke-width: 4px;
+  stroke: #bc5423;
+  stroke-width: 6px;
   pointer-events: none;
 }
 @media (max-width: 700px) {
@@ -2035,4 +2035,38 @@ main:has(.pitch-feedback) .workspace {
 }
 .sequence-transfer button:hover {
   filter: brightness(0.94);
+}
+
+.sequence-bar-line {
+  fill: none;
+  stroke: #a5aaa6;
+  stroke-width: 2px;
+  pointer-events: none;
+}
+.sequence-measure-dialog label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-block: 16px;
+}
+.sequence-measure-dialog input {
+  width: 80px;
+  padding: 8px;
+}
+
+.sequence-measure-target {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+.sequence-scroll .vf-timesignature {
+  cursor: pointer;
+}
+.sequence-scroll .vf-timesignature:focus-visible {
+  outline: none;
+}
+.sequence-scroll .vf-timesignature:focus-visible .sequence-measure-target {
+  stroke: var(--green);
+  stroke-width: 1.5px;
 }

@@ -14,12 +14,14 @@ The Tonfolge ⋮ menu offers **Text kopieren**, **Link kopieren**, and **Importi
 Paste either exported text or a share link to replace the sequence; imports can be undone.
 Share links load into an empty sequence without playing automatically.
 
-The text format is `celloh:v1 C3/4 D3/8 Fis3/4. H3/2`: German note names,
+The text format is `celloh:v2 measure=4/4 C3/4 D3/8 Fis3/4. H3/2`: German note names,
 scientific octaves (middle C is C4), and note lengths 1, 2, 4, 8, or 16 with
 an optional dot. Bare note lists are accepted; omitted lengths mean quarters.
 Whitespace or commas separate tokens. Links carry the same format with commas in
-`#tonfolge=celloh:v1,C3/4,D3/8`. The format preserves sounding pitches and lengths,
+`#tonfolge=celloh:v2,measure=4/4,C3/4,D3/8`. The format preserves sounding pitches and lengths,
 not enharmonic spelling or app settings. Supported pitches run from C2 through A5.
+
+The v2 format requires one global `measure=numerator/denominator` after the prefix. Numerators range from 1 to 32; denominators are 1, 2, 4, 8, 16, or 32. Legacy v1 and bare note imports explicitly migrate to 4/4. Exports always use v2. Click the VexFlow time signature on the staff to edit it; measure changes can be undone. Bar lines mark completed measures based on note durations; notes that cross a boundary remain unsplit.
 
 ## Development
 

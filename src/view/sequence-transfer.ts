@@ -1,5 +1,5 @@
 import { exportSequence, parseSequence, sequenceLink } from '../sequence-format';
-import type { SequenceNote } from '../sequence';
+import type { Measure, SequenceNote } from '../sequence';
 
 /** Native modal supplies focus containment, Escape dismissal, and focus restoration. */
 export class SequenceTransfer {
@@ -11,7 +11,7 @@ export class SequenceTransfer {
   private feedbackTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly title = document.createElement('h2');
 
-  constructor(onImport: (notes: readonly SequenceNote[]) => void) {
+  constructor(onImport: (notes: readonly SequenceNote[], measure: Measure) => void) {
     this.feedback.setAttribute('role', 'status');
     this.feedback.className = 'sequence-transfer-feedback';
     this.dialog.className = 'sequence-transfer';
@@ -19,7 +19,7 @@ export class SequenceTransfer {
     this.dialog.setAttribute('aria-labelledby', this.title.id);
     this.input.setAttribute('aria-label', 'Tonfolge als Text oder Link');
     this.input.spellcheck = false;
-    this.input.placeholder = 'celloh:v1 C3/4 D3/8 E3/8';
+    this.input.placeholder = 'celloh:v2 measure=4/4 C3/4 D3/8 E3/8';
     this.status.setAttribute('role', 'status');
     this.status.id = 'sequence-transfer-help';
     this.input.id = 'sequence-transfer-input';
@@ -42,7 +42,7 @@ export class SequenceTransfer {
             : 'Ungültiges Tonfolge-Format.';
         return;
       }
-      onImport(result.notes);
+      onImport(result.notes, result.measure);
       this.dialog.close();
     });
     const actions = document.createElement('div');
@@ -62,8 +62,15 @@ export class SequenceTransfer {
     this.show();
   }
 
-  async copy(kind: 'text' | 'link', notes: readonly SequenceNote[]): Promise<void> {
-    const text = kind === 'text' ? exportSequence(notes) : sequenceLink(notes, location.href);
+  async copy(
+    kind: 'text' | 'link',
+    notes: readonly SequenceNote[],
+    measure: Measure,
+  ): Promise<void> {
+    const text =
+      kind === 'text'
+        ? exportSequence(notes, measure)
+        : sequenceLink(notes, location.href, measure);
     try {
       await navigator.clipboard.writeText(text);
       clearTimeout(this.feedbackTimer);

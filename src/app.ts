@@ -177,7 +177,11 @@ export class App {
       sequenceToggle.setAttribute('aria-expanded', 'true');
       if (result.ok && this.sequenceModel.notes.length === 0) {
         this.stopReplay();
-        this.sequenceModel.dispatch({ type: 'import', notes: result.notes });
+        this.sequenceModel.dispatch({
+          type: 'import',
+          notes: result.notes,
+          measure: result.measure,
+        });
         this.renderSelection();
       } else this.sequence.openImport(text ?? location.href);
     };
