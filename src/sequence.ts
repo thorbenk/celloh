@@ -1,6 +1,20 @@
 import type { MidiPitch } from './music';
 import { QUARTER_NOTE, type NoteDuration, type NoteValue } from './rhythm';
 
+export interface Measure {
+  readonly numerator: number;
+  readonly denominator: number;
+}
+export const DEFAULT_MEASURE: Measure = { numerator: 4, denominator: 4 };
+export function isMeasure(measure: Measure): boolean {
+  return (
+    Number.isInteger(measure.numerator) &&
+    measure.numerator >= 1 &&
+    measure.numerator <= 32 &&
+    [1, 2, 4, 8, 16, 32].includes(measure.denominator)
+  );
+}
+
 export interface SequenceNote {
   readonly pitch: MidiPitch;
   readonly duration: NoteDuration;
@@ -13,7 +27,8 @@ export type SequenceEditor =
   | { readonly mode: 'insert'; readonly position: number; readonly duration: NoteDuration };
 
 export type SequenceAction =
-  | { readonly type: 'import'; readonly notes: readonly SequenceNote[] }
+  | { readonly type: 'import'; readonly notes: readonly SequenceNote[]; readonly measure?: Measure }
+  | { readonly type: 'measure'; readonly measure: Measure }
   | { readonly type: 'unselect' }
   | { readonly type: 'edit' }
   | { readonly type: 'done' }
@@ -30,12 +45,18 @@ export type SequenceAction =
   | { readonly type: 'duration'; readonly value: NoteValue };
 
 interface Snapshot {
+  readonly measure: Measure;
   readonly notes: readonly SequenceNote[];
   readonly editor: SequenceEditor;
 }
 
 /** Musical sequence and editing transitions, independent of the DOM and sample playback. */
 export class SequenceModel {
+  private meter: Measure = DEFAULT_MEASURE;
+  get measure(): Measure {
+    return this.meter;
+  }
+
   private current: readonly SequenceNote[] = [];
   private state: SequenceEditor = { mode: 'capture' };
   private readonly history: Snapshot[] = [];
@@ -95,6 +116,7 @@ export class SequenceModel {
     if (
       editor.mode === 'capture' &&
       action.type !== 'import' &&
+      action.type !== 'measure' &&
       action.type !== 'unselect' &&
       action.type !== 'select' &&
       action.type !== 'move' &&
@@ -106,8 +128,19 @@ export class SequenceModel {
     )
       return;
     switch (action.type) {
+      case 'measure':
+        if (
+          !isMeasure(action.measure) ||
+          (this.meter.numerator === action.measure.numerator &&
+            this.meter.denominator === action.measure.denominator)
+        )
+          return;
+        this.save();
+        this.meter = { ...action.measure };
+        return;
       case 'import':
         this.save();
+        this.meter = { ...(action.measure ?? DEFAULT_MEASURE) };
         this.current = action.notes.map(({ pitch, duration }) => ({
           pitch,
           duration: { ...duration },
@@ -142,6 +175,7 @@ export class SequenceModel {
         const previous = this.history.pop();
         if (!previous) return;
         this.current = previous.notes;
+        this.meter = previous.measure;
         // Restore the changed location while keeping the user's current editing mode.
         if (editor.mode === 'capture') this.state = { mode: 'capture' };
         else if (editor.mode === 'insert' && previous.editor.mode !== 'insert')
@@ -257,6 +291,6 @@ export class SequenceModel {
   }
 
   private save(): void {
-    this.history.push({ notes: this.current, editor: this.state });
+    this.history.push({ measure: this.meter, notes: this.current, editor: this.state });
   }
 }

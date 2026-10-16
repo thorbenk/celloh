@@ -10,6 +10,7 @@ import {
 import { keyAccidental, type KeySignature, type LetterIndex } from '../music';
 import { notePitch, type StaffNote } from '../notation';
 import { QUARTER_NOTE } from '../rhythm';
+import type { Measure } from '../sequence';
 
 export const NOTE_STEM_LENGTH = 70; // 3.5 staff spaces in app coordinates.
 
@@ -147,12 +148,16 @@ export function renderStaff(
   note: StaffNote | readonly StaffNote[] | undefined,
   preview = false,
   noteX = 152,
-  options: { width?: number; key?: KeySignature; spacing?: number } = {},
+  options: { width?: number; key?: KeySignature; spacing?: number; measure?: Measure } = {},
 ): void {
   const signature = JSON.stringify([note, preview, noteX, options]);
   const previousDrawing = staffDrawings.get(target);
   if (!Array.isArray(note) && previousDrawing?.signature === signature) return;
-  const staveSignature = JSON.stringify([options.width ?? 240, options.key?.fifths ?? null]);
+  const staveSignature = JSON.stringify([
+    options.width ?? 240,
+    options.key?.fifths ?? null,
+    options.measure,
+  ]);
   const context = notationContext();
   const stave = notationStave(options.width);
   if (options.key) {
@@ -176,6 +181,9 @@ export function renderStaff(
     const keyName = keys[options.key.fifths + 7];
     if (!keyName) throw new RangeError('Invalid key signature');
     stave.addKeySignature(keyName);
+  }
+  if (options.measure) {
+    stave.addTimeSignature(`${options.measure.numerator}/${options.measure.denominator}`);
   }
   stave.setContext(context).draw();
   context.svg.querySelectorAll('.vf-keysignature').forEach((signature) => {
