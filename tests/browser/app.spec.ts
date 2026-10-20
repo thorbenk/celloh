@@ -1443,27 +1443,27 @@ test('position switches keep second and third position variants independent', as
   await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
   if ((await page.locator('#position-options').getAttribute('open')) === null)
     await page.locator('#position-options > summary').click();
-  await page.getByRole('switch', { name: '2. Lage oben', exact: true }).check();
+  await page.getByRole('switch', { name: '2. Lage anzeigen', exact: true }).check();
   await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(2);
   await expect(page.locator('.position-overlay[data-position="3"]')).toHaveCount(1);
   if ((await page.locator('#position-options').getAttribute('open')) === null)
     await page.locator('#position-options > summary').click();
-  await page.getByRole('switch', { name: '3. Lage unten', exact: true }).uncheck();
+  await page.getByRole('switch', { name: '3. Lage anzeigen', exact: true }).uncheck();
   await expect(page.locator('.position-overlay[data-position="3"]')).toHaveCount(0);
   await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(2);
   if ((await page.locator('#position-options').getAttribute('open')) === null)
     await page.locator('#position-options > summary').click();
-  await page.getByRole('switch', { name: '2. Lage unten', exact: true }).uncheck();
+  await page.getByRole('switch', { name: '2. Zwischenlage anzeigen', exact: true }).uncheck();
   if ((await page.locator('#position-options').getAttribute('open')) === null)
     await page.locator('#position-options > summary').click();
-  await page.getByRole('switch', { name: '2. Lage oben', exact: true }).uncheck();
+  await page.getByRole('switch', { name: '2. Lage anzeigen', exact: true }).uncheck();
   await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(0);
   if ((await page.locator('#position-options').getAttribute('open')) === null)
     await page.locator('#position-options > summary').click();
-  await page.getByRole('switch', { name: '2. Lage unten', exact: true }).check();
+  await page.getByRole('switch', { name: '2. Zwischenlage anzeigen', exact: true }).check();
   if ((await page.locator('#position-options').getAttribute('open')) === null)
     await page.locator('#position-options > summary').click();
-  await page.getByRole('switch', { name: '2. Lage oben', exact: true }).check();
+  await page.getByRole('switch', { name: '2. Lage anzeigen', exact: true }).check();
   await expect(page.locator('.position-overlay[data-position="2"]')).toHaveCount(2);
 });
 

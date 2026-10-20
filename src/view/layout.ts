@@ -4,7 +4,14 @@ import iconsLicenseUrl from '../assets/material-icons-LICENSE.txt?url';
 import vexflowLicenseUrl from '../assets/vexflow-LICENSE.txt?url&no-inline';
 import brandIconUrl from '../assets/brand-icon.webp';
 import brandEmblemUrl from '../assets/brand-emblem.webp';
-import { MAJOR_KEYS, MINOR_KEYS, POSITIONS } from '../music';
+import {
+  MAJOR_KEYS,
+  MINOR_KEYS,
+  POSITIONS,
+  POSITION_NAMINGS,
+  positionName,
+  type PositionNaming,
+} from '../music';
 import { requireElement } from './dom';
 
 export function mountLayout(root: HTMLElement): void {
@@ -40,5 +47,36 @@ export function mountLayout(root: HTMLElement): void {
       }
     }
     controls.append(row);
+  }
+  const rows = requireElement('#position-comparison-rows', HTMLTableSectionElement, root);
+  const notes = ['E–F–Fis–G', 'F–Fis–G–Gis', 'Fis–G–Gis–A', 'G–As–A–B', 'As–A–B–H', 'A–B–H–C'];
+  let index = 0;
+  for (const position of POSITIONS) {
+    for (const upper of position.id === 2 || position.id === 3 ? [false, true] : [false]) {
+      const names = POSITION_NAMINGS.map(
+        (naming, i) =>
+          `<div>${positionName(position.id, upper, naming)} <small>(${['App', 'Schmidt', 'Wolf'][i]})</small></div>`,
+      ).join('');
+      rows.insertAdjacentHTML(
+        'beforeend',
+        `<tr><th scope="row">${notes[index++]}</th><td>${names}</td></tr>`,
+      );
+    }
+  }
+  renderPositionLabels(root, 'wolf');
+}
+
+export function renderPositionLabels(root: HTMLElement, naming: PositionNaming): void {
+  for (const position of POSITIONS) {
+    for (const upper of position.id === 2 || position.id === 3 ? [false, true] : [false]) {
+      const selector =
+        position.id === 2 || position.id === 3
+          ? `#position-${position.id}-${upper ? 'upper' : 'lower'}`
+          : `input[data-position="${position.id}"]`;
+      const input = requireElement(selector, HTMLInputElement, root);
+      const name = positionName(position.id, upper, naming);
+      input.setAttribute('aria-label', `${name} anzeigen`);
+      requireElement(`${selector} ~ span:last-child`, HTMLSpanElement, root).textContent = name;
+    }
   }
 }

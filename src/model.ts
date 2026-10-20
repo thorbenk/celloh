@@ -9,6 +9,7 @@ import {
   type MidiPitch,
   type PositionNumber,
   type PositionVariant,
+  type PositionNaming,
   type Spelling,
   type KeySignature,
 } from './music';
@@ -23,6 +24,7 @@ export interface BoardSettings {
   key: KeySignature | null;
   readonly visiblePositions: Set<PositionNumber>;
   readonly variants: Record<2 | 3, Set<PositionVariant>>;
+  positionNaming: PositionNaming;
   extended: boolean;
   toScale: boolean;
   spread: number;
@@ -42,6 +44,7 @@ export class AppModel {
     key: null,
     visiblePositions: new Set(POSITIONS.map((position) => position.id)),
     variants: { 2: new Set(['lower']), 3: new Set(['lower']) },
+    positionNaming: 'wolf',
     extended: false,
     toScale: false,
     spread: 1,

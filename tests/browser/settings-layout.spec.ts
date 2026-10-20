@@ -33,7 +33,7 @@ for (const width of [320, 375, 1280]) {
     await page.locator('#key').selectOption({ label: 'G-Dur' });
     await expect(page.locator('#spelling-controls')).not.toBeVisible();
     await expect(page.locator('#position-options')).not.toHaveAttribute('open', '');
-    await expect(page.locator('#position-summary')).toHaveText('1 · 2 unten · 3 unten · 4');
+    await expect(page.locator('#position-summary')).toHaveText('1 · 2. Zwischenlage · 3 · 4');
     await page.locator('#position-options > summary').click();
     await page.locator('#position-2-upper').check();
     await page.locator('input[data-position="4"]').uncheck();
@@ -41,7 +41,7 @@ for (const width of [320, 375, 1280]) {
     await page.locator('#position-options > summary').click();
     await expect(page.locator('#position-controls')).not.toBeVisible();
     await expect(page.locator('#position-summary')).toHaveText(
-      '1 · 2 unten · 2 oben · 3 unten · Streckung',
+      '1 · 2. Zwischenlage · 2 · 3 · Streckung',
     );
     const header = await page.locator('.header').boundingBox();
     const help = await page.locator('#assistance-open').boundingBox();

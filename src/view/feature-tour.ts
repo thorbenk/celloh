@@ -76,7 +76,7 @@ export class FeatureTour {
         step(
           '#position-controls',
           'Die Lagen kennenlernen',
-          'Blende Lagen und Fingerzahlen ein. Bei der 2. und 3. Lage kannst du zwischen unten und oben wählen. Darunter aktivierst du die Rückwärtsstreckung.',
+          'Blende Lagen und Fingerzahlen ein. Unter „Namen der Lagen“ wählst du die Begriffe aus deinem Unterricht. „Namen vergleichen“ zeigt dir die Entsprechungen. Der Streckungs-Schalter verändert die Griffart.',
           'settings',
         ),
         step(

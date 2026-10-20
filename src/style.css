@@ -980,7 +980,7 @@ main,
 }
 .position-choice-row {
   display: grid;
-  grid-template-columns: 1.65fr 1fr;
+  grid-template-columns: 1fr 1fr;
   align-items: center;
   gap: 6px;
   font-size: 11px;
@@ -1709,6 +1709,43 @@ main:has(.pitch-feedback) .workspace {
 }
 .position-options-body {
   padding-block: 4px 12px;
+}
+.position-naming-choice {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+#position-naming {
+  width: 100%;
+}
+.position-options-body .position-controls {
+  margin-top: 12px;
+}
+.position-comparison {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.position-comparison > summary {
+  cursor: pointer;
+  color: var(--green);
+}
+.position-comparison table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.position-comparison th,
+.position-comparison td {
+  padding: 8px 4px;
+  border-bottom: 1px solid #e6e3d8;
+  vertical-align: top;
+}
+.position-comparison tbody th {
+  font-weight: normal;
+}
+.position-comparison small {
+  color: var(--muted);
 }
 
 /* Dense settings rows: preserve input sizes, remove space between controls. */

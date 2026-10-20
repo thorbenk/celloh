@@ -1,4 +1,10 @@
-import { POSITIONS, fingerOffsets, type Position, type PositionVariant } from '../music';
+import {
+  POSITIONS,
+  fingerOffsets,
+  positionName,
+  type Position,
+  type PositionVariant,
+} from '../music';
 import type { BoardSettings } from '../model';
 import { rowY, NOTE_RADIUS } from './geometry';
 
@@ -66,10 +72,7 @@ function bracketMarkup(
   const fingerX = x + direction * FINGER_INSET;
   const labelX = x - direction * LABEL_OUTSET;
   const rotation = -direction * LABEL_ROTATION;
-  const label =
-    variant === 'standard'
-      ? `${position.id}. Lage`
-      : `${position.id}. ${upper ? 'obere' : 'untere'}`;
+  const label = positionName(position.id, upper, settings.positionNaming);
 
   let extension = '';
   if (settings.extended) {
