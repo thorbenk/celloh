@@ -302,6 +302,16 @@
             <span>Lagen</span><span id="position-summary" aria-live="polite"></span>
           </summary>
           <div class="position-options-body">
+            <label class="position-naming-choice" for="position-naming">Namen der Lagen</label>
+            <select id="position-naming" aria-describedby="position-naming-help">
+              <option value="wolf">Zimmermann / Wolf</option>
+              <option value="schmidt">Celloschmidt (1,5 / 2,5)</option>
+              <option value="lower-upper">Unten / oben (App)</option>
+            </select>
+            <p id="position-naming-help" class="key-notes">
+              Andere Namen, gleiche Fingerplätze. Wähle die Begriffe aus deinem Unterricht. Deine
+              Auswahl bleibt gespeichert.
+            </p>
             <div class="position-controls" id="position-controls"></div>
             <label class="extension slider-switch"
               ><input id="extension" role="switch" type="checkbox" /><span
@@ -310,6 +320,56 @@
               ></span
               ><span>1. Finger nach hinten strecken</span></label
             >
+            <details class="position-comparison">
+              <summary>Namen vergleichen</summary>
+              <p>
+                Eine Lage beschreibt den Platz der Hand. Enggriff und Weitgriff beschreiben die
+                Fingerabstände: eng jeweils ein Halbton, weit ein Ganzton zwischen Finger 1 und 2.
+                Der Schalter oben zeigt den Weitgriff nach hinten.
+              </p>
+              <p>Dieselben Fingerplätze auf der D-Saite, jeweils im Enggriff (Finger 1–2–3–4):</p>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Töne</th>
+                    <th scope="col">Gleiche Lage, andere Namen</th>
+                  </tr>
+                </thead>
+                <tbody id="position-comparison-rows"></tbody>
+              </table>
+              <p>
+                <a
+                  href="https://bogenbalance.de/blog/cello-violoncello/cello-greifen/die-erste-lage-am-cello-sind-eigentlich-zwei-lagen/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Bogenbalance</a
+                >
+                nennt F–Fis–G–Gis die „erhöhte erste Lage“ – das ist die 2. Zwischenlage bei Wolf.
+                Dies ist die Bezeichnung dieses Autors, kein zusätzlicher Fingerplatz. Im Weitgriff
+                wird daraus E–Fis–G–Gis.
+              </p>
+              <p>
+                Quellen:
+                <a
+                  href="https://de.wikipedia.org/wiki/Spieltechnik_des_Violoncellos#Applikatur_und_Griffpositionen"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Lagenübersicht (Wikipedia)</a
+                >,
+                <a
+                  href="https://www.celloschmidt.de/die-lagen-stabilisieren"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Celloschmidt</a
+                >,
+                <a
+                  href="https://www.thomann.de/de/zimmermann_verlag_grifftabelle_violoncello.htm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Grifftabelle von Jürgen Wolf (Zimmermann)</a
+                >. Die Auswahl benennt nur die hier gezeigten Lagen 1–4 um.
+              </p>
+            </details>
           </div>
         </details>
       </div>

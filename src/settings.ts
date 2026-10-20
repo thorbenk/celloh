@@ -5,6 +5,7 @@ import {
   type KeyId,
   type NoteNaming,
   type OctaveNotation,
+  type PositionNaming,
   type Spelling,
 } from './music';
 
@@ -13,6 +14,7 @@ export interface Preferences {
   key: KeyId | '';
   'note-naming': NoteNaming;
   'octave-notation': OctaveNotation;
+  'position-naming': PositionNaming;
   'show-octaves': boolean;
   extension: boolean;
   'to-scale': boolean;

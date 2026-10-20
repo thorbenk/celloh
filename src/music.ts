@@ -18,6 +18,8 @@ export type KeyId = `${KeyMode}:${Fifths}`;
 export type StringId = 0 | 1 | 2 | 3;
 export type PositionNumber = 1 | 2 | 3 | 4;
 export type PositionVariant = 'lower' | 'upper';
+export const POSITION_NAMINGS = ['lower-upper', 'schmidt', 'wolf'] as const;
+export type PositionNaming = (typeof POSITION_NAMINGS)[number];
 export type Accidental = -1 | 0 | 1;
 export type FingerOffsets = readonly [number, number, number, number];
 export type LetterIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -205,6 +207,15 @@ export const POSITIONS = [
   { id: 3, color: '#7561a7', side: 'left' },
   { id: 4, color: '#336ba0', side: 'right' },
 ] as const satisfies readonly Position[];
+/** Different teaching names for the same placements; fingering is independent of naming. */
+export function positionName(id: PositionNumber, upper: boolean, naming: PositionNaming): string {
+  if (id === 1 || id === 4) return `${id}. Lage`;
+  if (naming === 'schmidt') return upper ? `${id}. Lage` : `${id - 1},5. Lage`;
+  if (naming === 'wolf') {
+    return (id === 2 ? !upper : upper) ? `${id}. Zwischenlage` : `${id}. Lage`;
+  }
+  return `${id}. Lage ${upper ? 'oben' : 'unten'}`;
+}
 /** Closed hand: one semitone per finger. A backward extension moves only finger 1. */
 export function fingerOffsets(
   id: PositionNumber,

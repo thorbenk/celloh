@@ -11,6 +11,7 @@ test('preferences survive reload and preserve manual spelling when a key is clea
   await page.locator('#key').selectOption({ label: 'G-Dur' });
   if ((await page.locator('#position-options').getAttribute('open')) === null)
     await page.locator('#position-options > summary').click();
+  await page.getByLabel('Namen der Lagen', { exact: true }).selectOption('lower-upper');
   await page.locator('#extension').check();
   if ((await page.locator('#position-options').getAttribute('open')) === null)
     await page.locator('#position-options > summary').click();
@@ -30,6 +31,7 @@ test('preferences survive reload and preserve manual spelling when a key is clea
   await page.locator('#intonation-toggle').click();
   await page.reload();
   await expect(page.locator('#key')).toHaveValue('major:1');
+  await expect(page.locator('#position-naming')).toHaveValue('lower-upper');
   await expect(page.locator('#position-summary')).toContainText('2 oben');
   await expect(page.locator('#position-summary')).toContainText('Streckung');
   for (const id of ['extension', 'position-2-upper', 'to-scale']) {
@@ -51,6 +53,60 @@ test('preferences survive reload and preserve manual spelling when a key is clea
   await page.reload();
   await expect(page.locator('#key')).toHaveValue('');
   await expect(page.locator('#flat')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('position naming translates Wolf, Schmidt and app labels without changing finger placements', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('#position-naming')).toHaveValue('wolf');
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await page.locator('#position-options > summary').click();
+  await page.locator('#position-2-upper').check();
+  await page.locator('#position-3-upper').check();
+  await page.locator('#extension').check();
+  const markers = page.locator('.finger-marker');
+  const coordinates = await markers.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute('cy')),
+  );
+  for (const [system, labels] of [
+    ['wolf', ['1. Lage', '2. Zwischenlage', '2. Lage', '3. Lage', '3. Zwischenlage', '4. Lage']],
+    [
+      'lower-upper',
+      ['1. Lage', '2. Lage unten', '2. Lage oben', '3. Lage unten', '3. Lage oben', '4. Lage'],
+    ],
+    ['schmidt', ['1. Lage', '1,5. Lage', '2. Lage', '2,5. Lage', '3. Lage', '4. Lage']],
+  ] as const) {
+    await page.getByLabel('Namen der Lagen', { exact: true }).selectOption(system);
+    await expect(page.locator('.position-label')).toHaveText([...labels]);
+    for (const label of labels) {
+      await expect(
+        page.getByRole('switch', { name: `${label} anzeigen`, exact: true }),
+      ).toBeChecked();
+      await expect(page.locator('#position-summary')).toContainText(label.replace('. Lage', ''));
+    }
+    expect(
+      await markers.evaluateAll((elements) =>
+        elements.map((element) => element.getAttribute('cy')),
+      ),
+    ).toEqual(coordinates);
+  }
+  await page.locator('.position-comparison > summary').click();
+  const raised = page.getByRole('row', { name: /F–Fis–G–Gis/ });
+  await expect(raised).toContainText('2. Zwischenlage');
+  await expect(raised).toContainText('1,5. Lage');
+  await expect(raised).toContainText('2. Lage unten');
+  await page.reload();
+  await expect(page.locator('#position-naming')).toHaveValue('schmidt');
+  await expect(page.locator('.position-label')).toHaveText([
+    '1. Lage',
+    '1,5. Lage',
+    '2. Lage',
+    '2,5. Lage',
+    '3. Lage',
+    '4. Lage',
+  ]);
+  await expect(page.locator('#extension')).toBeChecked();
 });
 
 test('malformed preferences fall back to defaults and migrate piano visibility', async ({

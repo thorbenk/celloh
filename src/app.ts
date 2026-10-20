@@ -10,13 +10,15 @@ import {
   MINOR_KEYS,
   keyNoteNames,
   POSITIONS,
+  POSITION_NAMINGS,
+  positionName,
   type PositionVariant,
   type Spelling,
   type MidiPitch,
 } from './music';
 import { requireElement } from './view/dom';
 import { FingerboardView } from './view/fingerboard';
-import { mountLayout } from './view/layout';
+import { mountLayout, renderPositionLabels } from './view/layout';
 import { PanelController } from './view/panels';
 import { CompactStaffView, StaffView } from './view/staff';
 import { DraggableNotation } from './view/draggable-notation';
@@ -206,15 +208,17 @@ export class App {
     for (const position of POSITIONS) {
       if (position.id === 2 || position.id === 3) {
         for (const variant of this.model.board.variants[position.id]) {
-          labels.push(`${position.id} ${variant === 'lower' ? 'unten' : 'oben'}`);
+          labels.push(
+            positionName(position.id, variant === 'upper', this.model.board.positionNaming),
+          );
         }
       } else if (this.model.board.visiblePositions.has(position.id)) {
-        labels.push(String(position.id));
+        labels.push(positionName(position.id, false, this.model.board.positionNaming));
       }
     }
     if (this.model.board.extended) labels.push('Streckung');
     requireElement('#position-summary', HTMLSpanElement).textContent =
-      labels.join(' · ') || 'Keine';
+      labels.map((label) => label.replace('. Lage', '')).join(' · ') || 'Keine';
   }
 
   private renderBoard(): void {
@@ -334,6 +338,15 @@ export class App {
       this.model.noteDisplay.naming = naming;
     });
     this.bindChoice(
+      'position-naming',
+      this.model.board.positionNaming,
+      POSITION_NAMINGS,
+      (naming) => {
+        this.model.board.positionNaming = naming;
+        renderPositionLabels(root, naming);
+      },
+    );
+    this.bindChoice(
       'octave-notation',
       this.model.noteDisplay.octaveNotation,
       OCTAVE_NOTATIONS,
@@ -411,7 +424,13 @@ export class App {
   }
   /** Validate DOM strings against domain choices before they reach model or storage. */
   private bindChoice<
-    K extends 'note-naming' | 'octave-notation' | 'key' | 'audio-backend' | 'articulation',
+    K extends
+      | 'note-naming'
+      | 'octave-notation'
+      | 'position-naming'
+      | 'key'
+      | 'audio-backend'
+      | 'articulation',
   >(
     key: K,
     fallback: Preferences[K],
