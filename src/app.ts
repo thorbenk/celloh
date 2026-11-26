@@ -324,6 +324,30 @@ export class App {
     );
   }
   private restoreSettings(root: HTMLElement): void {
+    const themes = ['system', 'light', 'dark'] as const;
+    const theme = requireElement('#theme', HTMLSelectElement, root);
+    const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const applyTheme = () => {
+      document.documentElement.dataset.theme = theme.value;
+      if (themeColor)
+        themeColor.content = getComputedStyle(document.documentElement).backgroundColor;
+    };
+    theme.value = this.settings.choice('theme', 'system', themes);
+    applyTheme();
+    theme.addEventListener(
+      'change',
+      () => {
+        const value = themes.find((choice) => choice === theme.value);
+        if (!value) return;
+        applyTheme();
+        this.settings.set('theme', value);
+      },
+      { signal: this.events.signal },
+    );
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme, {
+      signal: this.events.signal,
+    });
+
     this.model.setSpelling(this.settings.choice('spelling', 'sharp', ['sharp', 'flat']));
     this.bindChoice('audio-backend', 'recordings', ['recordings', 'soundfont'], (backend) => {
       this.stopReplay();

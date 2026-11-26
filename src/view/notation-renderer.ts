@@ -33,7 +33,7 @@ function notationStave(width = 240): Stave {
   const stave = new Stave(9, -5, (width - 36) / 2, {
     left_bar: false,
     right_bar: false,
-    fill_style: '#657166',
+    fill_style: 'var(--staff-line)',
   }).setClef('bass');
   stave.setDefaultLedgerLineStyle({ strokeStyle: 'currentColor', lineWidth: 0.75 });
   return stave;
@@ -211,7 +211,6 @@ export function renderStaff(
     group.setAttribute('data-midi', String(notePitch(current)));
     group.setAttribute('data-value', String(duration.value));
     group.setAttribute('data-dotted', String(duration.dotted));
-    group.setAttribute('color', preview ? '#287665' : '#26382b');
     // Editor hit targets are added to this group; only the musical ink should inherit a stroke.
     group.setAttribute('stroke', 'none');
     const ink = context.openGroup();

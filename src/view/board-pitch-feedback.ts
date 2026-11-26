@@ -25,7 +25,7 @@ export class BoardPitchFeedbackView {
       const indicator = document.createElement('div');
       indicator.className = 'board-pitch-feedback';
       indicator.style.setProperty('--anchor-size', anchor.style.getPropertyValue('--note-size'));
-      indicator.innerHTML = `<svg class="board-pitch-trace" width="116" height="66" viewBox="0 0 116 44" preserveAspectRatio="none" role="img" aria-label="Tonhöhenverlauf der letzten Sekunde, plus/minus 50 Cent"><rect x="14" y="18" width="58" height="8" fill="#287665" opacity="0.08"/><path class="pitch-trace-zero" d="M14 22H116" fill="none" stroke="#737a70" stroke-width="1.2"/><path class="pitch-trace-line" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="board-pitch-symbol"><svg class="board-pitch-arrow" width="20" height="44" viewBox="0 0 20 44" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg><span class="board-pitch-dot" aria-hidden="true"></span></span><span class="board-pitch-cents"></span><span class="board-pitch-unit">Cent</span>`;
+      indicator.innerHTML = `<svg class="board-pitch-trace" width="116" height="66" viewBox="0 0 116 44" preserveAspectRatio="none" role="img" aria-label="Tonhöhenverlauf der letzten Sekunde, plus/minus 50 Cent"><rect x="14" y="18" width="58" height="8" fill="var(--green)" opacity="0.08"/><path class="pitch-trace-zero" d="M14 22H116" fill="none" stroke="var(--muted)" stroke-width="1.2"/><path class="pitch-trace-line" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="board-pitch-symbol"><svg class="board-pitch-arrow" width="20" height="44" viewBox="0 0 20 44" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg><span class="board-pitch-dot" aria-hidden="true"></span></span><span class="board-pitch-cents"></span><span class="board-pitch-unit">Cent</span>`;
       anchor.after(indicator);
       return indicator;
     });
@@ -81,7 +81,7 @@ export class BoardPitchFeedbackView {
       indicator.dataset.direction = direction;
       indicator.style.setProperty(
         '--pitch-color',
-        `hsl(${hue} ${50 + progress * 20}% ${32 + progress * 12}%)`,
+        `light-dark(hsl(${hue} ${50 + progress * 20}% ${32 + progress * 12}%), hsl(${hue} 62% 73%))`,
       );
       requireElement('.board-pitch-arrow path', SVGElement, indicator).setAttribute(
         'd',
