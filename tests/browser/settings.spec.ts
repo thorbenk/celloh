@@ -1,5 +1,34 @@
 import { expect, test } from '@playwright/test';
 
+test('appearance follows the system unless a saved theme overrides it', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/');
+  const theme = page.getByRole('combobox', { name: 'Design' });
+  const root = page.locator('html');
+  const dark = 'rgb(24, 33, 28)';
+  const light = 'rgb(248, 245, 239)';
+
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await expect(theme).toHaveValue('system');
+  await expect(root).toHaveCSS('background-color', dark);
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(root).toHaveCSS('background-color', light);
+
+  await theme.selectOption({ label: 'Dunkel' });
+  await expect(root).toHaveCSS('background-color', dark);
+  await page.reload();
+  await expect(root).toHaveCSS('background-color', dark);
+
+  await page.getByRole('button', { name: 'Einstellungen öffnen' }).click();
+  await expect(theme).toHaveValue('dark');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await theme.selectOption({ label: 'Hell' });
+  await expect(root).toHaveCSS('background-color', light);
+  await theme.selectOption({ label: 'System' });
+  await expect(root).toHaveCSS('background-color', dark);
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', dark);
+});
+
 test('preferences survive reload and preserve manual spelling when a key is cleared', async ({
   page,
 }) => {

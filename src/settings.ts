@@ -10,6 +10,7 @@ import {
 } from './music';
 
 export interface Preferences {
+  theme: 'system' | 'light' | 'dark';
   spelling: Spelling;
   key: KeyId | '';
   'note-naming': NoteNaming;

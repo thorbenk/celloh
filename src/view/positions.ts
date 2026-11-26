@@ -82,10 +82,10 @@ function bracketMarkup(
     `;
   }
   return `
-    <g class="position-overlay" data-position="${position.id}" data-variant="${variant}" stroke="${position.color}" fill="none" stroke-width="${BRACKET_STROKE_WIDTH}">
+    <g class="position-overlay" data-position="${position.id}" data-variant="${variant}" style="--position-color: ${position.color}" fill="none" stroke-width="${BRACKET_STROKE_WIDTH}">
       <path class="position-bracket" d="M${capX},${start} H${x} V${end} H${capX}"/>
       ${extension}
-      <text class="position-label" transform="translate(${labelX} ${(start + end) / 2}) rotate(${rotation})" text-anchor="middle" stroke="none" fill="${position.color}">${label}</text>
+      <text class="position-label" transform="translate(${labelX} ${(start + end) / 2}) rotate(${rotation})" text-anchor="middle" stroke="none">${label}</text>
       ${fingers.map((offset, index) => fingerMarkup(offset, index + 1, fingerX, position.color, settings)).join('')}
     </g>
   `;
